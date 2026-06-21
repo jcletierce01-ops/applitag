@@ -1,0 +1,14 @@
+✅ Parfait — l'admin est créé :
+
+- **Entreprise :** `c1b035b8-c2d5-4b84-a07e-2a3d503fb96c`
+- **Utilisateur :** Jean-Christophe / Admin
+- **PIN :** hashé en base (`$2b$10$...`) ✅
+- **Rôle :** admin
+
+Testez le login :
+
+```powershell
+curl -X POST https://applitag-api-production.up.railway.app/auth/login -H "Content-Type: application/json" -d "{\"entrepriseId\":\"c1b035b8-c2d5-4b84-a07e-2a3d503fb96c\",\"pin\":\"1406\"}"
+```
+
+Ça doit retourner un `access_token` JWT.

@@ -1,0 +1,64 @@
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  font-size: 16px;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Adapte la largeur sur mobile */
+#root {
+  width: 100%;
+  max-width: 100vw;
+  overflow-x: hidden;
+}
+
+/* Boutons plus grands sur mobile */
+@media (max-width: 768px) {
+  button {
+    min-height: 44px;
+    font-size: 16px !important;
+  }
+
+  input, select, textarea {
+    font-size: 16px !important;
+    min-height: 44px;
+  }
+
+  /* Grille en 2 colonnes sur mobile */
+  div[style*="grid-template-columns"] {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+
+  /* Texte lisible sur petit écran */
+  div[style*="font-size:28px"],
+  div[style*="font-size: 28px"] {
+    font-size: 20px !important;
+  }
+
+  div[style*="font-size:32px"],
+  div[style*="font-size: 32px"] {
+    font-size: 22px !important;
+  }
+
+  /* Padding adapté */
+  div[style*="padding:24px"],
+  div[style*="padding: 24px"] {
+    padding: 14px !important;
+  }
+}
+
+/* Scrolling fluide sur iOS */
+* {
+  -webkit-overflow-scrolling: touch;
+}

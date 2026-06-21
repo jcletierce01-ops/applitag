@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<body>
+<canvas id="c192" width="192" height="192"></canvas>
+<canvas id="c512" width="512" height="512"></canvas>
+<script>
+function drawIcon(canvas) {
+  const ctx = canvas.getContext('2d');
+  const s = canvas.width;
+  // Fond vert
+  ctx.fillStyle = '#1D9E75';
+  ctx.beginPath();
+  ctx.roundRect(0, 0, s, s, s*0.2);
+  ctx.fill();
+  // Arbre
+  ctx.fillStyle = '#ffffff';
+  const cx = s/2, cy = s/2;
+  // Triangle haut
+  ctx.beginPath();
+  ctx.moveTo(cx, cy*0.25);
+  ctx.lineTo(cx*0.35, cy*0.85);
+  ctx.lineTo(cx*1.65, cy*0.85);
+  ctx.closePath();
+  ctx.fill();
+  // Triangle milieu
+  ctx.beginPath();
+  ctx.moveTo(cx, cy*0.45);
+  ctx.lineTo(cx*0.25, cy*1.1);
+  ctx.lineTo(cx*1.75, cy*1.1);
+  ctx.closePath();
+  ctx.fill();
+  // Tronc
+  ctx.fillRect(cx*0.85, cy*1.1, cx*0.3, cy*0.4);
+  // Télécharger
+  const link = document.createElement('a');
+  link.download = `icon-${s}.png`;
+  link.href = canvas.toDataURL();
+  link.click();
+}
+drawIcon(document.getElementById('c192'));
+setTimeout(()=>drawIcon(document.getElementById('c512')), 500);
+</script>
+</body>
+</html>
