@@ -2810,11 +2810,30 @@ const Fiche0Edit = ({contact, onBack, onSaved, toast, user, onLaunchVisite, onLa
 };
 
 // ── ÉCRAN OPÉRATEUR TERRAIN ───────────────────────────────────
+// Statuts à partir desquels la clôture d'exploitation a eu lieu — au-delà,
+// la saisie de relevé terrain n'est plus pertinente pour l'opérateur.
+const STATUTS_CLOTURES = ["BORD_ROUTE","A_DECHIQUETER","EN_COURS_BROYAGE","EN_LIVRAISON","LIVRE_CHAUFFERIE"];
+
 const EcranOperateur = ({operateur, onLogout, toast}) => {
   const [screen, setScreen] = useState("lots"); // lots | releve
   const [activeLot, setActiveLot] = useState(null);
   const [typeOp, setTypeOp] = useState(null);
   const [saving, setSaving] = useState(false);
+  const [lotsStatus, setLotsStatus] = useState({}); // {lotId: statutLot} — rafraîchi depuis le serveur
+
+  // Rafraîchit le statut réel des lots assignés, pour ne jamais bloquer
+  // l'accès à la saisie tant que la clôture n'a pas eu lieu (et le couper après).
+  useEffect(()=>{
+    fetch(`${API}/contacts`)
+      .then(r=>r.json())
+      .then(d=>{
+        if (!Array.isArray(d)) return;
+        const map = {};
+        d.forEach(c=>{ map[c.id]=c.statutLot; });
+        setLotsStatus(map);
+      })
+      .catch(()=>{}); // échec réseau → on n'affiche aucun statut, l'accès reste ouvert
+  },[]);
 
   // Indices essences (source: Forêts Romandes / ITEBE 2004)
   const INDICES = {
@@ -3009,7 +3028,10 @@ const EcranOperateur = ({operateur, onLogout, toast}) => {
                 <div style={{fontSize:16,fontWeight:500}}>Aucun lot assigné</div>
                 <div style={{fontSize:13,marginTop:6}}>Contactez votre administrateur</div>
               </div>
-            ) : assignations.map(a=>(
+            ) : assignations.map(a=>{
+              const statut = lotsStatus[a.lotId]||lotsStatus[a.id];
+              const cloture = statut && STATUTS_CLOTURES.includes(statut);
+              return (
               <div key={a.id} style={{background:"#fff",border:`1px solid ${C.bd}`,
                 borderRadius:14,padding:16,marginBottom:10}}>
                 <div style={{fontFamily:"monospace",fontSize:13,fontWeight:700,
@@ -3017,15 +3039,24 @@ const EcranOperateur = ({operateur, onLogout, toast}) => {
                 <div style={{fontSize:12,color:C.tx3,marginBottom:12}}>
                   {{"abattage":"🪓 Abattage","debardage":"🚜 Débardage","broyage":"🌿 Broyage"}[a.typeOperation]||a.typeOperation}
                 </div>
+                {cloture ? (
+                  <div style={{width:"100%",height:44,borderRadius:10,
+                    background:C.bg2,color:C.tx3,display:"flex",alignItems:"center",
+                    justifyContent:"center",fontSize:13,fontWeight:600}}>
+                    ✅ Réception de fin d'exploitation effectuée
+                  </div>
+                ) : (
                 <button onClick={()=>{ setActiveLot(a); setTypeOp(a.typeOperation); setScreen("releve"); }}
                   style={{width:"100%",height:44,borderRadius:10,
                     background:C.green,color:"#fff",border:"none",
                     fontFamily:"inherit",fontSize:14,fontWeight:600,cursor:"pointer",
                     WebkitTapHighlightColor:"transparent"}}>
-                  ➕ Saisir un relevé
+                  ➕ Saisir mon rapport journalier
                 </button>
+                )}
               </div>
-            ))}
+              );
+            })}
           </div>
         )}
 
@@ -7719,7 +7750,12 @@ export default function App() {
           <EcranClotureExploitation
             lot={activeContact}
             onBack={()=>setScreen("fiche-lot")}
-            onSaved={()=>{ setScreen("fiche-lot"); toast("Clôture enregistrée ✓"); }}
+            onSaved={()=>{
+              setContacts(prev=>prev.map(c=>c.id===activeContact.id?{...c,statutLot:"BORD_ROUTE"}:c));
+              setActiveContact(prev=>prev?{...prev,statutLot:"BORD_ROUTE"}:prev);
+              setScreen("fiche-lot");
+              toast("Réception de fin d'exploitation enregistrée ✓");
+            }}
             toast={toast}
             entrepriseId={entrepriseId}/>
         )}
