@@ -2193,6 +2193,11 @@ const EcranReleves = ({entrepriseId, user, toast, notifications=[], setNotificat
   const [typeOperation, setTypeOperation] = useState("abattage");
   const [accesSaving, setAccesSaving] = useState(false);
 
+  // Lots déjà assignés à un opérateur (tous opérateurs confondus) — à exclure du menu d'assignation
+  const lotsDejaAssignes = new Set(
+    operateurs.flatMap(op=>(op.assignations||[]).map(a=>a.lotId))
+  );
+
   useEffect(()=>{
     fetch(`${API}/operateurs/entreprise/${entrepriseId}`,{headers:authHeaders()})
       .then(r=>r.json()).then(d=>{ if(Array.isArray(d)) setOperateurs(d); }).catch(()=>{});
@@ -2303,7 +2308,7 @@ const EcranReleves = ({entrepriseId, user, toast, notifications=[], setNotificat
                     border:`1.5px solid ${C.bd}`,fontSize:FONT_INPUT,fontFamily:"inherit",
                     background:"#fff",color:C.tx,outline:"none"}}>
                     <option value="">— Sélectionner un lot —</option>
-                    {contacts.filter(c=>c.lotNumero).map(c=>(
+                    {contacts.filter(c=>c.lotNumero && !lotsDejaAssignes.has(c.id)).map(c=>(
                       <option key={c.id} value={c.id}>{c.lotNumero} · {c.nom} · {c.commune}</option>
                     ))}
                   </select>
