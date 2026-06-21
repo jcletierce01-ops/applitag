@@ -1303,6 +1303,7 @@ const FormulaireVisite = ({lot, onBack, onSaved, toast, entrepriseId}) => {
   const [volumeT,  setVolumeT] = useState(0);
   const [modeVolume, setModeVolume] = useState("manuel"); // manuel | slider | parha
   const [popParHa, setPopParHa] = useState("");
+  const [diametreMoyen, setDiametreMoyen] = useState(""); // diamètre moyen à 1,20 m, en cm
   const [surfaceHa,setSurface] = useState(lot.surfaceHa||5);
   const [dateLimite,setDateL]  = useState("");
   const [observations,setObs]  = useState("");
@@ -1365,6 +1366,7 @@ const FormulaireVisite = ({lot, onBack, onSaved, toast, entrepriseId}) => {
         if (draft.dateLimite) setDateL(draft.dateLimite);
         if (draft.observations) setObs(draft.observations);
         if (draft.prixTonne) setPrixTonne(draft.prixTonne);
+        if (draft.diametreMoyen) setDiametreMoyen(draft.diametreMoyen);
         if (draft.contraintes) setCont(draft.contraintes);
         if (draft.accesCamion) setAcces(draft.accesCamion);
       }
@@ -1376,13 +1378,13 @@ const FormulaireVisite = ({lot, onBack, onSaved, toast, entrepriseId}) => {
     try {
       localStorage.setItem(DRAFT_KEY+lot.id, JSON.stringify({
         gps, essences, volumeT, surfaceHa, dateLimite, observations,
-        prixTonne, tauxTVA, acompte, delaiSolde, modeReglement,
+        prixTonne, diametreMoyen, tauxTVA, acompte, delaiSolde, modeReglement,
         iban, swift, nomBanque, villeBanque,
         contraintes, accesCamion, step,
       }));
     } catch {}
   },[gps, essences, volumeT, surfaceHa, dateLimite, observations,
-     prixTonne, contraintes, accesCamion, step]);
+     prixTonne, diametreMoyen, contraintes, accesCamion, step]);
 
   // Recalcul du volume estimé si la surface change en mode "par ha"
   useEffect(()=>{
@@ -1433,6 +1435,7 @@ const FormulaireVisite = ({lot, onBack, onSaved, toast, entrepriseId}) => {
       lotId: lot.id, lotNumero: lot.lotNumero||lot.numero,
       date: todayS(), gps, photos, essences,
       volumeEstimeT: volumeT, surfaceHa, dateLimite, observations,
+      diametreMoyen,
       prixTonne, tauxTVA, acompte, delaiSolde, modeReglement,
       iban, swift, nomBanque, villeBanque,
       sigProprio, sigExploit, nomSignProprio, nomSignExploit,
@@ -1554,6 +1557,8 @@ const FormulaireVisite = ({lot, onBack, onSaved, toast, entrepriseId}) => {
                 <div style={{fontSize:12,color:C.tx3,marginBottom:14,marginTop:-6}}>
                   = {volumeT>0?`${volumeT} t`:"—"} volume estimé total
                 </div>
+                <MInput label="Diamètre moyen à 1,20 m (cm)" value={diametreMoyen}
+                  onChange={setDiametreMoyen} type="number" placeholder="ex: 35" hint="saisie en centimètres"/>
               </>
             )}
 
