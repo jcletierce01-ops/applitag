@@ -28,6 +28,12 @@ const PADDING = 16;
 const uid = () => Math.random().toString(36).slice(2,9);
 const nowISO = () => new Date().toISOString();
 const todayS = () => new Date().toISOString().slice(0,10);
+// Formate un nombre avec séparateur de milliers (espace) et virgule décimale
+const fmtNum = (n, decimals=0) => {
+  const num = parseFloat(n);
+  if (isNaN(num)) return n;
+  return num.toLocaleString("fr-FR", {minimumFractionDigits:decimals, maximumFractionDigits:decimals});
+};
 
 const genLotNumero = (codePostal, seq) => {
   const now = new Date();
@@ -886,6 +892,8 @@ const Fiche0 = ({onBack, onSaved, toast, contactCount, entrepriseId}) => {
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const saved = await res.json();
       toast(`Fiche créée — ${lotNumero}`);
+      const html = buildCompteRenduContactHTML(saved);
+      generatePdfFromHtml(html, `CompteRenduContact_${lotNumero}.pdf`, toast);
       onSaved(saved);
     } catch(e) {
       toast("Erreur API","warn");
@@ -1576,7 +1584,7 @@ const FormulaireVisite = ({lot, onBack, onSaved, toast, entrepriseId}) => {
                   }}
                   type="number" placeholder="ex: 35" hint="saisie en centimètres"/>
                 <div style={{fontSize:12,color:C.tx3,marginBottom:14,marginTop:-6}}>
-                  = {volumeT>0?`${volumeT} t`:"—"} volume estimé total
+                  = {volumeT>0?`${fmtNum(volumeT)} t`:"—"} volume estimé total
                 </div>
               </>
             )}
@@ -1590,9 +1598,9 @@ const FormulaireVisite = ({lot, onBack, onSaved, toast, entrepriseId}) => {
                 </div>
                 <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8}}>
                   {[
-                    [volumeT+" t","Tonnage estimé"],
-                    [(volumeT/indices.foisonnement).toFixed(0)+" m³","Volume bois"],
-                    [(volumeT*indices.pci/1000).toFixed(1)+" MWh","Énergie PCI"],
+                    [fmtNum(volumeT)+" t","Tonnage estimé"],
+                    [fmtNum(volumeT/indices.foisonnement)+" m³","Volume bois"],
+                    [fmtNum(volumeT*indices.pci/1000,1)+" MWh","Énergie PCI"],
                   ].map(([v,l],i)=>(
                     <div key={i} style={{textAlign:"center",background:"rgba(186,117,23,.1)",
                       borderRadius:8,padding:8}}>
@@ -1642,9 +1650,9 @@ const FormulaireVisite = ({lot, onBack, onSaved, toast, entrepriseId}) => {
                   </div>
                   <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8}}>
                     {[
-                      [ht.toFixed(2)+" €","Total HT"],
-                      [tva.toFixed(2)+" €",`TVA ${tauxTVA||20}%`],
-                      [ttc.toFixed(2)+" €","Total TTC"],
+                      [fmtNum(ht,2)+" €","Total HT"],
+                      [fmtNum(tva,2)+" €",`TVA ${tauxTVA||20}%`],
+                      [fmtNum(ttc,2)+" €","Total TTC"],
                     ].map(([v,l],i)=>(
                       <div key={i} style={{textAlign:"center",
                         background:"rgba(29,158,117,.1)",borderRadius:8,padding:8}}>
@@ -1681,7 +1689,7 @@ const FormulaireVisite = ({lot, onBack, onSaved, toast, entrepriseId}) => {
             {acompte&&prixTonne&&volumeT>0&&(
               <div style={{background:C.blueL,borderRadius:10,padding:12,marginBottom:14,
                 border:`1px solid ${C.blue}`,fontSize:12,color:C.blueD}}>
-                Acompte : {acompte} € · Solde : {Math.max(0,volumeT*parseFloat(prixTonne)*(1+parseFloat(tauxTVA||20)/100)-parseFloat(acompte)).toFixed(2)} € ({delaiSolde})
+                Acompte : {fmtNum(acompte,2)} € · Solde : {fmtNum(Math.max(0,volumeT*parseFloat(prixTonne)*(1+parseFloat(tauxTVA||20)/100)-parseFloat(acompte)),2)} € ({delaiSolde})
               </div>
             )}
 
@@ -1853,7 +1861,7 @@ const FormulaireVisite = ({lot, onBack, onSaved, toast, entrepriseId}) => {
             <div style={{background:C.purpleL,borderRadius:10,padding:10,marginBottom:14,
               textAlign:"center",border:`1px solid ${C.purple}`}}>
               <span style={{fontSize:13,fontWeight:600,color:C.purpleD}}>
-                Surface : {(platLargeur*platLongueur).toFixed(0)} m²
+                Surface : {fmtNum(platLargeur*platLongueur)} m²
               </span>
             </div>
 
@@ -2197,7 +2205,7 @@ const ListeVisites = ({visites}) => (
             background:C.greenL,color:C.greenD,fontWeight:500}}>✅ Validée</div>
         </div>
         <div style={{fontSize:12,color:C.tx3,lineHeight:1.7}}>
-          📅 {v.date} · 📦 {v.volumeEstimeT}t · {v.surfaceHa}ha<br/>
+          📅 {v.date} · 📦 {fmtNum(v.volumeEstimeT)}t · {v.surfaceHa}ha<br/>
           🚛 Accès {v.accesCamion}
           {Array.isArray(v.photos)&&v.photos.length>0&&
             <span> · 📷 {v.photos.length} photo{v.photos.length>1?"s":""}</span>}
@@ -3636,12 +3644,12 @@ const EcranLots = ({contacts, onNewLot, onOpenLot, filtreInitial="TOUS"}) => {
                 📍 {c.commune}{c.surfaceHa?` · 🌲 ${c.surfaceHa} ha`:""}
                 {c.tonnageCumul>0&&(
                   <span style={{marginLeft:8,color:C.amberD,fontWeight:600}}>
-                    · ⚖️ {parseFloat(c.tonnageCumul).toFixed(1)} t abattu
+                    · ⚖️ {fmtNum(c.tonnageCumul,1)} t abattu
                   </span>
                 )}
                 {c.tonnageBordRoute>0&&(
                   <span style={{marginLeft:8,color:"#8B6914",fontWeight:600}}>
-                    · 🌲 {parseFloat(c.tonnageBordRoute).toFixed(1)} t bord route
+                    · 🌲 {fmtNum(c.tonnageBordRoute,1)} t bord route
                   </span>
                 )}
               </div>
@@ -3918,10 +3926,10 @@ const TasDimensionsInput = ({nbTas, foisonnement, onFoisonnementChange, essence=
           </div>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:10}}>
             {[
-              [volApparent.toFixed(1)+" m³","Volume apparent"],
-              [volReel.toFixed(1)+" m³","Volume réel"],
-              [tonnage.toFixed(1)+" t","Tonnage estimé"],
-              [energie.toFixed(1)+" MWh","Énergie PCI"],
+              [fmtNum(volApparent,1)+" m³","Volume apparent"],
+              [fmtNum(volReel,1)+" m³","Volume réel"],
+              [fmtNum(tonnage,1)+" t","Tonnage estimé"],
+              [fmtNum(energie,1)+" MWh","Énergie PCI"],
             ].map(([v,l],i)=>(
               <div key={i} style={{textAlign:"center",
                 background:"rgba(186,117,23,.12)",borderRadius:8,padding:8}}>
@@ -4431,21 +4439,249 @@ const EcranClotureExploitation = ({lot, onBack, onSaved, toast, entrepriseId}) =
   );
 };
 
-// ── BON DE COMMANDE PDF ───────────────────────────────────────
-const buildBonCommandeHTML = (lot, visite, extra) => {
-  const {prixUnitaire,nomDO,qualiteDO,dateSign,conditionsParticulieres,entrepriseDO,
-    sigDataProprio,sigDataExploit,nomSignProprio,nomSignExploit} = extra;
-  const volumeT = visite?.volumeEstimeT || lot.volumeEstime || "—";
-  const prixNum = parseFloat(prixUnitaire)||0;
-  const totalHT = prixNum&&volumeT&&volumeT!=="—" ? (prixNum*parseFloat(volumeT)).toFixed(2) : null;
-  const essStr = visite?.essences?.map(e=>`${e.label} (${e.pct}%)`).join(", ") || lot.potentiel || "—";
-  const certBadge = visite?.certification&&visite.certification!=="aucune"
-    ? `<span class="cert-badge">${visite.certification.toUpperCase()}</span>` : "";
+// ── GÉNÉRATION PDF GÉNÉRIQUE (jsPDF + html2canvas via CDN) ────
+const generatePdfFromHtml = (htmlContent, filename, toast, onDone) => {
+  const finish = () => onDone&&onDone();
+
+  const fallbackPrint = () => {
+    const blob = new Blob([htmlContent],{type:"text/html"});
+    const url = URL.createObjectURL(blob);
+    const win = window.open(url,"_blank");
+    if (win) { setTimeout(()=>{ win.print(); URL.revokeObjectURL(url); }, 600); }
+    else { toast("Autorisez les pop-ups pour générer le PDF","warn"); }
+    finish();
+  };
+
+  const renderPdf = () => {
+    try {
+      const iframe = document.createElement("iframe");
+      iframe.style.cssText = "position:fixed;top:-9999px;left:-9999px;width:794px;height:1123px;border:none;";
+      document.body.appendChild(iframe);
+      iframe.contentDocument.open();
+      iframe.contentDocument.write(htmlContent);
+      iframe.contentDocument.close();
+
+      setTimeout(() => {
+        window.html2canvas(iframe.contentDocument.body, {
+          scale:2, useCORS:true, allowTaint:true,
+          width:794, height:1123,
+        }).then(canvas => {
+          const { jsPDF } = window.jspdf;
+          const pdf = new jsPDF("p","mm","a4");
+          const imgData = canvas.toDataURL("image/jpeg",0.95);
+          pdf.addImage(imgData,"JPEG",0,0,210,297);
+          pdf.save(filename);
+          document.body.removeChild(iframe);
+          toast("PDF téléchargé ✓");
+          finish();
+        }).catch(()=>{ document.body.removeChild(iframe); fallbackPrint(); });
+      }, 800);
+    } catch { fallbackPrint(); }
+  };
+
+  if (window.jspdf && window.html2canvas) {
+    renderPdf();
+  } else {
+    const sc = document.createElement("script");
+    sc.src = "https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js";
+    sc.onload = () => {
+      const sc2 = document.createElement("script");
+      sc2.src = "https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js";
+      sc2.onload = renderPdf;
+      sc2.onerror = fallbackPrint;
+      document.head.appendChild(sc2);
+    };
+    sc.onerror = fallbackPrint;
+    document.head.appendChild(sc);
+  }
+};
+
+// ── COMPTE RENDU DE CONTACT PDF ───────────────────────────────
+const buildCompteRenduContactHTML = (contact) => {
+  const typeLabel = TYPE_CONTACT_OPTS.find(([v])=>v===contact.typeContact)?.[2] || contact.typeContact || "—";
+  const origineLabel = ORIGINE_OPTS.find(([v])=>v===contact.origine)?.[2] || contact.origine || "—";
+  const ressourceLabel = TYPE_RESSOURCE_OPTS.find(([v])=>v===contact.potentiel)?.[2] || contact.potentiel || "—";
 
   return `<!DOCTYPE html><html lang="fr">
 <head>
 <meta charset="UTF-8">
-<title>Bon de commande ${lot.lotNumero||""}</title>
+<title>Compte rendu de contact ${contact.lotNumero||""}</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:Arial,Helvetica,sans-serif;font-size:11px;color:#1A1A18;background:#fff}
+.page{width:210mm;min-height:297mm;padding:14mm 16mm;margin:0 auto}
+.header{display:flex;justify-content:space-between;align-items:flex-start;
+  border-bottom:2.5px solid #1D9E75;padding-bottom:14px;margin-bottom:18px}
+.logo h1{font-size:22px;font-weight:700;color:#085041;letter-spacing:-0.5px}
+.logo p{font-size:9px;color:#9A9892;margin-top:3px}
+.doc-ref{text-align:right}
+.doc-ref h2{font-size:17px;font-weight:700;color:#1A1A18;text-transform:uppercase}
+.doc-ref .num{font-family:monospace;font-size:14px;color:#085041;margin-top:4px}
+.doc-ref .dt{font-size:9px;color:#9A9892;margin-top:3px}
+.sec{margin-bottom:16px}
+.sec h3{font-size:10px;font-weight:700;color:#085041;text-transform:uppercase;
+  letter-spacing:.5px;border-bottom:1px solid #DDDBD5;padding-bottom:5px;margin-bottom:10px}
+table{width:100%;border-collapse:collapse;margin-bottom:14px}
+td{padding:7px 10px;border-bottom:1px solid #ECEAE6;font-size:10.5px}
+td.k{color:#5A5955;width:40%}
+td.v{font-weight:600}
+.note{background:#F5F4F1;border-radius:5px;padding:9px 12px;font-size:10px;
+  color:#1A1A18;line-height:1.7;margin-bottom:14px;min-height:40px}
+.footer{margin-top:30px;padding-top:12px;border-top:1px solid #DDDBD5;
+  font-size:8.5px;color:#9A9892;text-align:center;line-height:1.6}
+@media print{
+  body{print-color-adjust:exact;-webkit-print-color-adjust:exact}
+  @page{size:A4;margin:0}
+  .page{padding:12mm 14mm}
+}
+</style>
+</head>
+<body><div class="page">
+
+<div class="header">
+  <div class="logo">
+    <h1>🌲 APPLITAG</h1>
+    <p>Gestion forestière terrain</p>
+  </div>
+  <div class="doc-ref">
+    <h2>Compte rendu de contact</h2>
+    <div class="num">${contact.lotNumero||"BROUILLON"}</div>
+    <div class="dt">Émis le ${new Date().toLocaleDateString("fr-FR",{day:"2-digit",month:"long",year:"numeric"})}</div>
+  </div>
+</div>
+
+<div class="sec">
+  <h3>📡 Origine du contact</h3>
+  <table>
+    <tr><td class="k">Source</td><td class="v">${origineLabel}</td></tr>
+    <tr><td class="k">Apporteur</td><td class="v">${contact.nomApporteur||"—"}</td></tr>
+    <tr><td class="k">Date du contact</td><td class="v">${contact.dateContact||"—"}</td></tr>
+  </table>
+</div>
+
+<div class="sec">
+  <h3>👤 Contact</h3>
+  <table>
+    <tr><td class="k">Nom / Type</td><td class="v">${contact.nom||""} ${contact.prenom||""} — ${typeLabel}</td></tr>
+    <tr><td class="k">Téléphone</td><td class="v">${contact.telephone||"—"}</td></tr>
+    <tr><td class="k">Email</td><td class="v">${contact.email||"—"}</td></tr>
+    <tr><td class="k">Adresse</td><td class="v">${contact.adressePostale||"—"}</td></tr>
+  </table>
+</div>
+
+<div class="sec">
+  <h3>🌲 Parcelle</h3>
+  <table>
+    <tr><td class="k">N° lot</td><td class="v">${contact.lotNumero||"—"}</td></tr>
+    <tr><td class="k">Commune</td><td class="v">${contact.commune||"—"}</td></tr>
+    <tr><td class="k">Adresse parcelle</td><td class="v">${contact.adresseParcelle||"—"}</td></tr>
+    <tr><td class="k">Référence cadastrale</td><td class="v">${contact.refCadastrale||"—"}</td></tr>
+    <tr><td class="k">Surface</td><td class="v">${contact.surfaceHa?contact.surfaceHa+" ha":"—"}</td></tr>
+    <tr><td class="k">Type de ressource</td><td class="v">${ressourceLabel}</td></tr>
+  </table>
+</div>
+
+<div class="sec">
+  <h3>📝 Commentaire</h3>
+  <div class="note">${contact.commentaire||"—"}</div>
+</div>
+
+<div class="footer">
+  Document généré automatiquement par APPLITAG à la création de la fiche contact.
+</div>
+
+</div></body></html>`;
+};
+
+// ── DOCUMENT GÉNÉRIQUE (PV visite, ordres, CMR, bon de livraison…) ─
+const buildSimpleDocHTML = (lot, title, sections, footerNote) => {
+  const sectionsHtml = sections.map(s=>`
+<div class="sec">
+  <h3>${s.icon} ${s.label}</h3>
+  <table>
+    ${s.rows.map(([k,v])=>`<tr><td class="k">${k}</td><td class="v">${v??"—"}</td></tr>`).join("")}
+  </table>
+</div>`).join("");
+
+  return `<!DOCTYPE html><html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>${title} ${lot.lotNumero||""}</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:Arial,Helvetica,sans-serif;font-size:11px;color:#1A1A18;background:#fff}
+.page{width:210mm;min-height:297mm;padding:14mm 16mm;margin:0 auto}
+.header{display:flex;justify-content:space-between;align-items:flex-start;
+  border-bottom:2.5px solid #1D9E75;padding-bottom:14px;margin-bottom:18px}
+.logo h1{font-size:22px;font-weight:700;color:#085041;letter-spacing:-0.5px}
+.logo p{font-size:9px;color:#9A9892;margin-top:3px}
+.doc-ref{text-align:right}
+.doc-ref h2{font-size:17px;font-weight:700;color:#1A1A18;text-transform:uppercase}
+.doc-ref .num{font-family:monospace;font-size:14px;color:#085041;margin-top:4px}
+.doc-ref .dt{font-size:9px;color:#9A9892;margin-top:3px}
+.sec{margin-bottom:16px}
+.sec h3{font-size:10px;font-weight:700;color:#085041;text-transform:uppercase;
+  letter-spacing:.5px;border-bottom:1px solid #DDDBD5;padding-bottom:5px;margin-bottom:10px}
+table{width:100%;border-collapse:collapse;margin-bottom:14px}
+td{padding:7px 10px;border-bottom:1px solid #ECEAE6;font-size:10.5px}
+td.k{color:#5A5955;width:40%}
+td.v{font-weight:600}
+.footer{margin-top:30px;padding-top:12px;border-top:1px solid #DDDBD5;
+  font-size:8.5px;color:#9A9892;text-align:center;line-height:1.6}
+@media print{
+  body{print-color-adjust:exact;-webkit-print-color-adjust:exact}
+  @page{size:A4;margin:0}
+  .page{padding:12mm 14mm}
+}
+</style>
+</head>
+<body><div class="page">
+
+<div class="header">
+  <div class="logo">
+    <h1>🌲 APPLITAG</h1>
+    <p>Gestion forestière terrain</p>
+  </div>
+  <div class="doc-ref">
+    <h2>${title}</h2>
+    <div class="num">${lot.lotNumero||"BROUILLON"}</div>
+    <div class="dt">Émis le ${new Date().toLocaleDateString("fr-FR",{day:"2-digit",month:"long",year:"numeric"})}</div>
+  </div>
+</div>
+
+${sectionsHtml}
+
+<div class="footer">${footerNote||"Document généré automatiquement par APPLITAG."}</div>
+
+</div></body></html>`;
+};
+
+// ── BON DE COMMANDE PDF ───────────────────────────────────────
+const TYPE_TRAVAUX_OPTS = {
+  abattage_debardage:   "Abattage et débardage",
+  dechiquetage:         "Déchiquetage",
+  abattage_manuel:      "Abattage manuel",
+  faconnage_manuel:     "Façonnage manuel",
+  nettoyage_plateforme: "Nettoyage de plateforme",
+  main_oeuvre:          "Main d'œuvre",
+  autre:                "Autre",
+};
+
+const buildBonCommandeHTML = (lot, visite, extra) => {
+  const {prixUnitaire,typeTravaux,nomDO,qualiteDO,dateSign,conditionsParticulieres,entrepriseDO,
+    sigDataProprio,sigDataExploit,nomSignProprio,nomSignExploit} = extra;
+  const volumeT = visite?.volumeEstimeT || lot.volumeEstime || "—";
+  const prixNum = parseFloat(prixUnitaire)||0;
+  const totalHT = prixNum&&volumeT&&volumeT!=="—" ? fmtNum(prixNum*parseFloat(volumeT),2) : null;
+  const essStr = visite?.essences?.map(e=>`${e.label} (${e.pct}%)`).join(", ") || lot.potentiel || "—";
+  const certBadge = visite?.certification&&visite.certification!=="aucune"
+    ? `<span class="cert-badge">${visite.certification.toUpperCase()}</span>` : "";
+  const designation = TYPE_TRAVAUX_OPTS[typeTravaux] || "À préciser";
+
+  return `<!DOCTYPE html><html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Bon de commande de travaux ${lot.lotNumero||""}</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:Arial,Helvetica,sans-serif;font-size:11px;color:#1A1A18;background:#fff}
@@ -4503,7 +4739,7 @@ td{padding:7px 10px;border-bottom:1px solid #ECEAE6;font-size:10.5px}
     <p>Gestion forestière terrain</p>
   </div>
   <div class="doc-ref">
-    <h2>Bon de commande</h2>
+    <h2>Bon de commande de travaux</h2>
     <div class="num">${lot.lotNumero||"BROUILLON"}</div>
     <div class="dt">Émis le ${new Date().toLocaleDateString("fr-FR",{day:"2-digit",month:"long",year:"numeric"})}</div>
   </div>
@@ -4550,26 +4786,59 @@ td{padding:7px 10px;border-bottom:1px solid #ECEAE6;font-size:10.5px}
   </table>
 </div>
 
+<!-- DÉSIGNATION -->
+<div class="sec">
+  <h3>🪓 Désignation</h3>
+  <table>
+    <tr><th>Type de travaux</th></tr>
+    <tr><td>${designation}</td></tr>
+  </table>
+</div>
+
 <!-- ESTIMATION & PRIX -->
 <div class="sec">
   <h3>📊 Estimation & Conditions commerciales</h3>
   <table>
     <tr><th>Désignation</th><th>Quantité estimée</th><th>Unité</th><th>Prix unitaire HT</th><th>Montant HT estimé</th></tr>
     <tr>
-      <td>Bois sur pied — ${lot.potentiel||"bois énergie"}</td>
-      <td>${volumeT}</td>
+      <td>${designation} — ${lot.potentiel||"bois énergie"}</td>
+      <td>${fmtNum(volumeT)}</td>
       <td>tonnes</td>
-      <td>${prixUnitaire?prixUnitaire+" €":"À négocier"}</td>
+      <td>${prixUnitaire?fmtNum(prixUnitaire,2)+" €":"À négocier"}</td>
       <td>${totalHT?totalHT+" €":"—"}</td>
     </tr>
     ${visite?.volumeEstimeT?`<tr class="total">
       <td colspan="3"><strong>Total estimé</strong></td>
-      <td><strong>${prixUnitaire?prixUnitaire+" €/t":"—"}</strong></td>
+      <td><strong>${prixUnitaire?fmtNum(prixUnitaire,2)+" €/t":"—"}</strong></td>
       <td><strong>${totalHT?totalHT+" €":"À définir"}</strong></td>
     </tr>`:""}
   </table>
   ${conditionsParticulieres?`<div class="note">📝 Conditions particulières : ${conditionsParticulieres}</div>`:""}
 </div>
+
+<!-- CONDITIONS DE PAIEMENT (reprises de la visite terrain) -->
+${visite&&(visite.tauxTVA||visite.acompte||visite.modeReglement)?`
+<div class="sec">
+  <h3>💳 Conditions de paiement</h3>
+  <table>
+    <tr><th>TVA</th><th>Acompte</th><th>Solde</th><th>Mode de règlement</th></tr>
+    <tr>
+      <td>${visite.tauxTVA?visite.tauxTVA+" %":"—"}</td>
+      <td>${visite.acompte?visite.acompte+" €":"—"}</td>
+      <td>${visite.delaiSolde||"—"}</td>
+      <td>${({cheque:"Chèque",virement:"Virement",sepa:"Prélèvement SEPA",cb:"Carte bancaire"})[visite.modeReglement]||"—"}</td>
+    </tr>
+  </table>
+  ${(visite.modeReglement==="virement"||visite.modeReglement==="sepa")&&(visite.iban||visite.nomBanque)?`
+  <table>
+    <tr><th>IBAN</th><th>BIC / SWIFT</th><th>Banque</th></tr>
+    <tr>
+      <td>${visite.iban||"—"}</td>
+      <td>${visite.swift||"—"}</td>
+      <td>${[visite.nomBanque,visite.villeBanque].filter(Boolean).join(" · ")||"—"}</td>
+    </tr>
+  </table>`:""}
+</div>`:""}
 
 <!-- EXPLOITATION -->
 ${visite?`
@@ -4641,6 +4910,7 @@ const EcranBonCommande = ({lot, visites, onBack, toast}) => {
   const visite = visites.find(v=>v.lotId===lot.id||v.lotNumero===lot.lotNumero);
 
   const [prixUnitaire,    setPrix]    = useState(visite?.prixTonne||"");
+  const [typeTravaux,     setTypeTravaux] = useState("");
   const [entrepriseDO,    setEntDO]   = useState("APPLITAG SAS");
   const [nomDO,           setNomDO]   = useState("");
   const [qualiteDO,       setQualDO]  = useState("Responsable achats");
@@ -4654,73 +4924,15 @@ const EcranBonCommande = ({lot, visites, onBack, toast}) => {
 
   const volumeT = visite?.volumeEstimeT || "";
   const prixNum = parseFloat(prixUnitaire)||0;
-  const totalHT = prixNum&&volumeT ? (prixNum*parseFloat(volumeT)).toFixed(2) : null;
+  const totalHT = prixNum&&volumeT ? fmtNum(prixNum*parseFloat(volumeT),2) : null;
 
   const handleGenerer = () => {
     setGen(true);
-    const extra = {prixUnitaire,nomDO,qualiteDO,dateSign,
+    const extra = {prixUnitaire,typeTravaux,nomDO,qualiteDO,dateSign,
       conditionsParticulieres:condPart,entrepriseDO,
       sigDataProprio, sigDataExploit, nomSignProprio, nomSignExploit};
     const html = buildBonCommandeHTML(lot, visite, extra);
-
-    // Charger jsPDF depuis CDN si pas déjà chargé
-    const loadAndGenerate = () => {
-      if (window.jspdf) {
-        generatePDF(html);
-      } else {
-        const sc = document.createElement("script");
-        sc.src = "https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js";
-        sc.onload = () => {
-          // Aussi charger html2canvas
-          const sc2 = document.createElement("script");
-          sc2.src = "https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js";
-          sc2.onload = () => generatePDF(html);
-          sc2.onerror = () => fallbackPrint(html);
-          document.head.appendChild(sc2);
-        };
-        sc.onerror = () => fallbackPrint(html);
-        document.head.appendChild(sc);
-      }
-    };
-
-    const generatePDF = (htmlContent) => {
-      try {
-        // Créer un iframe caché pour rendre le HTML
-        const iframe = document.createElement("iframe");
-        iframe.style.cssText = "position:fixed;top:-9999px;left:-9999px;width:794px;height:1123px;border:none;";
-        document.body.appendChild(iframe);
-        iframe.contentDocument.open();
-        iframe.contentDocument.write(htmlContent);
-        iframe.contentDocument.close();
-
-        setTimeout(() => {
-          window.html2canvas(iframe.contentDocument.body, {
-            scale:2, useCORS:true, allowTaint:true,
-            width:794, height:1123,
-          }).then(canvas => {
-            const { jsPDF } = window.jspdf;
-            const pdf = new jsPDF("p","mm","a4");
-            const imgData = canvas.toDataURL("image/jpeg",0.95);
-            pdf.addImage(imgData,"JPEG",0,0,210,297);
-            pdf.save(`BonCommande_${lot.lotNumero||"APPLITAG"}.pdf`);
-            document.body.removeChild(iframe);
-            setGen(false);
-            toast("PDF téléchargé ✓");
-          }).catch(()=>{ document.body.removeChild(iframe); fallbackPrint(htmlContent); });
-        }, 800);
-      } catch { fallbackPrint(htmlContent); }
-    };
-
-    const fallbackPrint = (htmlContent) => {
-      const blob = new Blob([htmlContent],{type:"text/html"});
-      const url = URL.createObjectURL(blob);
-      const win = window.open(url,"_blank");
-      if (win) { setTimeout(()=>{ win.print(); URL.revokeObjectURL(url); }, 600); }
-      else { toast("Autorisez les pop-ups pour générer le PDF","warn"); }
-      setGen(false);
-    };
-
-    loadAndGenerate();
+    generatePdfFromHtml(html, `BonCommande_${lot.lotNumero||"APPLITAG"}.pdf`, toast, ()=>setGen(false));
   };
 
   return (
@@ -4732,7 +4944,7 @@ const EcranBonCommande = ({lot, visites, onBack, toast}) => {
             color:"#fff",padding:"6px 10px",borderRadius:8,fontSize:13,cursor:"pointer",
             WebkitTapHighlightColor:"transparent"}}>{"<"} Retour</button>
           <div style={{flex:1}}>
-            <div style={{fontSize:15,fontWeight:600}}>📄 Bon de commande</div>
+            <div style={{fontSize:15,fontWeight:600}}>📄 Bon de commande de travaux</div>
             <div style={{fontSize:11,opacity:.6}}>{lot.lotNumero} · {lot.commune}</div>
           </div>
         </div>
@@ -4749,7 +4961,7 @@ const EcranBonCommande = ({lot, visites, onBack, toast}) => {
           <div style={{fontSize:12,color:C.tx3,marginTop:4,lineHeight:1.8}}>
             📍 {lot.commune}{lot.refCadastrale?` · ${lot.refCadastrale}`:""}<br/>
             🌲 {lot.surfaceHa?lot.surfaceHa+" ha":"Surface non renseignée"}
-            {volumeT?` · 📦 ${volumeT} t estimées`:""}
+            {volumeT?` · 📦 ${fmtNum(volumeT)} t estimées`:""}
             {visite?.essences?.length>0?
               `\n🌿 ${visite.essences.map(e=>e.label).join(", ")}`:""}
           </div>
@@ -4769,6 +4981,25 @@ const EcranBonCommande = ({lot, visites, onBack, toast}) => {
             placeholder="Prénom Nom" hint="optionnel"/>
           <MInput label="Qualité" value={qualiteDO} onChange={setQualDO}
             placeholder="Directeur, Resp. achats…" hint="optionnel"/>
+        </div>
+
+        {/* Désignation */}
+        <SectionTitle icon="🪓" label="Désignation"/>
+        <div style={{marginBottom:14}}>
+          <div style={{fontSize:13,fontWeight:600,color:C.tx2,marginBottom:8}}>Type de travaux</div>
+          <select value={typeTravaux} onChange={e=>setTypeTravaux(e.target.value)}
+            style={{width:"100%",height:INPUT_H,padding:"0 14px",borderRadius:12,
+              border:`1.5px solid ${C.bd}`,fontSize:FONT_INPUT,fontFamily:"inherit",
+              background:"#fff",color:C.tx,outline:"none"}}>
+            <option value="">— Sélectionner —</option>
+            <option value="abattage_debardage">🪓🚜 Abattage et débardage</option>
+            <option value="dechiquetage">🪚 Déchiquetage</option>
+            <option value="abattage_manuel">🪚 Abattage manuel</option>
+            <option value="faconnage_manuel">🪵 Façonnage manuel</option>
+            <option value="nettoyage_plateforme">🧹 Nettoyage de plateforme</option>
+            <option value="main_oeuvre">👷 Main d'œuvre</option>
+            <option value="autre">… Autre</option>
+          </select>
         </div>
 
         {/* Prix */}
@@ -4795,6 +5026,39 @@ const EcranBonCommande = ({lot, visites, onBack, toast}) => {
         <MInput label="Conditions particulières" value={condPart} onChange={setCondP}
           placeholder="Modalités de paiement, délais, accès spécifiques…"
           big hint="optionnel"/>
+
+        {/* Conditions de paiement — reprises de la visite terrain */}
+        <SectionTitle icon="💳" label="Conditions de paiement"/>
+        {visite ? (
+          <div style={{background:"#fff",borderRadius:14,padding:16,marginBottom:14,
+            border:`1px solid ${C.bd}`}}>
+            <div style={{fontSize:11,color:C.tx3,marginBottom:10}}>
+              ℹ️ Reprises automatiquement de la visite terrain
+            </div>
+            {[
+              ["TVA", visite.tauxTVA?`${visite.tauxTVA} %`:null],
+              ["Acompte", visite.acompte?`${visite.acompte} €`:null],
+              ["Solde", visite.delaiSolde],
+              ["Mode de règlement", {cheque:"📝 Chèque",virement:"🏦 Virement",sepa:"🔄 Prélèvement SEPA",cb:"💳 Carte bancaire"}[visite.modeReglement]],
+              ...(visite.modeReglement==="virement"||visite.modeReglement==="sepa" ? [
+                ["IBAN", visite.iban],
+                ["BIC / SWIFT", visite.swift],
+                ["Banque", [visite.nomBanque,visite.villeBanque].filter(Boolean).join(" · ")||null],
+              ] : []),
+            ].filter(([,v])=>v).map(([k,v],i,arr)=>(
+              <div key={k} style={{display:"flex",justifyContent:"space-between",
+                padding:"8px 0",borderBottom:i<arr.length-1?`1px solid ${C.bd}`:"none"}}>
+                <span style={{fontSize:12,color:C.tx3}}>{k}</span>
+                <span style={{fontSize:13,fontWeight:600,color:C.tx}}>{v}</span>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div style={{background:C.bg2,borderRadius:14,padding:16,marginBottom:14,
+            fontSize:12,color:C.tx3,textAlign:"center"}}>
+            Aucune visite terrain — conditions de paiement non disponibles
+          </div>
+        )}
 
         {/* Date signature */}
         <SectionTitle icon="✍️" label="Signatures électroniques"/>
@@ -4926,7 +5190,7 @@ const EcranSaisiesAdmin = ({contacts, visites, reportings=[], transports=[], liv
                 <div style={{fontSize:13,fontWeight:600}}>{c.nom} {c.prenom}</div>
                 <div style={{fontSize:11,color:C.tx3,marginTop:3}}>
                   📍 {c.commune} · 🌲 {c.surfaceHa||"—"} ha
-                  {c.tonnageCumul>0&&` · ⚖️ ${parseFloat(c.tonnageCumul).toFixed(1)} t`}
+                  {c.tonnageCumul>0&&` · ⚖️ ${fmtNum(c.tonnageCumul,1)} t`}
                 </div>
               </Card>
             );
@@ -4945,9 +5209,9 @@ const EcranSaisiesAdmin = ({contacts, visites, reportings=[], transports=[], liv
               </div>
               <div style={{fontSize:12,color:C.tx3,lineHeight:1.8}}>
                 📍 GPS {v.gps?`${v.gps.lat.toFixed(4)}°N`:"—"}<br/>
-                📦 {v.volumeEstimeT||"—"} t estimées<br/>
+                📦 {v.volumeEstimeT?fmtNum(v.volumeEstimeT):"—"} t estimées<br/>
                 🌿 {v.essences?.map(e=>e.label).join(", ")||"—"}<br/>
-                {v.prixTonne&&`💶 ${v.prixTonne} €/t HT`}
+                {v.prixTonne&&`💶 ${fmtNum(v.prixTonne,2)} €/t HT`}
                 {v.certification&&v.certification!=="aucune"&&
                   ` · 🏅 ${v.certification.toUpperCase()}`}
               </div>
@@ -5072,8 +5336,8 @@ const EcranRoleProprietaire = ({user, contacts, visites}) => {
             {visite?.prixTonne&&(
               <div style={{marginTop:10,background:C.greenL,borderRadius:10,padding:10,
                 fontSize:12,color:C.greenD,fontWeight:600}}>
-                💶 {visite.prixTonne} €/t HT ·
-                Total estimé : {(parseFloat(lot.tonnageCumul||visite.volumeEstimeT||0)*parseFloat(visite.prixTonne)).toFixed(0)} €
+                💶 {fmtNum(visite.prixTonne,2)} €/t HT ·
+                Total estimé : {fmtNum(parseFloat(lot.tonnageCumul||visite.volumeEstimeT||0)*parseFloat(visite.prixTonne))} €
               </div>
             )}
           </div>
@@ -5165,7 +5429,7 @@ const EcranRoleBroyage = ({user, contacts}) => {
             </span>
           </div>
           <div style={{fontSize:12,color:C.tx3,marginBottom:12}}>
-            📍 {lot.commune} · ⚖️ {lot.tonnageCumul||"—"} t
+            📍 {lot.commune} · ⚖️ {lot.tonnageCumul?fmtNum(lot.tonnageCumul,1):"—"} t
           </div>
           <button onClick={()=>setActif(actif===lot.id?null:lot.id)}
             style={{width:"100%",padding:12,borderRadius:10,
@@ -5201,7 +5465,7 @@ const EcranRoleChaufferie = ({user, livraisons=[]}) => {
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:16}}>
         {[
           [livraisons.filter(l=>l.typeDest==="chaufferie").length+" liv.","Livraisons reçues"],
-          [livraisons.reduce((s,l)=>s+(parseFloat(l.pesee)||0),0).toFixed(1)+" t","Tonnage reçu"],
+          [fmtNum(livraisons.reduce((s,l)=>s+(parseFloat(l.pesee)||0),0),1)+" t","Tonnage reçu"],
         ].map(([v,l],i)=>(
           <div key={i} style={{background:i===0?C.greenL:C.amberL,borderRadius:12,padding:14,
             border:`1px solid ${i===0?C.green:C.amber}`}}>
@@ -5645,7 +5909,7 @@ const EcranCarte = ({contacts, visites, onOpenLot}) => {
             </span>
           </div>
           ${lot.surfaceHa?`<div style="font-size:11px;color:#9A9892;margin-top:6px">
-            🌲 ${lot.surfaceHa} ha${v?.volumeEstimeT?" · 📦 "+v.volumeEstimeT+" t":""}</div>`:""}
+            🌲 ${lot.surfaceHa} ha${v?.volumeEstimeT?" · 📦 "+fmtNum(v.volumeEstimeT)+" t":""}</div>`:""}
           ${v?.essences?.length?`<div style="font-size:11px;color:#9A9892;margin-top:2px">
             🌿 ${v.essences.map(e=>e.label).join(", ")}</div>`:""}
           <button onclick="window.__aplt_open('${lot.id}')"
@@ -5927,7 +6191,7 @@ const FicheLotCentrale = ({
               {[
                 {icon:"🌲",label:"Surface",val:lot.surfaceHa?`${lot.surfaceHa} ha`:"—",color:C.green,bg:C.greenL},
                 {icon:"🪵",label:"Ressource",val:typeRessLabel(lot.potentiel)||"—",color:C.brown,bg:C.brownL},
-                {icon:"⚖️",label:"Volume estimé",val:derniereVisite?`${derniereVisite.volumeEstimeT} t`:"—",color:C.amber,bg:C.amberL},
+                {icon:"⚖️",label:"Volume estimé",val:derniereVisite?`${fmtNum(derniereVisite.volumeEstimeT)} t`:"—",color:C.amber,bg:C.amberL},
                 {icon:"📊",label:"Relevés",val:`${releves.length} relevé${releves.length!==1?"s":""}`,color:C.blue,bg:C.blueL},
               ].map((m,i)=>(
                 <div key={i} style={{background:m.bg,borderRadius:14,padding:14}}>
@@ -5947,8 +6211,8 @@ const FicheLotCentrale = ({
                 </div>
                 <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8}}>
                   {[
-                    [totalTonnes.toFixed(1),"t récoltées"],
-                    [totalMWh.toFixed(1),"MWh potentiel"],
+                    [fmtNum(totalTonnes,1),"t récoltées"],
+                    [fmtNum(totalMWh,1),"MWh potentiel"],
                     [releves.length+" relev.","saisies"],
                   ].map(([v,l],i)=>(
                     <div key={i} style={{textAlign:"center",
@@ -5995,7 +6259,7 @@ const FicheLotCentrale = ({
                       background:C.greenL,color:C.greenD,fontWeight:600}}>✅ Validée</span>
                   </div>
                   <div style={{fontSize:12,color:C.tx3,lineHeight:1.8}}>
-                    📦 {derniereVisite.volumeEstimeT} t · 🌲 {derniereVisite.surfaceHa} ha<br/>
+                    📦 {fmtNum(derniereVisite.volumeEstimeT)} t · 🌲 {derniereVisite.surfaceHa} ha<br/>
                     🚛 Accès {derniereVisite.accesCamion}
                     {derniereVisite.accesCamion==="praticable"?" ✓":" ⚠️"}<br/>
                     {derniereVisite.essences?.length>0&&
@@ -6138,8 +6402,8 @@ const FicheLotCentrale = ({
                   border:`1px solid ${C.amber}`}}>
                   <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8}}>
                     {[
-                      [totalTonnes.toFixed(1)+"t","Total"],
-                      [totalMWh.toFixed(1)+" MWh","Énergie"],
+                      [fmtNum(totalTonnes,1)+"t","Total"],
+                      [fmtNum(totalMWh,1)+" MWh","Énergie"],
                       [releves.length+" relev.","Saisies"],
                     ].map(([v,l],i)=>(
                       <div key={i} style={{textAlign:"center"}}>
@@ -6243,7 +6507,7 @@ const FicheLotCentrale = ({
                       </div>
                       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
                         <div style={{textAlign:"center"}}>
-                          <div style={{fontSize:22,fontWeight:700,color:C.greenD}}>{totalLivr.toFixed(1)} t</div>
+                          <div style={{fontSize:22,fontWeight:700,color:C.greenD}}>{fmtNum(totalLivr,1)} t</div>
                           <div style={{fontSize:10,color:C.tx3}}>poids livré</div>
                         </div>
                         <div style={{textAlign:"center"}}>
@@ -6287,30 +6551,118 @@ const FicheLotCentrale = ({
         {onglet===5&&(
           <div>
             {[
+              {icon:"📋",titre:"Compte rendu entretien de contact",
+               statut:"✅ Disponible",color:C.green,bg:C.greenL,
+               action:"Générer PDF",
+               onAction:()=>generatePdfFromHtml(buildCompteRenduContactHTML(lot),
+                 `CompteRenduContact_${lot.lotNumero||"APPLITAG"}.pdf`, toast)},
+
+              {icon:"🔭",titre:"PV de visite de terrain",
+               statut:derniereVisite?"✅ Visite du "+derniereVisite.date:"⏳ Non réalisée",
+               color:derniereVisite?C.green:C.tx3,bg:derniereVisite?C.greenL:C.bg2,
+               action:derniereVisite?"Générer PDF":null,
+               onAction:()=>generatePdfFromHtml(buildSimpleDocHTML(lot,"PV de visite de terrain",[
+                 {icon:"🌲",label:"Parcelle",rows:[
+                   ["Commune",lot.commune],
+                   ["Surface visitée",derniereVisite?.surfaceHa?derniereVisite.surfaceHa+" ha":null],
+                   ["Date de visite",derniereVisite?.date],
+                 ]},
+                 {icon:"🌿",label:"Bois sur pied",rows:[
+                   ["Essences",derniereVisite?.essences?.map(e=>`${e.label} (${e.pct}%)`).join(", ")],
+                   ["Volume estimé",derniereVisite?.volumeEstimeT?derniereVisite.volumeEstimeT+" t":null],
+                   ["Diamètre moyen à 1,20 m",derniereVisite?.diametreMoyen?derniereVisite.diametreMoyen+" cm":null],
+                 ]},
+                 {icon:"🚛",label:"Accès",rows:[
+                   ["Accès camion",derniereVisite?.accesCamion],
+                   ["Largeur accès",derniereVisite?.largeurAcces?derniereVisite.largeurAcces+" m":null],
+                   ["Distance plateforme",derniereVisite?.distancePlateforme?derniereVisite.distancePlateforme+" m":null],
+                 ]},
+               ],"Document généré automatiquement par APPLITAG depuis la visite terrain."),
+                 `PV_Visite_${lot.lotNumero||"APPLITAG"}.pdf`, toast)},
+
               {icon:"📋",titre:"Bon de commande",
                statut:lot.lotNumero?"✅ N° lot généré — prêt à générer":"⏳ En attente",
                color:lot.lotNumero?C.green:C.tx3,bg:lot.lotNumero?C.greenL:C.bg2,
                action: lot.lotNumero ? "Générer PDF" : null,
                onAction: onBonCommande},
-              {icon:"🔭",titre:"PV visite terrain",
-               statut:derniereVisite?"✅ Visite du "+derniereVisite.date:"⏳ Non réalisée",
-               color:derniereVisite?C.green:C.tx3,bg:derniereVisite?C.greenL:C.bg2},
+
               {icon:"📝",titre:"Ordre d'exploitation",
-               statut:["VALIDE_EXPLOITATION","EN_COURS_EXPLOITATION","BORD_ROUTE","A_DECHIQUETER","EN_COURS_BROYAGE","EN_LIVRAISON","LIVRE_CHAUFFERIE"].includes(lot.statutLot)?"✅ Généré":"⏳ En attente validation",
-               color:["VALIDE_EXPLOITATION","EN_COURS_EXPLOITATION"].includes(lot.statutLot)?C.green:C.tx3,
-               bg:["VALIDE_EXPLOITATION","EN_COURS_EXPLOITATION"].includes(lot.statutLot)?C.greenL:C.bg2},
+               statut:["VALIDE_EXPLOITATION","EN_COURS_EXPLOITATION","BORD_ROUTE","A_DECHIQUETER","EN_COURS_BROYAGE","EN_LIVRAISON","LIVRE_CHAUFFERIE"].includes(lot.statutLot)?"✅ Disponible":"⏳ En attente validation",
+               color:["VALIDE_EXPLOITATION","EN_COURS_EXPLOITATION","BORD_ROUTE","A_DECHIQUETER","EN_COURS_BROYAGE","EN_LIVRAISON","LIVRE_CHAUFFERIE"].includes(lot.statutLot)?C.green:C.tx3,
+               bg:["VALIDE_EXPLOITATION","EN_COURS_EXPLOITATION","BORD_ROUTE","A_DECHIQUETER","EN_COURS_BROYAGE","EN_LIVRAISON","LIVRE_CHAUFFERIE"].includes(lot.statutLot)?C.greenL:C.bg2,
+               action:["VALIDE_EXPLOITATION","EN_COURS_EXPLOITATION","BORD_ROUTE","A_DECHIQUETER","EN_COURS_BROYAGE","EN_LIVRAISON","LIVRE_CHAUFFERIE"].includes(lot.statutLot)?"Générer PDF":null,
+               onAction:()=>generatePdfFromHtml(buildSimpleDocHTML(lot,"Ordre d'exploitation",[
+                 {icon:"🌲",label:"Parcelle",rows:[
+                   ["Commune",lot.commune], ["Réf. cadastrale",lot.refCadastrale],
+                   ["Surface",lot.surfaceHa?lot.surfaceHa+" ha":null],
+                 ]},
+                 {icon:"🪓",label:"Exploitation",rows:[
+                   ["Essence",derniereVisite?.essences?.map(e=>e.label).join(", ")],
+                   ["Volume estimé",derniereVisite?.volumeEstimeT?derniereVisite.volumeEstimeT+" t":null],
+                   ["Accès camion",derniereVisite?.accesCamion],
+                 ]},
+               ],"Ordre d'exploitation généré automatiquement par APPLITAG."),
+                 `OrdreExploitation_${lot.lotNumero||"APPLITAG"}.pdf`, toast)},
+
+              {icon:"🏁",titre:"Réception d'exploitation",
+               statut:["BORD_ROUTE","A_DECHIQUETER","EN_COURS_BROYAGE","EN_LIVRAISON","LIVRE_CHAUFFERIE"].includes(lot.statutLot)?"✅ Effectuée":"⏳ En attente",
+               color:["BORD_ROUTE","A_DECHIQUETER","EN_COURS_BROYAGE","EN_LIVRAISON","LIVRE_CHAUFFERIE"].includes(lot.statutLot)?C.green:C.tx3,
+               bg:["BORD_ROUTE","A_DECHIQUETER","EN_COURS_BROYAGE","EN_LIVRAISON","LIVRE_CHAUFFERIE"].includes(lot.statutLot)?C.greenL:C.bg2,
+               action:["BORD_ROUTE","A_DECHIQUETER","EN_COURS_BROYAGE","EN_LIVRAISON","LIVRE_CHAUFFERIE"].includes(lot.statutLot)?"Générer PDF":null,
+               onAction:()=>generatePdfFromHtml(buildSimpleDocHTML(lot,"Réception de fin d'exploitation",[
+                 {icon:"🌲",label:"Lot",rows:[
+                   ["Commune",lot.commune],
+                   ["Tonnage cumulé",lot.tonnageCumul?fmtNum(lot.tonnageCumul,1)+" t":null],
+                   ["Statut",lot.statutLot],
+                 ]},
+               ],"Réception de fin d'exploitation générée automatiquement par APPLITAG."),
+                 `ReceptionExploitation_${lot.lotNumero||"APPLITAG"}.pdf`, toast)},
+
+              {icon:"🪚",titre:"Ordre de déchiquetage",
+               statut:["A_DECHIQUETER","EN_COURS_BROYAGE","EN_LIVRAISON","LIVRE_CHAUFFERIE"].includes(lot.statutLot)?"✅ Disponible":"⏳ En attente bord de route",
+               color:["A_DECHIQUETER","EN_COURS_BROYAGE","EN_LIVRAISON","LIVRE_CHAUFFERIE"].includes(lot.statutLot)?C.green:C.tx3,
+               bg:["A_DECHIQUETER","EN_COURS_BROYAGE","EN_LIVRAISON","LIVRE_CHAUFFERIE"].includes(lot.statutLot)?C.greenL:C.bg2,
+               action:["A_DECHIQUETER","EN_COURS_BROYAGE","EN_LIVRAISON","LIVRE_CHAUFFERIE"].includes(lot.statutLot)?"Générer PDF":null,
+               onAction:()=>generatePdfFromHtml(buildSimpleDocHTML(lot,"Ordre de déchiquetage",[
+                 {icon:"🌲",label:"Lot",rows:[
+                   ["Commune",lot.commune],
+                   ["Tonnage bord de route",lot.tonnageBordRoute?fmtNum(lot.tonnageBordRoute,1)+" t":null],
+                 ]},
+               ],"Ordre de déchiquetage généré automatiquement par APPLITAG."),
+                 `OrdreDechiquetage_${lot.lotNumero||"APPLITAG"}.pdf`, toast)},
+
               {icon:"🚛",titre:"CMR Transport",
                statut:transports.length>0?`✅ ${transports.length} CMR`:"⏳ En attente déchiquetage",
-               color:transports.length>0?C.purple:C.tx3,bg:transports.length>0?C.purpleL:C.bg2},
+               color:transports.length>0?C.purple:C.tx3,bg:transports.length>0?C.purpleL:C.bg2,
+               action:transports.length>0?"Générer PDF":null,
+               onAction:()=>generatePdfFromHtml(buildSimpleDocHTML(lot,"CMR Transport",[
+                 {icon:"🚛",label:"Transport",rows:[
+                   ["N° CMR",transports[0]?.numeroCMR],
+                   ["Tracteur",transports[0]?.immatTracteur],
+                   ["Date",transports[0]?.heureDebut],
+                 ]},
+               ],"CMR généré automatiquement par APPLITAG."),
+                 `CMR_${lot.lotNumero||"APPLITAG"}.pdf`, toast)},
+
               {icon:"📦",titre:"Bon de livraison",
                statut:livraisons.length>0?`✅ ${livraisons.length} livraison(s)`:"⏳ En attente livraison",
-               color:livraisons.length>0?C.green:C.tx3,bg:livraisons.length>0?C.greenL:C.bg2},
+               color:livraisons.length>0?C.green:C.tx3,bg:livraisons.length>0?C.greenL:C.bg2,
+               action:livraisons.length>0?"Générer PDF":null,
+               onAction:()=>generatePdfFromHtml(buildSimpleDocHTML(lot,"Bon de livraison",[
+                 {icon:"📦",label:"Livraison",rows:[
+                   ["Statut",livraisons[0]?.statut],
+                   ["Tonnage",livraisons[0]?.tonnage?livraisons[0].tonnage+" t":null],
+                 ]},
+               ],"Bon de livraison généré automatiquement par APPLITAG."),
+                 `BonLivraison_${lot.lotNumero||"APPLITAG"}.pdf`, toast)},
+
               {icon:"🇪🇺",titre:"Auto-déclaration RED",
                statut:derniereVisite?.certification==="red"?"✅ Données RED disponibles":"ℹ️ Activer certification RED en visite",
                color:derniereVisite?.certification==="red"?C.blue:C.tx3,
                bg:derniereVisite?.certification==="red"?C.blueL:C.bg2,
                action:derniereVisite?.certification==="red"?"Générer":null,
                onAction:onRedDeclaration},
+
               {icon:"📷",titre:"Photos",
                statut:derniereVisite?.photos?.length>0?`✅ ${derniereVisite.photos.length} photo(s) visite`:"⏳ Aucune photo",
                color:derniereVisite?.photos?.length>0?C.blue:C.tx3,
@@ -6631,7 +6983,7 @@ const EcranFinChantier = ({lot, onBack, onSaved, toast, entrepriseId}) => {
                 </div>
                 <div style={{textAlign:"center",marginTop:10,fontSize:16,
                   fontWeight:700,color:C.amberD}}>
-                  Total : {totalCout.toFixed(2)} € HT
+                  Total : {fmtNum(totalCout,2)} € HT
                 </div>
               </div>
             )}
