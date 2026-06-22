@@ -1295,6 +1295,16 @@ const STEPS = [
 
 const DRAFT_KEY = "applitag_visite_draft";
 
+// Cubage π/4 × D² × H par tige, × nb tiges/ha × surface, converti en tonnes via densité essence
+const calcVolumeParHa = (popParHa, diametreMoyenCm, surfaceHa, indices) => {
+  const nbTigesHa = parseFloat(popParHa)||0;
+  const dM = (parseFloat(diametreMoyenCm)||0)/100;
+  const volUnitaireM3 = (Math.PI/4) * dM*dM * (indices?.hauteurMoy||20);
+  const volTotalM3 = volUnitaireM3 * nbTigesHa * surfaceHa;
+  const poidsTonnes = volTotalM3 * (indices?.densite||950) / 1000;
+  return Math.round(poidsTonnes*100)/100;
+};
+
 const FormulaireVisite = ({lot, onBack, onSaved, toast, entrepriseId}) => {
   const [step,     setStep]    = useState(0);
   const [gps,      setGps]     = useState(null);
@@ -1339,15 +1349,15 @@ const FormulaireVisite = ({lot, onBack, onSaved, toast, entrepriseId}) => {
 
   // INDICES DE CALCUL PAR ESSENCE
   const INDICES_ESSENCE = {
-    peuplier: {densite:850, pci:2.4, foisonnement:0.40},
-    chene:    {densite:1000,pci:3.8, foisonnement:0.55},
-    hetre:    {densite:1000,pci:4.0, foisonnement:0.55},
-    charme:   {densite:1000,pci:4.2, foisonnement:0.55},
-    frene:    {densite:900, pci:3.9, foisonnement:0.52},
-    bouleau:  {densite:950, pci:3.7, foisonnement:0.50},
-    resineux: {densite:870, pci:2.8, foisonnement:0.45},
-    melange:  {densite:950, pci:3.5, foisonnement:0.50},
-    taillis:  {densite:900, pci:3.5, foisonnement:0.48},
+    peuplier: {densite:850, pci:2.4, foisonnement:0.40, hauteurMoy:25},
+    chene:    {densite:1000,pci:3.8, foisonnement:0.55, hauteurMoy:20},
+    hetre:    {densite:1000,pci:4.0, foisonnement:0.55, hauteurMoy:22},
+    charme:   {densite:1000,pci:4.2, foisonnement:0.55, hauteurMoy:15},
+    frene:    {densite:900, pci:3.9, foisonnement:0.52, hauteurMoy:20},
+    bouleau:  {densite:950, pci:3.7, foisonnement:0.50, hauteurMoy:15},
+    resineux: {densite:870, pci:2.8, foisonnement:0.45, hauteurMoy:25},
+    melange:  {densite:950, pci:3.5, foisonnement:0.50, hauteurMoy:20},
+    taillis:  {densite:900, pci:3.5, foisonnement:0.48, hauteurMoy:12},
   };
 
   // Essence principale pour calculs
@@ -1386,12 +1396,12 @@ const FormulaireVisite = ({lot, onBack, onSaved, toast, entrepriseId}) => {
   },[gps, essences, volumeT, surfaceHa, dateLimite, observations,
      prixTonne, diametreMoyen, contraintes, accesCamion, step]);
 
-  // Recalcul du volume estimé si la surface change en mode "par ha"
+  // Recalcul du volume estimé si la surface ou l'essence change en mode "par ha"
   useEffect(()=>{
     if (modeVolume==="parha") {
-      setVolumeT(Math.round((parseFloat(popParHa)||0)*surfaceHa*100)/100);
+      setVolumeT(calcVolumeParHa(popParHa, diametreMoyen, surfaceHa, indices));
     }
-  },[surfaceHa, modeVolume]);
+  },[surfaceHa, modeVolume, essencePrincipale]);
 
 
   // Plateforme
@@ -1413,6 +1423,11 @@ const FormulaireVisite = ({lot, onBack, onSaved, toast, entrepriseId}) => {
   const [surfaceReplant,  setSurfaceReplant] = useState(0);
   const [dateReplant,     setDateReplant]    = useState("");
   const [respReplant,     setRespReplant]    = useState("proprietaire");
+
+  // Pré-positionne la surface à replanter sur la surface exploitée saisie en étape "Volumes"
+  useEffect(()=>{
+    if (replantation==="oui" && surfaceReplant===0) setSurfaceReplant(surfaceHa);
+  },[replantation]);
 
   // Certification
   const [certification,   setCertification]  = useState("aucune");
@@ -1548,17 +1563,21 @@ const FormulaireVisite = ({lot, onBack, onSaved, toast, entrepriseId}) => {
             )}
             {modeVolume==="parha" && (
               <>
-                <MInput label="Population estimée (tonnes/ha)" value={popParHa}
+                <MInput label="Population estimée (tiges/ha)" value={popParHa}
                   onChange={v=>{
                     setPopParHa(v);
-                    setVolumeT(Math.round((parseFloat(v)||0)*surfaceHa*100)/100);
+                    setVolumeT(calcVolumeParHa(v, diametreMoyen, surfaceHa, indices));
                   }}
-                  type="number" placeholder="ex: 80" hint={`× ${surfaceHa} ha`}/>
+                  type="number" placeholder="ex: 300"/>
+                <MInput label="Diamètre moyen à 1,20 m (cm)" value={diametreMoyen}
+                  onChange={v=>{
+                    setDiametreMoyen(v);
+                    setVolumeT(calcVolumeParHa(popParHa, v, surfaceHa, indices));
+                  }}
+                  type="number" placeholder="ex: 35" hint="saisie en centimètres"/>
                 <div style={{fontSize:12,color:C.tx3,marginBottom:14,marginTop:-6}}>
                   = {volumeT>0?`${volumeT} t`:"—"} volume estimé total
                 </div>
-                <MInput label="Diamètre moyen à 1,20 m (cm)" value={diametreMoyen}
-                  onChange={setDiametreMoyen} type="number" placeholder="ex: 35" hint="saisie en centimètres"/>
               </>
             )}
 
@@ -1949,8 +1968,23 @@ const FormulaireVisite = ({lot, onBack, onSaved, toast, entrepriseId}) => {
               ))}
             </div>
             {platAutorisation&&(
-              <MInput label="Qui se charge de la démarche ?" value={platQuiAutoris}
-                onChange={setPlatQui} placeholder="Ex: propriétaire, ETF, exploitant…"/>
+              <div style={{marginBottom:14}}>
+                <div style={{fontSize:13,fontWeight:600,color:C.tx2,marginBottom:8}}>
+                  Qui se charge de la démarche ?
+                </div>
+                <select value={platQuiAutoris} onChange={e=>setPlatQui(e.target.value)}
+                  style={{width:"100%",height:INPUT_H,padding:"0 14px",borderRadius:12,
+                    border:`1.5px solid ${C.bd}`,fontSize:FONT_INPUT,fontFamily:"inherit",
+                    background:"#fff",color:C.tx,outline:"none"}}>
+                  <option value="">— Sélectionner —</option>
+                  <option value="proprietaire">Propriétaire</option>
+                  <option value="etf">ETF</option>
+                  <option value="exploitant">Exploitant</option>
+                  <option value="applitag">APPLITAG</option>
+                  <option value="mairie">Mairie</option>
+                  <option value="autre">Autre</option>
+                </select>
+              </div>
             )}
 
             <div onClick={()=>setPlatPhoto(!platPhoto)} style={{
@@ -2002,29 +2036,30 @@ const FormulaireVisite = ({lot, onBack, onSaved, toast, entrepriseId}) => {
                       background:"#fff",color:C.tx,appearance:"auto"}}>
                     <option value="">— Sélectionner une essence —</option>
                     <optgroup label="Feuillus">
-                      <option value="chene_pedoncule">🌳 Chêne pédonculé</option>
-                      <option value="chene_sessile">🌳 Chêne sessile</option>
-                      <option value="hetre">🌲 Hêtre</option>
+                      <option value="chene">🌳 Chêne</option>
                       <option value="charme">🌿 Charme</option>
+                      <option value="hetre">🌲 Hêtre</option>
                       <option value="frene">🌿 Frêne</option>
-                      <option value="erable">🍁 Érable sycomore</option>
+                      <option value="orme">🌿 Orme</option>
+                      <option value="acacia">🌿 Acacia</option>
                       <option value="bouleau">🌿 Bouleau</option>
-                      <option value="aulne">🌿 Aulne glutineux</option>
-                      <option value="peuplier">🌾 Peuplier</option>
+                      <option value="chataignier">🌰 Châtaignier</option>
+                      <option value="fruitiers">🍒 Fruitiers</option>
+                      <option value="erables">🍁 Érables</option>
                       <option value="tilleul">🌿 Tilleul</option>
-                      <option value="merisier">🌸 Merisier</option>
+                      <option value="aulne">🌿 Aulne</option>
+                      <option value="peupliers">🌾 Peupliers</option>
+                      <option value="saule">🌿 Saule</option>
                     </optgroup>
                     <optgroup label="Résineux">
-                      <option value="douglas">🌲 Douglas</option>
-                      <option value="epicea">🌲 Épicéa commun</option>
                       <option value="pin_sylvestre">🌲 Pin sylvestre</option>
-                      <option value="pin_laricio">🌲 Pin laricio</option>
+                      <option value="pin_maritime">🌲 Pin maritime</option>
+                      <option value="sapin">🌲 Sapin</option>
+                      <option value="epicea">🌲 Épicéa</option>
                       <option value="meleze">🌲 Mélèze</option>
-                      <option value="sapin_pectiné">🌲 Sapin pectiné</option>
+                      <option value="douglas">🌲 Douglas</option>
                     </optgroup>
                     <optgroup label="Autres">
-                      <option value="melange">🌿 Mélange feuillu/résineux</option>
-                      <option value="taillis">🌱 Taillis</option>
                       <option value="rdv_proprietaire">📋 À définir avec le propriétaire</option>
                     </optgroup>
                   </select>
@@ -3923,6 +3958,8 @@ const EcranValidationExploitation = ({lot, operateurs, onBack, onSaved, toast, e
   const [dateJour,    setDateJour]   = useState(todayS());
   const [heureDebut,  setHeureDeb]   = useState("");
   const [heureFin,    setHeureFin]   = useState("");
+  const [pauseDebutJour, setPauseDebJour] = useState("");
+  const [pauseFinJour,   setPauseFinJour] = useState("");
   const [typeOpJour,  setTypeOpJour] = useState("abattage_debardage");
   const [machineJour, setMachineJ]   = useState("");
   const [foisonnement,setFoisonn]    = useState(0.50);
@@ -3944,6 +3981,7 @@ const EcranValidationExploitation = ({lot, operateurs, onBack, onSaved, toast, e
       lotId:lot.id, lotNumero:lot.lotNumero, entrepriseId,
       etfNom, typeOperation:typeOp, machine, dateDebut, dateFin,
       dateJour, heureDebut, heureFin,
+      pauseDebut:pauseDebutJour, pauseFin:pauseFinJour,
       typeOperationJour:typeOpJour, machineJour,
       foisonnement, nbTasJour, volumeJour, nbOperateurs,
       observations, anomalies,
@@ -4020,7 +4058,7 @@ const EcranValidationExploitation = ({lot, operateurs, onBack, onSaved, toast, e
                     background:heureDebut?C.greenL:"#fff",
                     color:heureDebut?C.greenD:"#333",fontFamily:"inherit"}}/>
               </div>
-              <div style={{marginBottom:heureDebut&&heureFin?12:0}}>
+              <div style={{marginBottom:12}}>
                 <div style={{fontSize:13,fontWeight:600,color:C.tx2,marginBottom:8}}>🕕 Heure de fin</div>
                 <input type="time" value={heureFin}
                   onChange={e=>setHeureFin(e.target.value)}
@@ -4030,15 +4068,42 @@ const EcranValidationExploitation = ({lot, operateurs, onBack, onSaved, toast, e
                     background:heureFin?C.amberL:"#fff",
                     color:heureFin?C.amberD:"#333",fontFamily:"inherit"}}/>
               </div>
+
+              {/* Pause déjeuner */}
+              <div style={{background:"#FFF8E1",borderRadius:10,padding:12,
+                marginBottom:heureDebut&&heureFin?12:0,border:"1px solid #FFD54F"}}>
+                <div style={{fontSize:12,fontWeight:600,color:"#795548",marginBottom:8}}>
+                  🍽️ Pause déjeuner (optionnel)
+                </div>
+                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
+                  {[["Début pause",pauseDebutJour,setPauseDebJour],["Fin pause",pauseFinJour,setPauseFinJour]].map(([lbl,val,set],i)=>(
+                    <div key={i}>
+                      <div style={{fontSize:11,color:"#795548",marginBottom:6}}>{lbl}</div>
+                      <input type="time" value={val} onChange={e=>set(e.target.value)}
+                        style={{width:"100%",padding:"10px 12px",borderRadius:8,fontSize:16,fontWeight:600,
+                          boxSizing:"border-box",border:"1.5px solid #FFD54F",
+                          background:"#fff",fontFamily:"inherit"}}/>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
               {heureDebut&&heureFin&&(()=>{
                 const [dh,dm]=heureDebut.split(":").map(Number);
                 const [fh,fm]=heureFin.split(":").map(Number);
-                const mins = (fh*60+fm)-(dh*60+dm);
+                const brut = (fh*60+fm)-(dh*60+dm);
+                const pause = (pauseDebutJour&&pauseFinJour) ? (()=>{
+                  const [pdh,pdm]=pauseDebutJour.split(":").map(Number);
+                  const [pfh,pfm]=pauseFinJour.split(":").map(Number);
+                  return (pfh*60+pfm)-(pdh*60+pdm);
+                })() : 0;
+                const mins = brut - Math.max(0,pause);
                 if(mins>0) return (
                   <div style={{textAlign:"center",padding:"12px",
                     background:C.greenL,borderRadius:10,
                     fontSize:16,fontWeight:700,color:C.greenD}}>
                     ⏱️ {Math.floor(mins/60)}h{String(mins%60).padStart(2,"0")} de travail
+                    {pause>0?` (pause ${Math.floor(pause/60)}h${String(pause%60).padStart(2,"0")} déduite)`:""}
                   </div>
                 );
               })()}
