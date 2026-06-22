@@ -2218,7 +2218,7 @@ const ListeVisites = ({visites}) => (
 // ── APP ────────────────────────────────────────────────────────
 // ── ÉCRAN RELEVÉS ─────────────────────────────────────────────
 const EcranReleves = ({entrepriseId, user, toast, notifications=[], setNotifications}) => {
-  const [sousOnglet, setSousOnglet] = useState("operateurs");
+  const [sousOnglet, setSousOnglet] = useState("notifs");
   const [operateurs, setOperateurs] = useState([]);
   const [acces, setAcces] = useState([]);
   const [contacts, setContacts] = useState([]);
