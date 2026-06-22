@@ -1233,18 +1233,34 @@ const PhotosWidget = ({photos,onChange,required=2}) => {
   );
 };
 
+// Répertoire des essences (source ITEBE 2004) — feuillus + résineux
+const LISTE_ESSENCES_ITEBE = [
+  ["chene","🌳","Chêne"],["charme","🌿","Charme"],["hetre","🌲","Hêtre"],
+  ["frene","🍃","Frêne"],["orme","🌿","Orme"],["acacia","🌿","Acacia"],
+  ["bouleau","🪵","Bouleau"],["chataignier","🌰","Châtaignier"],
+  ["fruitiers","🍒","Fruitiers"],["erables","🍁","Érables"],
+  ["tilleul","🌿","Tilleul"],["aulne","🌿","Aulne"],
+  ["peupliers","🌾","Peupliers"],["saule","🌿","Saule"],
+  ["pin_sylvestre","🌲","Pin sylvestre"],["pin_maritime","🌲","Pin maritime"],
+  ["sapin","🌲","Sapin"],["epicea","🌲","Épicéa"],["meleze","🌲","Mélèze"],
+  ["douglas","🌲","Douglas"],["melange","🌳","Mélange"],
+];
+
 const EssenceEditor = ({essences,onChange}) => {
-  const LISTE = [
-    ["peuplier","🌾","Peuplier"],["chene","🌳","Chêne"],["hetre","🌲","Hêtre"],
-    ["charme","🌿","Charme"],["frene","🍃","Frêne"],["bouleau","🪵","Bouleau"],
-    ["resineux","🎄","Résineux"],["melange","🌳","Mélange"],
-  ];
+  const LISTE = LISTE_ESSENCES_ITEBE;
   const total = essences.reduce((s,e)=>s+e.pct,0);
   const addEssence = () => {
+    if (total>=100) return;
     const used = new Set(essences.map(e=>e.id));
     const next = LISTE.find(([v])=>!used.has(v));
     if (!next) return;
     onChange([...essences,{id:next[0],emoji:next[1],label:next[2],pct:Math.max(0,100-total)}]);
+  };
+  const setPct = (i,val) => {
+    const autresTotal = essences.reduce((s,e,j)=>j===i?s:s+e.pct,0);
+    const maxAutorise = Math.max(0,100-autresTotal);
+    const clamped = Math.min(parseInt(val)||0, maxAutorise);
+    onChange(essences.map((x,j)=>j===i?{...x,pct:clamped}:x));
   };
   return (
     <div>
@@ -1267,8 +1283,8 @@ const EssenceEditor = ({essences,onChange}) => {
                 WebkitTapHighlightColor:"transparent"}}>✕</button>
           </div>
           <div style={{display:"flex",alignItems:"center",gap:10}}>
-            <input type="range" min={1} max={100} value={e.pct}
-              onChange={ev=>onChange(essences.map((x,j)=>j===i?{...x,pct:parseInt(ev.target.value)}:x))}
+            <input type="range" min={0} max={100} value={e.pct}
+              onChange={ev=>setPct(i,ev.target.value)}
               style={{flex:1,accentColor:C.green}}/>
             <div style={{width:48,textAlign:"center",fontWeight:700,fontSize:16,color:C.green}}>
               {e.pct}%
@@ -1277,11 +1293,14 @@ const EssenceEditor = ({essences,onChange}) => {
         </div>
       ))}
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginTop:4}}>
-        <button onClick={addEssence} style={{height:44,padding:"0 16px",borderRadius:10,
-          background:C.greenL,color:C.greenD,border:"none",cursor:"pointer",
+        <button onClick={addEssence} disabled={total>=100} style={{height:44,padding:"0 16px",borderRadius:10,
+          background:total>=100?C.bg2:C.greenL,color:total>=100?C.tx3:C.greenD,
+          border:"none",cursor:total>=100?"default":"pointer",
           fontFamily:"inherit",fontSize:14,fontWeight:500,
           WebkitTapHighlightColor:"transparent"}}>+ Ajouter</button>
-        <div style={{fontSize:13,fontWeight:600,color:Math.abs(total-100)<=1?C.greenD:C.red}}>
+        <div style={{fontSize:20,fontWeight:800,padding:"6px 14px",borderRadius:10,
+          background:Math.abs(total-100)<=1?C.greenL:C.redL,
+          color:Math.abs(total-100)<=1?C.greenD:C.red}}>
           Σ {total}% {Math.abs(total-100)>1&&"⚠"}
         </div>
       </div>
