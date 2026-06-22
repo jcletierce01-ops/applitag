@@ -3494,7 +3494,7 @@ const STATUT_LOT = {
 };
 
 // ── ÉCRAN ACCUEIL ─────────────────────────────────────────────
-const EcranAccueil = ({contacts, visites, notifications, user, onNewLot, onGoLots, onGoAlertes}) => {
+const EcranAccueil = ({contacts, visites, notifications, user, onNewLot, onGoLots, onGoAlertes, onGoDelegations}) => {
   const STATUTS_EXPLOITATION = ["VALIDE_EXPLOITATION","EN_COURS_EXPLOITATION","BORD_ROUTE","A_DECHIQUETER","EN_COURS_BROYAGE","EN_LIVRAISON","LIVRE_CHAUFFERIE","EN_STOCK_PLATEFORME","LIVRE"];
   const lotsAVisiter = contacts.filter(c=>c.lotNumero&&(c.statutLot==="VISITE_PREVUE"||c.statutLot==="NOUVEAU"||!c.statutLot)&&!STATUTS_EXPLOITATION.includes(c.statutLot));
   const chantiersJour = contacts.filter(c=>["EN_COURS_EXPLOITATION","VALIDE_EXPLOITATION"].includes(c.statutLot));
@@ -3522,6 +3522,19 @@ const EcranAccueil = ({contacts, visites, notifications, user, onNewLot, onGoLot
               <div style={{fontSize:12,color:C.red,opacity:.8}}>Appuyer pour voir</div>
             </div>
           </div>
+        </div>
+      )}
+      {(user?.role==="admin"||user?.role==="manager")&&(
+        <div onClick={onGoDelegations} style={{background:C.purpleL,borderRadius:14,padding:16,
+          marginBottom:12,border:`1.5px solid ${C.purple}`,cursor:"pointer",
+          display:"flex",alignItems:"center",gap:10,
+          WebkitTapHighlightColor:"transparent"}}>
+          <span style={{fontSize:24}}>🏢</span>
+          <div style={{flex:1}}>
+            <div style={{fontSize:15,fontWeight:700,color:C.purpleD}}>Délégations entreprises</div>
+            <div style={{fontSize:12,color:C.purpleD,opacity:.8}}>Créer une entreprise et missionner sur un lot</div>
+          </div>
+          <span style={{fontSize:18,color:C.purpleD}}>›</span>
         </div>
       )}
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:16}}>
@@ -3560,6 +3573,252 @@ const EcranAccueil = ({contacts, visites, notifications, user, onNewLot, onGoLot
       })}
       <div style={{marginTop:8}}>
         <BigBtn onClick={onNewLot} bg={C.green} icon="➕">NOUVEAU LOT</BigBtn>
+      </div>
+    </div>
+  );
+};
+
+// ── ÉCRAN DÉLÉGATIONS ENTREPRISES ──────────────────────────────
+const TYPES_TRAVAUX_DELEGATION = [
+  ["abattage","🪓","Abattage"],
+  ["debardage","🚜","Débardage"],
+  ["dechiquetage","🪚","Déchiquetage"],
+  ["transport","🚛","Transport"],
+  ["broyage","🌿","Broyage"],
+  ["autre","…","Autre"],
+];
+
+const EcranDelegations = ({entrepriseId, toast, onBack}) => {
+  const [entreprises,  setEntreprises]  = useState([]);
+  const [contacts,     setContacts]     = useState([]);
+  const [showNew,      setShowNew]      = useState(false);
+  const [saving,       setSaving]       = useState(false);
+
+  // Formulaire création entreprise
+  const [nom,           setNom]          = useState("");
+  const [siret,         setSiret]        = useState("");
+  const [adressePostale,setAdresse]      = useState("");
+  const [commune,       setCommune]      = useState("");
+  const [codePostal,    setCP]           = useState("");
+  const [telephone,     setTel]          = useState("");
+  const [email,         setEmail]        = useState("");
+  const [contactNom,    setContactNom]   = useState("");
+  const [typesProposes, setTypesProp]    = useState([]);
+
+  // Mission sur un lot
+  const [selEntId,      setSelEntId]     = useState("");
+  const [missionLotId,  setMissionLotId] = useState("");
+  const [missionType,   setMissionType]  = useState("abattage");
+  const [missionSaving, setMissionSaving]= useState(false);
+
+  useEffect(()=>{
+    fetch(`${API}/entreprises/entreprise/${entrepriseId}`,{headers:authHeaders()})
+      .then(r=>r.json()).then(d=>{ if(Array.isArray(d)) setEntreprises(d); }).catch(()=>{});
+    fetch(`${API}/contacts`,{headers:authHeaders()})
+      .then(r=>r.json()).then(d=>{ if(Array.isArray(d)) setContacts(d); }).catch(()=>{});
+  },[entrepriseId]);
+
+  const toggleType = v => setTypesProp(prev=>prev.includes(v)?prev.filter(x=>x!==v):[...prev,v]);
+
+  const handleCreate = async () => {
+    if (!nom.trim()) { toast("Le nom de l'entreprise est obligatoire","warn"); return; }
+    setSaving(true);
+    const entreprise = {
+      nom, siret, adressePostale, commune, codePostal,
+      telephone, email, contactNom, typesProposes, entrepriseId,
+    };
+    try {
+      const res = await fetch(`${API}/entreprises`, {
+        method:"POST", headers:authHeaders(), body:JSON.stringify(entreprise),
+      });
+      if (!res.ok) throw new Error();
+      const saved = await res.json();
+      setEntreprises(prev=>[saved,...prev]);
+      toast(`Entreprise ${nom} créée ✓`);
+    } catch {
+      setEntreprises(prev=>[{...entreprise,id:uid()},...prev]);
+      toast("Entreprise enregistrée localement ✓");
+    }
+    setNom(""); setSiret(""); setAdresse(""); setCommune(""); setCP("");
+    setTel(""); setEmail(""); setContactNom(""); setTypesProp([]);
+    setShowNew(false);
+    setSaving(false);
+  };
+
+  const handleMissionner = async () => {
+    const ent = entreprises.find(e=>e.id===selEntId);
+    if (!ent||!missionLotId) { toast("Sélectionner une entreprise et un lot","warn"); return; }
+    setMissionSaving(true);
+    try {
+      await fetch(`${API}/contacts/${missionLotId}`, {
+        method:"PATCH", headers:authHeaders(),
+        body:JSON.stringify({etfNom:ent.nom, etfId:ent.id, typeMission:missionType}),
+      });
+      setContacts(prev=>prev.map(c=>c.id===missionLotId?{...c,etfNom:ent.nom}:c));
+      toast(`${ent.nom} missionnée (${TYPES_TRAVAUX_DELEGATION.find(([v])=>v===missionType)?.[2]}) ✓`);
+      setMissionLotId("");
+    } catch { toast("Erreur API","warn"); }
+    setMissionSaving(false);
+  };
+
+  return (
+    <div style={{display:"flex",flexDirection:"column",height:"100%",background:C.bg}}>
+      <div style={{background:C.purpleD,color:"#fff",padding:"12px 16px 14px",flexShrink:0}}>
+        <div style={{display:"flex",alignItems:"center",gap:12}}>
+          <button onClick={onBack} style={{background:"rgba(255,255,255,.15)",border:"none",
+            color:"#fff",padding:"6px 10px",borderRadius:8,fontSize:13,cursor:"pointer",
+            WebkitTapHighlightColor:"transparent"}}>{"<"} Retour</button>
+          <div style={{fontSize:15,fontWeight:600}}>🏢 Délégations entreprises</div>
+        </div>
+      </div>
+
+      <div data-scrollable="1" style={{flex:1,overflowY:"auto",padding:PADDING,paddingBottom:40}}>
+
+        <SectionTitle icon="🏢" label="Entreprises référencées"/>
+        {entreprises.length===0&&!showNew&&(
+          <div style={{textAlign:"center",padding:"24px 0",color:C.tx3,fontSize:13}}>
+            Aucune entreprise référencée
+          </div>
+        )}
+        {entreprises.map(e=>(
+          <div key={e.id} style={{background:"#fff",border:`1px solid ${C.bd}`,
+            borderRadius:14,padding:14,marginBottom:10}}>
+            <div style={{fontSize:14,fontWeight:700,color:C.tx}}>{e.nom}</div>
+            <div style={{fontSize:12,color:C.tx3,marginTop:4,lineHeight:1.7}}>
+              {e.siret&&`SIRET ${e.siret} · `}{e.commune||"—"}<br/>
+              {e.telephone&&`📞 ${e.telephone} `}{e.email&&`· 📧 ${e.email}`}
+            </div>
+            {e.typesProposes?.length>0&&(
+              <div style={{display:"flex",gap:6,flexWrap:"wrap",marginTop:8}}>
+                {e.typesProposes.map(t=>{
+                  const d = TYPES_TRAVAUX_DELEGATION.find(([v])=>v===t);
+                  return d&&(
+                    <span key={t} style={{fontSize:11,padding:"3px 8px",borderRadius:6,
+                      background:C.purpleL,color:C.purpleD,fontWeight:600}}>
+                      {d[1]} {d[2]}
+                    </span>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        ))}
+
+        {!showNew ? (
+          <button onClick={()=>setShowNew(true)} style={{width:"100%",height:48,borderRadius:12,
+            background:C.purpleL,color:C.purpleD,border:`1.5px solid ${C.purple}`,
+            fontFamily:"inherit",fontSize:14,fontWeight:600,cursor:"pointer",marginBottom:20,
+            WebkitTapHighlightColor:"transparent"}}>
+            ➕ Créer une entreprise
+          </button>
+        ) : (
+          <div style={{background:"#fff",border:`1px solid ${C.bd}`,borderRadius:14,
+            padding:16,marginBottom:20}}>
+            <SectionTitle icon="🏢" label="Nouvelle entreprise"/>
+            <MInput label="Nom de l'entreprise" value={nom} onChange={setNom}
+              placeholder="Ex: ETF Gaillard" required/>
+            <MInput label="SIRET" value={siret} onChange={setSiret}
+              placeholder="14 chiffres" hint="optionnel"/>
+            <MInput label="Adresse" value={adressePostale} onChange={setAdresse}
+              placeholder="Adresse postale" hint="optionnel"/>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+              <MInput label="Code postal" value={codePostal} onChange={setCP} hint="optionnel"/>
+              <MInput label="Commune" value={commune} onChange={setCommune} hint="optionnel"/>
+            </div>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+              <MInput label="Téléphone" value={telephone} onChange={setTel} hint="optionnel"/>
+              <MInput label="Email" value={email} onChange={setEmail} hint="optionnel"/>
+            </div>
+            <MInput label="Contact référent" value={contactNom} onChange={setContactNom}
+              placeholder="Prénom Nom" hint="optionnel"/>
+
+            <div style={{fontSize:13,fontWeight:600,color:C.tx2,marginBottom:8,marginTop:6}}>
+              Types de travaux proposés
+            </div>
+            <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8,marginBottom:16}}>
+              {TYPES_TRAVAUX_DELEGATION.map(([v,e,l])=>(
+                <div key={v} onClick={()=>toggleType(v)} style={{
+                  padding:"10px 6px",borderRadius:10,cursor:"pointer",textAlign:"center",
+                  border:`1.5px solid ${typesProposes.includes(v)?C.purple:C.bd}`,
+                  background:typesProposes.includes(v)?C.purpleL:"#fff",
+                  WebkitTapHighlightColor:"transparent"}}>
+                  <div style={{fontSize:18}}>{e}</div>
+                  <div style={{fontSize:11,fontWeight:typesProposes.includes(v)?600:400,
+                    color:typesProposes.includes(v)?C.purpleD:C.tx2}}>{l}</div>
+                </div>
+              ))}
+            </div>
+
+            <div style={{display:"flex",gap:10}}>
+              <button onClick={()=>setShowNew(false)} style={{flex:1,height:BTN_H,borderRadius:14,
+                background:"#fff",border:`1.5px solid ${C.bd}`,color:C.tx2,
+                fontFamily:"inherit",fontSize:14,fontWeight:600,cursor:"pointer",
+                WebkitTapHighlightColor:"transparent"}}>Annuler</button>
+              <button onClick={handleCreate} disabled={saving} style={{flex:2,height:BTN_H,borderRadius:14,
+                background:C.purple,border:"none",color:"#fff",
+                fontFamily:"inherit",fontSize:14,fontWeight:600,cursor:"pointer",
+                WebkitTapHighlightColor:"transparent"}}>
+                {saving?"Création…":"Créer l'entreprise"}
+              </button>
+            </div>
+          </div>
+        )}
+
+        <SectionTitle icon="🎯" label="Missionner sur un lot"/>
+        {entreprises.length===0 ? (
+          <div style={{background:C.bg2,borderRadius:12,padding:14,fontSize:12,color:C.tx3,textAlign:"center"}}>
+            Créez d'abord une entreprise pour pouvoir la missionner
+          </div>
+        ) : (
+          <div style={{background:"#fff",border:`1px solid ${C.bd}`,borderRadius:14,padding:16}}>
+            <div style={{marginBottom:14}}>
+              <div style={{fontSize:13,fontWeight:600,color:C.tx2,marginBottom:8}}>Entreprise</div>
+              <select value={selEntId} onChange={e=>setSelEntId(e.target.value)}
+                style={{width:"100%",height:INPUT_H,padding:"0 14px",borderRadius:12,
+                  border:`1.5px solid ${C.bd}`,fontSize:FONT_INPUT,fontFamily:"inherit",
+                  background:"#fff",color:C.tx,outline:"none"}}>
+                <option value="">— Sélectionner —</option>
+                {entreprises.map(e=>(
+                  <option key={e.id} value={e.id}>{e.nom}</option>
+                ))}
+              </select>
+            </div>
+            <div style={{marginBottom:14}}>
+              <div style={{fontSize:13,fontWeight:600,color:C.tx2,marginBottom:8}}>Lot</div>
+              <select value={missionLotId} onChange={e=>setMissionLotId(e.target.value)}
+                style={{width:"100%",height:INPUT_H,padding:"0 14px",borderRadius:12,
+                  border:`1.5px solid ${C.bd}`,fontSize:FONT_INPUT,fontFamily:"inherit",
+                  background:"#fff",color:C.tx,outline:"none"}}>
+                <option value="">— Sélectionner un lot —</option>
+                {contacts.filter(c=>c.lotNumero).map(c=>(
+                  <option key={c.id} value={c.id}>{c.lotNumero} · {c.nom} · {c.commune}</option>
+                ))}
+              </select>
+            </div>
+            <div style={{marginBottom:16}}>
+              <div style={{fontSize:13,fontWeight:600,color:C.tx2,marginBottom:8}}>Type de mission</div>
+              <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8}}>
+                {TYPES_TRAVAUX_DELEGATION.map(([v,e,l])=>(
+                  <div key={v} onClick={()=>setMissionType(v)} style={{
+                    padding:"10px 6px",borderRadius:10,cursor:"pointer",textAlign:"center",
+                    border:`1.5px solid ${missionType===v?C.purple:C.bd}`,
+                    background:missionType===v?C.purpleL:"#fff",
+                    WebkitTapHighlightColor:"transparent"}}>
+                    <div style={{fontSize:18}}>{e}</div>
+                    <div style={{fontSize:11,fontWeight:missionType===v?600:400,
+                      color:missionType===v?C.purpleD:C.tx2}}>{l}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <button onClick={handleMissionner} disabled={missionSaving} style={{width:"100%",height:BTN_H,
+              borderRadius:14,background:C.purple,border:"none",color:"#fff",
+              fontFamily:"inherit",fontSize:14,fontWeight:600,cursor:"pointer",
+              WebkitTapHighlightColor:"transparent"}}>
+              {missionSaving?"Mission en cours…":"🎯 Missionner sur ce lot"}
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -8083,7 +8342,7 @@ export default function App() {
     </div>
   );
 
-  const screensFullPage = ["fiche0","fiche-lot","edit-contact","visite-form","validation-exploitation","cloture-exploitation","dechiquetage","transporteur","livraison","bon-commande","saisies","fin-chantier","red-declaration"];
+  const screensFullPage = ["fiche0","fiche-lot","edit-contact","visite-form","validation-exploitation","cloture-exploitation","dechiquetage","transporteur","livraison","bon-commande","saisies","fin-chantier","red-declaration","delegations"];
   const isFullPage = screensFullPage.includes(screen);
 
   const navItems = [
@@ -8151,7 +8410,12 @@ export default function App() {
             notifications={notifications} user={user}
             onNewLot={()=>setScreen("fiche0")}
             onGoLots={(f)=>{ setFiltreLotsInitial(f); setScreen("lots"); }}
-            onGoAlertes={()=>setScreen("alertes")}/>
+            onGoAlertes={()=>setScreen("alertes")}
+            onGoDelegations={()=>setScreen("delegations")}/>
+        )}
+        {screen==="delegations"&&(
+          <EcranDelegations entrepriseId={entrepriseId} toast={toast}
+            onBack={()=>setScreen("accueil")}/>
         )}
         {screen==="lots"&&(
           <EcranLots key={filtreLotsInitial} contacts={contacts}
