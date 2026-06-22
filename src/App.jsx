@@ -3611,6 +3611,16 @@ const EcranDelegations = ({entrepriseId, toast, onBack}) => {
   const [missionType,   setMissionType]  = useState("abattage");
   const [missionSaving, setMissionSaving]= useState(false);
 
+  // Répertoire — filtres
+  const [filtreDept,       setFiltreDept]       = useState("");
+  const [filtreSpecialite, setFiltreSpecialite] = useState("");
+  const deptOf = e => e.codePostal ? String(e.codePostal).slice(0,2) : null;
+  const deptsDisponibles = [...new Set(entreprises.map(deptOf).filter(Boolean))].sort();
+  const entreprisesFiltrees = entreprises.filter(e=>
+    (!filtreDept||deptOf(e)===filtreDept) &&
+    (!filtreSpecialite||e.typesProposes?.includes(filtreSpecialite))
+  );
+
   useEffect(()=>{
     fetch(`${API}/entreprises/entreprise/${entrepriseId}`,{headers:authHeaders()})
       .then(r=>r.json()).then(d=>{ if(Array.isArray(d)) setEntreprises(d); }).catch(()=>{});
@@ -3674,18 +3684,48 @@ const EcranDelegations = ({entrepriseId, toast, onBack}) => {
 
       <div data-scrollable="1" style={{flex:1,overflowY:"auto",padding:PADDING,paddingBottom:40}}>
 
-        <SectionTitle icon="🏢" label="Entreprises référencées"/>
-        {entreprises.length===0&&!showNew&&(
-          <div style={{textAlign:"center",padding:"24px 0",color:C.tx3,fontSize:13}}>
-            Aucune entreprise référencée
+        <SectionTitle icon="📖" label="Répertoire des entreprises"/>
+        {entreprises.length>0&&(
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:12}}>
+            <select value={filtreDept} onChange={e=>setFiltreDept(e.target.value)}
+              style={{width:"100%",height:42,padding:"0 10px",borderRadius:10,
+                border:`1.5px solid ${C.bd}`,fontSize:13,fontFamily:"inherit",
+                background:"#fff",color:C.tx,outline:"none"}}>
+              <option value="">Tous départements</option>
+              {deptsDisponibles.map(d=>(
+                <option key={d} value={d}>Département {d}</option>
+              ))}
+            </select>
+            <select value={filtreSpecialite} onChange={e=>setFiltreSpecialite(e.target.value)}
+              style={{width:"100%",height:42,padding:"0 10px",borderRadius:10,
+                border:`1.5px solid ${C.bd}`,fontSize:13,fontFamily:"inherit",
+                background:"#fff",color:C.tx,outline:"none"}}>
+              <option value="">Toutes spécialités</option>
+              {TYPES_TRAVAUX_DELEGATION.map(([v,e,l])=>(
+                <option key={v} value={v}>{e} {l}</option>
+              ))}
+            </select>
           </div>
         )}
-        {entreprises.map(e=>(
+        {entreprisesFiltrees.length===0&&!showNew&&(
+          <div style={{textAlign:"center",padding:"24px 0",color:C.tx3,fontSize:13}}>
+            {entreprises.length===0?"Aucune entreprise référencée":"Aucune entreprise ne correspond aux filtres"}
+          </div>
+        )}
+        {entreprisesFiltrees.map(e=>(
           <div key={e.id} style={{background:"#fff",border:`1px solid ${C.bd}`,
             borderRadius:14,padding:14,marginBottom:10}}>
-            <div style={{fontSize:14,fontWeight:700,color:C.tx}}>{e.nom}</div>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
+              <div style={{fontSize:14,fontWeight:700,color:C.tx}}>{e.nom}</div>
+              {deptOf(e)&&(
+                <span style={{fontSize:11,padding:"3px 8px",borderRadius:6,
+                  background:C.blueL,color:C.blueD,fontWeight:700,flexShrink:0}}>
+                  Dépt. {deptOf(e)}
+                </span>
+              )}
+            </div>
             <div style={{fontSize:12,color:C.tx3,marginTop:4,lineHeight:1.7}}>
-              {e.siret&&`SIRET ${e.siret} · `}{e.commune||"—"}<br/>
+              {e.siret&&`SIRET ${e.siret} · `}{e.commune||"—"}{e.codePostal?` (${e.codePostal})`:""}<br/>
               {e.telephone&&`📞 ${e.telephone} `}{e.email&&`· 📧 ${e.email}`}
             </div>
             {e.typesProposes?.length>0&&(
