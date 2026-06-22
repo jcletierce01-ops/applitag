@@ -7217,14 +7217,21 @@ const EcranFinChantier = ({lot, onBack, onSaved, toast, entrepriseId}) => {
 };
 
 // ── ÉCRAN DÉCHIQUETAGE & CHARGEMENT ──────────────────────────
+const CAPACITES_CHARGEMENT = {
+  semi: 30, camion_remorque: 30, benne_ampliroll: 15,
+};
+
 const EcranDechiquetage = ({lot, onBack, onSaved, toast, entrepriseId}) => {
   const [lotSuggere,    setLotSuggere]  = useState(lot.lotNumero||"");
-  const [entrepriseBroyage,setEntBroy]  = useState("");
   const [operateurBroyage,setOpBroyage] = useState("");
   const [machine,       setMachine]     = useState("");
   const [typeChargement,setTypeCharg]   = useState("semi");
+  const [tonnageCharge, setTonnageCharge] = useState("");
+  const [erreurTonnage, setErreurTonnage] = useState("");
   const [numeroCMR,     setNumeroCMR]   = useState("");
   const [photoCMR,      setPhotoCMR]    = useState(false);
+  const [missionsTransport, setMissionsTransport] = useState([]);
+  const [missionId,     setMissionId]   = useState("");
   const [immatTracteur, setImmatTract]  = useState("");
   const [immatRemorque, setImmatRemor]  = useState("");
   const [heureDebut,    setHeureDebut]  = useState("");
@@ -7232,6 +7239,43 @@ const EcranDechiquetage = ({lot, onBack, onSaved, toast, entrepriseId}) => {
   const [evenements,    setEvenements]  = useState([]);
   const [autreEvenement,setAutreEv]    = useState("");
   const [saving,        setSaving]      = useState(false);
+
+  const entrepriseBroyage = lot.etfNom || "Non déléguée";
+
+  // Ordres de mission transport déjà attribués à ce lot
+  useEffect(()=>{
+    fetch(`${API}/transports/lot/${lot.id}`)
+      .then(r=>r.json()).then(d=>{ if(Array.isArray(d)) setMissionsTransport(d); }).catch(()=>{});
+  },[lot.id]);
+
+  const handleSelectMission = (id) => {
+    setMissionId(id);
+    const m = missionsTransport.find(x=>x.id===id);
+    if (m) {
+      setImmatTract(m.immatTracteur||"");
+      setImmatRemor(m.immatRemorque||"");
+    }
+  };
+
+  const handlePhotoCMR = () => {
+    const next = !photoCMR;
+    setPhotoCMR(next);
+    if (next && !heureDebut) {
+      const now = new Date();
+      setHeureDebut(`${String(now.getHours()).padStart(2,"0")}:${String(now.getMinutes()).padStart(2,"0")}`);
+    }
+  };
+
+  const handleTonnageChange = (v) => {
+    setTonnageCharge(v);
+    const max = CAPACITES_CHARGEMENT[typeChargement];
+    const num = parseFloat(v);
+    if (!isNaN(num) && num > max) {
+      setErreurTonnage(`Capacité maximale dépassée (${max} t)`);
+    } else {
+      setErreurTonnage("");
+    }
+  };
 
   const EVENEMENTS_LIST = [
     ["panne_machine","🔧","Panne machine"],
@@ -7246,10 +7290,10 @@ const EcranDechiquetage = ({lot, onBack, onSaved, toast, entrepriseId}) => {
 
   const toggleEv = v => setEvenements(prev=>prev.includes(v)?prev.filter(x=>x!==v):[...prev,v]);
 
-  const canValidate = numeroCMR && immatTracteur && heureDebut && photoCMR;
+  const canValidate = numeroCMR && immatTracteur && heureDebut && heureFin && photoCMR && !erreurTonnage;
 
   const handleSave = async () => {
-    if (!canValidate) { toast("CMR, immatriculation tracteur, heure début et photo CMR obligatoires","warn"); return; }
+    if (!canValidate) { toast("CMR, immatriculation tracteur, horaires complets et photo CMR obligatoires","warn"); return; }
     setSaving(true);
     try {
       await fetch(`${API}/dechiquetage`, {
@@ -7257,6 +7301,7 @@ const EcranDechiquetage = ({lot, onBack, onSaved, toast, entrepriseId}) => {
         body:JSON.stringify({
           lotId:lot.id, lotNumero:lotSuggere, entrepriseId,
           entrepriseBroyage, operateurBroyage, machine, typeChargement,
+          tonnageCharge: parseFloat(tonnageCharge)||null,
           numeroCMR, photoCMR, immatTracteur, immatRemorque,
           heureDebut, heureFin, evenements, autreEvenement, statut:"EN_LIVRAISON",
         }),
@@ -7296,8 +7341,11 @@ const EcranDechiquetage = ({lot, onBack, onSaved, toast, entrepriseId}) => {
         </div>
 
         <SectionTitle icon="🏭" label="Entreprise de broyage"/>
-        <MInput label="Entreprise de broyage" value={entrepriseBroyage} onChange={setEntBroy}
-          placeholder="Nom société broyage" required/>
+        <div style={{background:"#fff",border:`1px solid ${C.bd}`,borderRadius:12,
+          padding:14,marginBottom:14}}>
+          <div style={{fontSize:11,color:C.tx3,marginBottom:4}}>Entreprise déléguée sur ce lot</div>
+          <div style={{fontSize:15,fontWeight:700,color:C.tx}}>{entrepriseBroyage}</div>
+        </div>
         <MInput label="Opérateur broyage" value={operateurBroyage} onChange={setOpBroyage}
           placeholder="Nom opérateur"/>
         <MInput label="Machine" value={machine} onChange={setMachine}
@@ -7306,31 +7354,36 @@ const EcranDechiquetage = ({lot, onBack, onSaved, toast, entrepriseId}) => {
         <SectionTitle icon="🚛" label="Type de chargement"/>
         <div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:14}}>
           {[
-            ["semi","🚛","Semi-remorque","Capacité ~80t"],
-            ["camion_remorque","🚚","Camion-remorque","Capacité ~40t"],
-            ["benne_ampliroll","🏗️","Benne ampliroll","Capacité ~25t"],
-          ].map(([v,e,l,s])=>(
-            <div key={v} onClick={()=>setTypeCharg(v)} style={{
+            ["semi","🚛","Semi-remorque"],
+            ["camion_remorque","🚚","Camion-remorque"],
+            ["benne_ampliroll","🏗️","Benne ampliroll"],
+          ].map(([v,e,l])=>(
+            <div key={v} onClick={()=>{ setTypeCharg(v); handleTonnageChange(tonnageCharge); }} style={{
               padding:"12px 14px",borderRadius:12,cursor:"pointer",
               border:`2px solid ${typeChargement===v?"#D85A30":C.bd}`,
               background:typeChargement===v?"#FAECE7":"#fff",
               WebkitTapHighlightColor:"transparent",
               display:"flex",alignItems:"center",gap:12}}>
               <span style={{fontSize:24}}>{e}</span>
-              <div>
-                <div style={{fontSize:14,fontWeight:typeChargement===v?600:400,
-                  color:typeChargement===v?"#D85A30":C.tx}}>{l}</div>
-                <div style={{fontSize:11,color:C.tx3}}>{s}</div>
-              </div>
+              <div style={{fontSize:14,fontWeight:typeChargement===v?600:400,
+                color:typeChargement===v?"#D85A30":C.tx}}>{l}</div>
             </div>
           ))}
         </div>
+        <MInput label="Tonnage chargé (t)" value={tonnageCharge} onChange={handleTonnageChange}
+          type="number" placeholder="ex: 28" required/>
+        {erreurTonnage&&(
+          <div style={{background:C.redL,borderRadius:10,padding:12,marginBottom:14,
+            border:`1px solid ${C.red}`,fontSize:12,color:C.red,fontWeight:600}}>
+            ⚠️ {erreurTonnage}
+          </div>
+        )}
 
         <SectionTitle icon="📄" label="CMR"/>
         <MInput label="Numéro CMR" value={numeroCMR} onChange={setNumeroCMR}
           placeholder="N° lettre de voiture" required/>
 
-        <div onClick={()=>setPhotoCMR(!photoCMR)} style={{
+        <div onClick={handlePhotoCMR} style={{
           display:"flex",alignItems:"center",justifyContent:"space-between",
           padding:14,borderRadius:12,marginBottom:14,cursor:"pointer",
           background:photoCMR?C.greenL:"#fff",
@@ -7341,13 +7394,31 @@ const EcranDechiquetage = ({lot, onBack, onSaved, toast, entrepriseId}) => {
               📷 Photo CMR
             </div>
             <div style={{fontSize:12,color:C.tx3,marginTop:2}}>
-              {photoCMR?"✓ Photo prise":"Obligatoire — photographier le CMR"}
+              {photoCMR?"✓ Photo prise — heure de départ enregistrée":"Obligatoire — photographier le CMR"}
             </div>
           </div>
           <div style={{fontSize:24}}>{photoCMR?"✅":"📷"}</div>
         </div>
 
         <SectionTitle icon="🚛" label="Véhicule"/>
+        {missionsTransport.length>0&&(
+          <div style={{marginBottom:14}}>
+            <div style={{fontSize:13,fontWeight:600,color:C.tx2,marginBottom:8}}>
+              Ordre de mission transport
+            </div>
+            <select value={missionId} onChange={e=>handleSelectMission(e.target.value)}
+              style={{width:"100%",height:INPUT_H,padding:"0 14px",borderRadius:12,
+                border:`1.5px solid ${C.bd}`,fontSize:FONT_INPUT,fontFamily:"inherit",
+                background:"#fff",color:C.tx,outline:"none"}}>
+              <option value="">— Sélectionner —</option>
+              {missionsTransport.map(m=>(
+                <option key={m.id} value={m.id}>
+                  {m.societeTransp||"Transporteur"} · {m.immatTracteur||"?"} · {m.nomChauffeur||""}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
           <MInput label="Immat. tracteur" value={immatTracteur} onChange={setImmatTract}
             placeholder="AB-123-CD" required/>
@@ -7360,7 +7431,7 @@ const EcranDechiquetage = ({lot, onBack, onSaved, toast, entrepriseId}) => {
           <MInput label="Heure début" value={heureDebut} onChange={setHeureDebut}
             type="time" required/>
           <MInput label="Heure fin" value={heureFin} onChange={setHeureFin}
-            type="time" hint="optionnel"/>
+            type="time" required/>
         </div>
 
         <SectionTitle icon="📋" label="Événements du jour"/>
@@ -7392,6 +7463,8 @@ const EcranDechiquetage = ({lot, onBack, onSaved, toast, entrepriseId}) => {
               {!photoCMR&&<div>❌ Photo CMR</div>}
               {!immatTracteur&&<div>❌ Immatriculation tracteur</div>}
               {!heureDebut&&<div>❌ Heure de début</div>}
+              {!heureFin&&<div>❌ Heure de fin</div>}
+              {erreurTonnage&&<div>❌ {erreurTonnage}</div>}
             </div>
           </div>
         )}
