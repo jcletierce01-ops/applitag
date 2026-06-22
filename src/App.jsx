@@ -1374,22 +1374,43 @@ const FormulaireVisite = ({lot, onBack, onSaved, toast, entrepriseId}) => {
   const [distancePlateforme,setDist] = useState(500);
   const [saving, setSaving]    = useState(false);
 
-  // INDICES DE CALCUL PAR ESSENCE
+  // INDICES DE CALCUL PAR ESSENCE (source : ITEBE 2004)
   const INDICES_ESSENCE = {
-    peuplier: {densite:850, pci:2.4, foisonnement:0.40, hauteurMoy:25},
-    chene:    {densite:1000,pci:3.8, foisonnement:0.55, hauteurMoy:20},
-    hetre:    {densite:1000,pci:4.0, foisonnement:0.55, hauteurMoy:22},
-    charme:   {densite:1000,pci:4.2, foisonnement:0.55, hauteurMoy:15},
-    frene:    {densite:900, pci:3.9, foisonnement:0.52, hauteurMoy:20},
-    bouleau:  {densite:950, pci:3.7, foisonnement:0.50, hauteurMoy:15},
-    resineux: {densite:870, pci:2.8, foisonnement:0.45, hauteurMoy:25},
-    melange:  {densite:950, pci:3.5, foisonnement:0.50, hauteurMoy:20},
-    taillis:  {densite:900, pci:3.5, foisonnement:0.48, hauteurMoy:12},
+    peuplier:      {densite:850, pci:2.4, foisonnement:0.40, hauteurMoy:25},
+    peupliers:     {densite:850, pci:2.4, foisonnement:0.40, hauteurMoy:25},
+    chene:         {densite:1000,pci:3.8, foisonnement:0.55, hauteurMoy:20},
+    hetre:         {densite:1000,pci:4.0, foisonnement:0.55, hauteurMoy:22},
+    charme:        {densite:1000,pci:4.2, foisonnement:0.55, hauteurMoy:15},
+    frene:         {densite:900, pci:3.9, foisonnement:0.52, hauteurMoy:20},
+    bouleau:       {densite:950, pci:3.7, foisonnement:0.50, hauteurMoy:15},
+    orme:          {densite:960, pci:3.8, foisonnement:0.52, hauteurMoy:18},
+    acacia:        {densite:1050,pci:4.1, foisonnement:0.55, hauteurMoy:15},
+    chataignier:   {densite:870, pci:3.5, foisonnement:0.50, hauteurMoy:18},
+    fruitiers:     {densite:950, pci:3.7, foisonnement:0.50, hauteurMoy:12},
+    erables:       {densite:950, pci:3.8, foisonnement:0.52, hauteurMoy:18},
+    tilleul:       {densite:800, pci:3.3, foisonnement:0.48, hauteurMoy:18},
+    aulne:         {densite:800, pci:3.3, foisonnement:0.48, hauteurMoy:18},
+    saule:         {densite:780, pci:3.0, foisonnement:0.42, hauteurMoy:15},
+    pin_sylvestre: {densite:830, pci:3.0, foisonnement:0.45, hauteurMoy:25},
+    pin_maritime:  {densite:830, pci:3.0, foisonnement:0.45, hauteurMoy:25},
+    sapin:         {densite:850, pci:2.8, foisonnement:0.45, hauteurMoy:28},
+    epicea:        {densite:850, pci:2.8, foisonnement:0.45, hauteurMoy:28},
+    meleze:        {densite:900, pci:3.0, foisonnement:0.46, hauteurMoy:26},
+    douglas:       {densite:870, pci:2.9, foisonnement:0.45, hauteurMoy:28},
+    resineux:      {densite:870, pci:2.8, foisonnement:0.45, hauteurMoy:25},
+    melange:       {densite:950, pci:3.5, foisonnement:0.50, hauteurMoy:20},
+    taillis:       {densite:900, pci:3.5, foisonnement:0.48, hauteurMoy:12},
   };
 
-  // Essence principale pour calculs
+  // Essence principale (affichage) + indices pondérés par la composition réelle (%)
   const essencePrincipale = [...essences].sort((a,b)=>b.pct-a.pct)[0]?.id || "melange";
-  const indices = INDICES_ESSENCE[essencePrincipale] || INDICES_ESSENCE.melange;
+  const totalPctEssences = essences.reduce((s,e)=>s+e.pct,0) || 100;
+  const indices = essences.length>0 ? {
+    densite:     essences.reduce((s,e)=>s+(INDICES_ESSENCE[e.id]||INDICES_ESSENCE.melange).densite*e.pct,0)/totalPctEssences,
+    pci:         essences.reduce((s,e)=>s+(INDICES_ESSENCE[e.id]||INDICES_ESSENCE.melange).pci*e.pct,0)/totalPctEssences,
+    foisonnement:essences.reduce((s,e)=>s+(INDICES_ESSENCE[e.id]||INDICES_ESSENCE.melange).foisonnement*e.pct,0)/totalPctEssences,
+    hauteurMoy:  essences.reduce((s,e)=>s+(INDICES_ESSENCE[e.id]||INDICES_ESSENCE.melange).hauteurMoy*e.pct,0)/totalPctEssences,
+  } : INDICES_ESSENCE.melange;
 
   // Persistance brouillon
   useEffect(()=>{
@@ -1613,7 +1634,7 @@ const FormulaireVisite = ({lot, onBack, onSaved, toast, entrepriseId}) => {
               <div style={{background:C.amberL,borderRadius:12,padding:14,marginBottom:14,
                 border:`1px solid ${C.amber}`}}>
                 <div style={{fontSize:12,fontWeight:700,color:C.amberD,marginBottom:8}}>
-                  📊 Estimations — essence : {essencePrincipale}
+                  📊 Estimations — composition pondérée ({essences.map(e=>`${e.label} ${e.pct}%`).join(", ")||essencePrincipale})
                 </div>
                 <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8}}>
                   {[
@@ -1629,7 +1650,7 @@ const FormulaireVisite = ({lot, onBack, onSaved, toast, entrepriseId}) => {
                   ))}
                 </div>
                 <div style={{fontSize:10,color:C.tx3,marginTop:8}}>
-                  Densité verte : {indices.densite} kg/m³ · Foisonnement : {indices.foisonnement}
+                  Densité verte : {Math.round(indices.densite)} kg/m³ · Foisonnement : {indices.foisonnement.toFixed(2)}
                 </div>
               </div>
             )}
