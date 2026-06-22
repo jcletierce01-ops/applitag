@@ -1425,6 +1425,8 @@ const FormulaireVisite = ({lot, onBack, onSaved, toast, entrepriseId}) => {
         if (draft.observations) setObs(draft.observations);
         if (draft.prixTonne) setPrixTonne(draft.prixTonne);
         if (draft.diametreMoyen) setDiametreMoyen(draft.diametreMoyen);
+        if (draft.popParHa) setPopParHa(draft.popParHa);
+        if (draft.modeVolume) setModeVolume(draft.modeVolume);
         if (draft.contraintes) setCont(draft.contraintes);
         if (draft.accesCamion) setAcces(draft.accesCamion);
       }
@@ -1436,13 +1438,13 @@ const FormulaireVisite = ({lot, onBack, onSaved, toast, entrepriseId}) => {
     try {
       localStorage.setItem(DRAFT_KEY+lot.id, JSON.stringify({
         gps, essences, volumeT, surfaceHa, dateLimite, observations,
-        prixTonne, diametreMoyen, tauxTVA, acompte, delaiSolde, modeReglement,
+        prixTonne, diametreMoyen, popParHa, modeVolume, tauxTVA, acompte, delaiSolde, modeReglement,
         iban, swift, nomBanque, villeBanque,
         contraintes, accesCamion, step,
       }));
     } catch {}
   },[gps, essences, volumeT, surfaceHa, dateLimite, observations,
-     prixTonne, diametreMoyen, contraintes, accesCamion, step]);
+     prixTonne, diametreMoyen, popParHa, modeVolume, contraintes, accesCamion, step]);
 
   // Recalcul du volume estimé si la surface ou l'essence change en mode "par ha"
   useEffect(()=>{
@@ -1498,7 +1500,7 @@ const FormulaireVisite = ({lot, onBack, onSaved, toast, entrepriseId}) => {
       lotId: lot.id, lotNumero: lot.lotNumero||lot.numero,
       date: todayS(), gps, photos, essences,
       volumeEstimeT: volumeT, surfaceHa, dateLimite, observations,
-      diametreMoyen,
+      diametreMoyen, popParHa,
       prixTonne, tauxTVA, acompte, delaiSolde, modeReglement,
       iban, swift, nomBanque, villeBanque,
       sigProprio, sigExploit, nomSignProprio, nomSignExploit,
@@ -6909,6 +6911,7 @@ const FicheLotCentrale = ({
                  {icon:"🌿",label:"Bois sur pied",rows:[
                    ["Essences",derniereVisite?.essences?.map(e=>`${e.label} (${e.pct}%)`).join(", ")],
                    ["Volume estimé",derniereVisite?.volumeEstimeT?derniereVisite.volumeEstimeT+" t":null],
+                   ["Population estimée",derniereVisite?.popParHa?derniereVisite.popParHa+" tiges/ha":null],
                    ["Diamètre moyen à 1,20 m",derniereVisite?.diametreMoyen?derniereVisite.diametreMoyen+" cm":null],
                  ]},
                  {icon:"🚛",label:"Accès",rows:[
