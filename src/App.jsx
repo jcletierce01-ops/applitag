@@ -1246,6 +1246,48 @@ const LISTE_ESSENCES_ITEBE = [
   ["douglas","🌲","Douglas"],["melange","🌳","Mélange"],
 ];
 
+// INDICES DE CALCUL PAR ESSENCE (source : ITEBE 2004) — densité (kg/m³), PCI (MWh/t), foisonnement, hauteur moy. (m)
+const INDICES_ESSENCE_ITEBE = {
+  peuplier:      {densite:850, pci:2.4, foisonnement:0.40, hauteurMoy:25},
+  peupliers:     {densite:850, pci:2.4, foisonnement:0.40, hauteurMoy:25},
+  chene:         {densite:1000,pci:3.8, foisonnement:0.55, hauteurMoy:20},
+  hetre:         {densite:1000,pci:4.0, foisonnement:0.55, hauteurMoy:22},
+  charme:        {densite:1000,pci:4.2, foisonnement:0.55, hauteurMoy:15},
+  frene:         {densite:900, pci:3.9, foisonnement:0.52, hauteurMoy:20},
+  bouleau:       {densite:950, pci:3.7, foisonnement:0.50, hauteurMoy:15},
+  orme:          {densite:960, pci:3.8, foisonnement:0.52, hauteurMoy:18},
+  acacia:        {densite:1050,pci:4.1, foisonnement:0.55, hauteurMoy:15},
+  chataignier:   {densite:870, pci:3.5, foisonnement:0.50, hauteurMoy:18},
+  fruitiers:     {densite:950, pci:3.7, foisonnement:0.50, hauteurMoy:12},
+  erables:       {densite:950, pci:3.8, foisonnement:0.52, hauteurMoy:18},
+  tilleul:       {densite:800, pci:3.3, foisonnement:0.48, hauteurMoy:18},
+  aulne:         {densite:800, pci:3.3, foisonnement:0.48, hauteurMoy:18},
+  saule:         {densite:780, pci:3.0, foisonnement:0.42, hauteurMoy:15},
+  pin_sylvestre: {densite:830, pci:3.0, foisonnement:0.45, hauteurMoy:25},
+  pin_maritime:  {densite:830, pci:3.0, foisonnement:0.45, hauteurMoy:25},
+  sapin:         {densite:850, pci:2.8, foisonnement:0.45, hauteurMoy:28},
+  epicea:        {densite:850, pci:2.8, foisonnement:0.45, hauteurMoy:28},
+  meleze:        {densite:900, pci:3.0, foisonnement:0.46, hauteurMoy:26},
+  douglas:       {densite:870, pci:2.9, foisonnement:0.45, hauteurMoy:28},
+  resineux:      {densite:870, pci:2.8, foisonnement:0.45, hauteurMoy:25},
+  melange:       {densite:950, pci:3.5, foisonnement:0.50, hauteurMoy:20},
+  taillis:       {densite:900, pci:3.5, foisonnement:0.48, hauteurMoy:12},
+};
+
+// Indices pondérés par la composition réelle du lot (% par essence) — résultat plus proche de la réalité
+// qu'un calcul sur la seule essence dominante.
+const indicesPonderes = (essences) => {
+  if (!essences?.length) return INDICES_ESSENCE_ITEBE.melange;
+  const total = essences.reduce((s,e)=>s+e.pct,0) || 100;
+  const get = id => INDICES_ESSENCE_ITEBE[id] || INDICES_ESSENCE_ITEBE.melange;
+  return {
+    densite:     essences.reduce((s,e)=>s+get(e.id).densite*e.pct,0)/total,
+    pci:         essences.reduce((s,e)=>s+get(e.id).pci*e.pct,0)/total,
+    foisonnement:essences.reduce((s,e)=>s+get(e.id).foisonnement*e.pct,0)/total,
+    hauteurMoy:  essences.reduce((s,e)=>s+get(e.id).hauteurMoy*e.pct,0)/total,
+  };
+};
+
 const EssenceEditor = ({essences,onChange}) => {
   const LISTE = LISTE_ESSENCES_ITEBE;
   const total = essences.reduce((s,e)=>s+e.pct,0);
@@ -1374,43 +1416,9 @@ const FormulaireVisite = ({lot, onBack, onSaved, toast, entrepriseId}) => {
   const [distancePlateforme,setDist] = useState(500);
   const [saving, setSaving]    = useState(false);
 
-  // INDICES DE CALCUL PAR ESSENCE (source : ITEBE 2004)
-  const INDICES_ESSENCE = {
-    peuplier:      {densite:850, pci:2.4, foisonnement:0.40, hauteurMoy:25},
-    peupliers:     {densite:850, pci:2.4, foisonnement:0.40, hauteurMoy:25},
-    chene:         {densite:1000,pci:3.8, foisonnement:0.55, hauteurMoy:20},
-    hetre:         {densite:1000,pci:4.0, foisonnement:0.55, hauteurMoy:22},
-    charme:        {densite:1000,pci:4.2, foisonnement:0.55, hauteurMoy:15},
-    frene:         {densite:900, pci:3.9, foisonnement:0.52, hauteurMoy:20},
-    bouleau:       {densite:950, pci:3.7, foisonnement:0.50, hauteurMoy:15},
-    orme:          {densite:960, pci:3.8, foisonnement:0.52, hauteurMoy:18},
-    acacia:        {densite:1050,pci:4.1, foisonnement:0.55, hauteurMoy:15},
-    chataignier:   {densite:870, pci:3.5, foisonnement:0.50, hauteurMoy:18},
-    fruitiers:     {densite:950, pci:3.7, foisonnement:0.50, hauteurMoy:12},
-    erables:       {densite:950, pci:3.8, foisonnement:0.52, hauteurMoy:18},
-    tilleul:       {densite:800, pci:3.3, foisonnement:0.48, hauteurMoy:18},
-    aulne:         {densite:800, pci:3.3, foisonnement:0.48, hauteurMoy:18},
-    saule:         {densite:780, pci:3.0, foisonnement:0.42, hauteurMoy:15},
-    pin_sylvestre: {densite:830, pci:3.0, foisonnement:0.45, hauteurMoy:25},
-    pin_maritime:  {densite:830, pci:3.0, foisonnement:0.45, hauteurMoy:25},
-    sapin:         {densite:850, pci:2.8, foisonnement:0.45, hauteurMoy:28},
-    epicea:        {densite:850, pci:2.8, foisonnement:0.45, hauteurMoy:28},
-    meleze:        {densite:900, pci:3.0, foisonnement:0.46, hauteurMoy:26},
-    douglas:       {densite:870, pci:2.9, foisonnement:0.45, hauteurMoy:28},
-    resineux:      {densite:870, pci:2.8, foisonnement:0.45, hauteurMoy:25},
-    melange:       {densite:950, pci:3.5, foisonnement:0.50, hauteurMoy:20},
-    taillis:       {densite:900, pci:3.5, foisonnement:0.48, hauteurMoy:12},
-  };
-
-  // Essence principale (affichage) + indices pondérés par la composition réelle (%)
+  // Essence principale (affichage) + indices pondérés par la composition réelle (%) — source ITEBE 2004
   const essencePrincipale = [...essences].sort((a,b)=>b.pct-a.pct)[0]?.id || "melange";
-  const totalPctEssences = essences.reduce((s,e)=>s+e.pct,0) || 100;
-  const indices = essences.length>0 ? {
-    densite:     essences.reduce((s,e)=>s+(INDICES_ESSENCE[e.id]||INDICES_ESSENCE.melange).densite*e.pct,0)/totalPctEssences,
-    pci:         essences.reduce((s,e)=>s+(INDICES_ESSENCE[e.id]||INDICES_ESSENCE.melange).pci*e.pct,0)/totalPctEssences,
-    foisonnement:essences.reduce((s,e)=>s+(INDICES_ESSENCE[e.id]||INDICES_ESSENCE.melange).foisonnement*e.pct,0)/totalPctEssences,
-    hauteurMoy:  essences.reduce((s,e)=>s+(INDICES_ESSENCE[e.id]||INDICES_ESSENCE.melange).hauteurMoy*e.pct,0)/totalPctEssences,
-  } : INDICES_ESSENCE.melange;
+  const indices = indicesPonderes(essences);
 
   // Persistance brouillon
   useEffect(()=>{
@@ -2915,6 +2923,7 @@ const EcranOperateur = ({operateur, onLogout, toast}) => {
   const [typeOp, setTypeOp] = useState(null);
   const [saving, setSaving] = useState(false);
   const [lotsStatus, setLotsStatus] = useState({}); // {lotId: statutLot} — rafraîchi depuis le serveur
+  const [visites, setVisites] = useState([]);
 
   // Rafraîchit le statut réel des lots assignés, pour ne jamais bloquer
   // l'accès à la saisie tant que la clôture n'a pas eu lieu (et le couper après).
@@ -2928,19 +2937,14 @@ const EcranOperateur = ({operateur, onLogout, toast}) => {
         setLotsStatus(map);
       })
       .catch(()=>{}); // échec réseau → on n'affiche aucun statut, l'accès reste ouvert
+    fetch(`${API}/visites`)
+      .then(r=>r.json())
+      .then(d=>{ if (Array.isArray(d)) setVisites(d); })
+      .catch(()=>{});
   },[]);
 
-  // Indices essences (source: Forêts Romandes / ITEBE 2004)
-  const INDICES = {
-    peuplier:  { densiteVerte: 850,  pci: 2.4 },
-    chene:     { densiteVerte: 1000, pci: 3.8 },
-    hetre:     { densiteVerte: 1000, pci: 4.0 },
-    charme:    { densiteVerte: 1000, pci: 4.2 },
-    frene:     { densiteVerte: 900,  pci: 3.9 },
-    bouleau:   { densiteVerte: 950,  pci: 3.7 },
-    resineux:  { densiteVerte: 870,  pci: 2.8 },
-    melange:   { densiteVerte: 950,  pci: 3.5 },
-  };
+  // Composition essences du lot actif (issue de sa dernière visite) → indices pondérés ITEBE
+  const visiteActiveLot = visites.filter(v=>v.lotId===activeLot?.lotId)[0]||null;
 
   // Relevé abatteur
   const [nbTas,       setNbTas]   = useState(0);
@@ -2990,12 +2994,14 @@ const EcranOperateur = ({operateur, onLogout, toast}) => {
     : nbVoyages * longueurDeb * largeurDeb * hauteurDeb;
   const volReelDeb = volApparentDeb * foisDeb;
 
-  // Essence depuis la visite (si disponible) — sinon mélange
-  const essenceVisite = activeLot?.essenceVisite || "melange";
-  const indices = INDICES[essenceVisite] || INDICES.melange;
-  const poidsTotal    = Math.round(volReel    * indices.densiteVerte / 1000 * 100) / 100;
+  // Composition essences de la visite (pondérée, source ITEBE) — sinon mélange par défaut
+  const essenceVisite = visiteActiveLot?.essences?.length
+    ? visiteActiveLot.essences.map(e=>`${e.label} ${e.pct}%`).join(", ")
+    : "Mélange (composition inconnue)";
+  const indices = indicesPonderes(visiteActiveLot?.essences);
+  const poidsTotal    = Math.round(volReel    * indices.densite / 1000 * 100) / 100;
   const energieMWh    = Math.round(poidsTotal * indices.pci * 100) / 100;
-  const poidsTotalDeb = Math.round(volReelDeb * indices.densiteVerte / 1000 * 100) / 100;
+  const poidsTotalDeb = Math.round(volReelDeb * indices.densite / 1000 * 100) / 100;
   const energieMWhDeb = Math.round(poidsTotalDeb * indices.pci * 100) / 100;
 
   const [releveExistantId, setReleveExistantId] = useState(null);
@@ -3258,7 +3264,7 @@ const EcranOperateur = ({operateur, onLogout, toast}) => {
                       ))}
                     </div>
                     <div style={{fontSize:10,color:C.tx3,marginTop:8,textAlign:"center"}}>
-                      {essenceVisite} · {indices?.densiteVerte} kg/m³ · Foisonnement {Math.round(foisDeb*100)}%
+                      {essenceVisite} · {Math.round(indices?.densite)} kg/m³ · Foisonnement {Math.round(foisDeb*100)}%
                     </div>
                   </div>
                 )}
@@ -3484,7 +3490,7 @@ const EcranOperateur = ({operateur, onLogout, toast}) => {
                       ))}
                     </div>
                     <div style={{fontSize:10,color:C.tx3,marginTop:8,textAlign:"center"}}>
-                      {essenceVisite} · {indices?.densiteVerte} kg/m³ · PCI {indices?.pci} MWh/t
+                      {essenceVisite} · {Math.round(indices?.densite)} kg/m³ · PCI {indices?.pci?.toFixed(1)} MWh/t
                     </div>
                   </div>
                 )}
@@ -4218,24 +4224,14 @@ const ModalSuggestionETF = ({lot, visites, operateurs, rayon=100, onChoisir, onI
 
 
 // ── COMPOSANT CALCUL TAS ──────────────────────────────────────
-const INDICES_CALC = {
-  peuplier:{densite:850,pci:2.4,foisonnement:0.40},
-  chene:   {densite:1000,pci:3.8,foisonnement:0.55},
-  hetre:   {densite:1000,pci:4.0,foisonnement:0.55},
-  charme:  {densite:1000,pci:4.2,foisonnement:0.55},
-  frene:   {densite:900, pci:3.9,foisonnement:0.52},
-  bouleau: {densite:950, pci:3.7,foisonnement:0.50},
-  resineux:{densite:870, pci:2.8,foisonnement:0.45},
-  melange: {densite:950, pci:3.5,foisonnement:0.50},
-  taillis: {densite:900, pci:3.5,foisonnement:0.48},
-};
-
-const TasDimensionsInput = ({nbTas, foisonnement, onFoisonnementChange, essence="melange", onChange}) => {
+const TasDimensionsInput = ({nbTas, foisonnement, onFoisonnementChange, essence="melange", essences=null, onChange}) => {
   const [longueur, setLong]  = useState("");
   const [largeur,  setLarg]  = useState("");
   const [hauteur,  setHaut]  = useState("");
 
-  const indices = INDICES_CALC[essence] || INDICES_CALC.melange;
+  // Composition pondérée (ITEBE) si la composition réelle du lot est connue, sinon essence unique en repli
+  const indices = essences?.length ? indicesPonderes(essences) : (INDICES_ESSENCE_ITEBE[essence]||INDICES_ESSENCE_ITEBE.melange);
+  const essenceLabel = essences?.length ? essences.map(e=>`${e.label} ${e.pct}%`).join(", ") : essence;
   const L = parseFloat(longueur)||0;
   const la = parseFloat(largeur)||0;
   const H = parseFloat(hauteur)||0;
@@ -4263,7 +4259,7 @@ const TasDimensionsInput = ({nbTas, foisonnement, onFoisonnementChange, essence=
         <div style={{background:C.amberL,borderRadius:12,padding:14,
           border:`1.5px solid ${C.amber}`}}>
           <div style={{fontSize:12,fontWeight:700,color:C.amberD,marginBottom:10}}>
-            📊 Calculs automatiques — {nbTas} tas · essence : {essence}
+            📊 Calculs automatiques — {nbTas} tas · essence(s) : {essenceLabel}
           </div>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:10}}>
             {[
@@ -4281,7 +4277,7 @@ const TasDimensionsInput = ({nbTas, foisonnement, onFoisonnementChange, essence=
           </div>
           <div style={{fontSize:10,color:C.tx3,lineHeight:1.7}}>
             Base de calcul : {L}×{la}×{H} m × {nbTas} tas<br/>
-            Densité verte {indices.densite} kg/m³ · Foisonnement {indices.foisonnement} · PCI {indices.pci} kWh/kg
+            Densité verte {Math.round(indices.densite)} kg/m³ · Foisonnement {indices.foisonnement.toFixed(2)} · PCI {indices.pci.toFixed(1)} kWh/kg
           </div>
         </div>
       )}
@@ -4290,13 +4286,15 @@ const TasDimensionsInput = ({nbTas, foisonnement, onFoisonnementChange, essence=
         <MSlider label="Taux de foisonnement" value={foisonnement}
           onChange={onFoisonnementChange} min={0.30} max={0.65} step={0.01}
           unit="" color={C.amber}
-          hint={`Valeur théorique ${indices.foisonnement} pour ${essence}`}/>
+          hint={`Valeur théorique ${indices.foisonnement.toFixed(2)} pour ${essenceLabel}`}/>
       </div>
     </div>
   );
 };
 
-const EcranValidationExploitation = ({lot, operateurs, onBack, onSaved, toast, entrepriseId, user}) => {
+const EcranValidationExploitation = ({lot, visites=[], operateurs, onBack, onSaved, toast, entrepriseId, user}) => {
+  // Composition essences du lot (issue de sa dernière visite) → indices pondérés ITEBE
+  const visiteLotJour = visites.filter(v=>v.lotId===lot.id||v.lotNumero===lot.lotNumero)[0]||null;
   // Ordre de mission (première fois — admin)
   const [etfNom,      setEtfNom]     = useState(lot.etfNom||"");
   const [typeOp,      setTypeOp]     = useState(lot.typeOperation||"abattage_debardage");
@@ -4487,6 +4485,7 @@ const EcranValidationExploitation = ({lot, operateurs, onBack, onSaved, toast, e
               nbTas={nbTasJour}
               foisonnement={foisonnement}
               onFoisonnementChange={setFoisonn}
+              essences={visiteLotJour?.essences}
               essence={lot.potentiel?.split(":")?.[0]||"melange"}/>
 
             <MInput label="Observations" value={observations} onChange={setObs}
@@ -4567,7 +4566,7 @@ const EcranValidationExploitation = ({lot, operateurs, onBack, onSaved, toast, e
 };
 
 // ── ÉCRAN CLÔTURE EXPLOITATION ───────────────────────────────
-const EcranClotureExploitation = ({lot, onBack, onSaved, toast, entrepriseId}) => {
+const EcranClotureExploitation = ({lot, visites=[], onBack, onSaved, toast, entrepriseId}) => {
   const [nbTas,       setNbTas]    = useState(1);
   const [longueur,    setLong]     = useState(4);
   const [largeur,     setLarg]     = useState(1.2);
@@ -4579,15 +4578,12 @@ const EcranClotureExploitation = ({lot, onBack, onSaved, toast, entrepriseId}) =
   const [photos,      setPhotos]   = useState([]);
   const [saving,      setSaving]   = useState(false);
 
-  // Indices essences
-  const INDICES = {
-    peuplier:{densiteVerte:850,pci:2.4},chene:{densiteVerte:1000,pci:3.8},
-    hetre:{densiteVerte:1000,pci:4.0},charme:{densiteVerte:1000,pci:4.2},
-    frene:{densiteVerte:900,pci:3.9},bouleau:{densiteVerte:950,pci:3.7},
-    resineux:{densiteVerte:870,pci:2.8},melange:{densiteVerte:950,pci:3.5},
-  };
-  const essence = lot.potentiel?.split(":")?.[0] || "melange";
-  const indices = INDICES[essence] || INDICES.melange;
+  // Composition essences du lot (issue de sa dernière visite) → indices pondérés ITEBE
+  const visiteLot = visites.filter(v=>v.lotId===lot.id||v.lotNumero===lot.lotNumero)[0]||null;
+  const essence = visiteLot?.essences?.length
+    ? visiteLot.essences.map(e=>`${e.label} ${e.pct}%`).join(", ")
+    : (lot.potentiel||"Mélange (composition inconnue)");
+  const indices = indicesPonderes(visiteLot?.essences);
 
   // Synchronise le nombre de fiches de mesure avec le nombre de tas déclaré
   useEffect(()=>{
@@ -4602,7 +4598,7 @@ const EcranClotureExploitation = ({lot, onBack, onSaved, toast, entrepriseId}) =
     ? tasDetails.reduce((s,t)=>s+(parseFloat(t.longueur)||0)*(parseFloat(t.largeur)||0)*(parseFloat(t.hauteur)||0),0)
     : nbTas * longueur * largeur * hauteur;
   const volReel = Math.round(volApparent * foisonnement * 100)/100;
-  const poidsEstime = Math.round(volReel * indices.densiteVerte / 1000 * 100)/100;
+  const poidsEstime = Math.round(volReel * indices.densite / 1000 * 100)/100;
   const energieMWh = Math.round(poidsEstime * indices.pci * 100)/100;
 
   const handlePhoto = () => {
@@ -8596,6 +8592,7 @@ export default function App() {
         {screen==="cloture-exploitation"&&activeContact&&(
           <EcranClotureExploitation
             lot={activeContact}
+            visites={visites}
             onBack={()=>setScreen("fiche-lot")}
             onSaved={()=>{
               setContacts(prev=>prev.map(c=>c.id===activeContact.id?{...c,statutLot:"BORD_ROUTE"}:c));
@@ -8645,6 +8642,7 @@ export default function App() {
         {screen==="validation-exploitation"&&activeContact&&(
           <EcranValidationExploitation
             lot={activeContact}
+            visites={visites}
             operateurs={operateurs}
             onBack={()=>setScreen("fiche-lot")}
             onSaved={(data)=>{
