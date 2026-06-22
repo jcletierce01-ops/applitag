@@ -1388,7 +1388,7 @@ const FormulaireVisite = ({lot, onBack, onSaved, toast, entrepriseId}) => {
   };
 
   // Essence principale pour calculs
-  const essencePrincipale = essences.sort((a,b)=>b.pct-a.pct)[0]?.id || "melange";
+  const essencePrincipale = [...essences].sort((a,b)=>b.pct-a.pct)[0]?.id || "melange";
   const indices = INDICES_ESSENCE[essencePrincipale] || INDICES_ESSENCE.melange;
 
   // Persistance brouillon
