@@ -7,18 +7,23 @@ import { Html5Qrcode } from "html5-qrcode";
 
 const API = "https://applitag-api-production.up.railway.app";
 
+// Palette de marque APPLITAG (charte ALTEGAD SAS)
 const C = {
-  green:"#1D9E75", greenL:"#E1F5EE", greenD:"#085041",
+  green:"#4CAF50", greenL:"#E8F5E9", greenD:"#1E5B3A",
+  greenPale:"#86C27D",
   blue:"#185FA5",  blueL:"#E6F1FB",  blueD:"#042C53",
   amber:"#BA7517", amberL:"#FAEEDA", amberD:"#412402",
   red:"#A32D2D",   redL:"#FCEBEB",
   purple:"#534AB7",purpleL:"#EEEDFE",purpleD:"#26215C",
-  brown:"#8B6914", brownL:"#F1EFE8",
-  bg:"#F5F4F1", bg2:"#ECEAE6",
+  brown:"#A66A2E", brownL:"#F3EBE0",
+  bg:"#F3F4F6", bg2:"#ECEAE6",
   bd:"#DDDBD5", bd2:"#C8C5BE",
-  tx:"#1A1A18", tx2:"#5A5955", tx3:"#9A9892",
-  sb:"#111",
+  tx:"#333333", tx2:"#5A5955", tx3:"#9A9892",
+  sb:"#1E5B3A",
 };
+
+const FONT_TITLE = "'Montserrat',-apple-system,sans-serif";
+const FONT_BODY  = "'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif";
 
 const BTN_H = 56;
 const INPUT_H = 52;
@@ -181,7 +186,7 @@ const GridSelect = ({options,value,onChange,cols=3}) => (
 
 const SectionTitle = ({icon,label}) => (
   <div style={{fontSize:13,fontWeight:700,color:C.tx2,marginBottom:12,marginTop:8,
-    display:"flex",alignItems:"center",gap:7,
+    display:"flex",alignItems:"center",gap:7,fontFamily:FONT_TITLE,
     paddingBottom:8,borderBottom:`1px solid ${C.bd}`}}>
     <span style={{fontSize:16}}>{icon}</span>{label}
   </div>
@@ -492,7 +497,7 @@ const LoginScreen = ({onLogin, onLoginOperateur, onLoginDemo}) => {
       {/* Header */}
       <div style={{padding:"32px 24px 24px",textAlign:"center"}}>
         <img src="/logo.png" alt="APPLITAG" style={{width:80,height:80,objectFit:"contain",marginBottom:12}}/>
-        <div style={{fontSize:22,fontWeight:700}}>APPLITAG</div>
+        <div style={{fontSize:22,fontWeight:700,fontFamily:FONT_TITLE}}>APPLITAG</div>
         <div style={{fontSize:13,opacity:.6,marginTop:4}}>Gestion forestière terrain</div>
       </div>
 
@@ -3531,13 +3536,13 @@ const STATUT_LOT = {
   VISITE_REALISEE:       {label:"Visite réalisée",    color:"#185FA5", bg:"#E6F1FB"},
   VALIDE_EXPLOITATION:   {label:"Validé",             color:"#534AB7", bg:"#EEEDFE"},
   EN_COURS_EXPLOITATION: {label:"En exploitation",    color:"#185FA5", bg:"#E6F1FB"},
-  BORD_ROUTE:            {label:"Bord de route",      color:"#8B6914", bg:"#F1EFE8"},
+  BORD_ROUTE:            {label:"Bord de route",      color:"#A66A2E", bg:"#F3EBE0"},
   A_DECHIQUETER:         {label:"À déchiqueter",      color:"#D85A30", bg:"#FAECE7"},
   EN_COURS_BROYAGE:      {label:"En cours broyage",   color:"#D85A30", bg:"#FAECE7"},
   EN_LIVRAISON:          {label:"En livraison",       color:"#534AB7", bg:"#EEEDFE"},
-  LIVRE_CHAUFFERIE:      {label:"Livré chaufferie",   color:"#1D9E75", bg:"#E1F5EE"},
+  LIVRE_CHAUFFERIE:      {label:"Livré chaufferie",   color:"#4CAF50", bg:"#E8F5E9"},
   EN_STOCK_PLATEFORME:   {label:"En stock plateforme",color:"#185FA5", bg:"#E6F1FB"},
-  LIVRE:                 {label:"Livré",              color:"#1D9E75", bg:"#E1F5EE"},
+  LIVRE:                 {label:"Livré",              color:"#4CAF50", bg:"#E8F5E9"},
   ALERTE:                {label:"⚠ Alerte",           color:"#A32D2D", bg:"#FCEBEB"},
 };
 
@@ -3585,28 +3590,37 @@ const EcranAccueil = ({contacts, visites, notifications, user, onNewLot, onGoLot
           <span style={{fontSize:18,color:C.purpleD}}>›</span>
         </div>
       )}
-      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:16}}>
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:10,marginBottom:16}}>
         {[
-          {icon:"🔭",label:"Lots à visiter",count:lotsAVisiter.length,color:C.amber,bg:C.amberL,action:()=>onGoLots("VISITE_PREVUE")},
-          {icon:"🪓",label:"Chantiers",count:chantiersJour.length,color:C.blue,bg:C.blueL,action:()=>onGoLots("EN_COURS_EXPLOITATION")},
-          {icon:"📋",label:"Total lots",count:contacts.filter(c=>c.lotNumero).length,color:C.green,bg:C.greenL,action:()=>onGoLots("TOUS")},
-          {icon:"✅",label:"Livrés",count:contacts.filter(c=>c.statutLot==="LIVRE").length,color:C.greenD,bg:C.greenL,action:()=>onGoLots("LIVRE")},
+          {icon:"🔭",label:"À visiter",count:lotsAVisiter.length,color:C.amber,bg:C.amberL,action:()=>onGoLots("VISITE_PREVUE")},
+          {icon:"🪓",label:"En exploitation",count:chantiersJour.length,color:C.blue,bg:C.blueL,action:()=>onGoLots("EN_COURS_EXPLOITATION")},
+          {icon:"📦",label:"Bord de route",count:contacts.filter(c=>c.statutLot==="BORD_ROUTE").length,color:C.brown,bg:C.brownL,action:()=>onGoLots("BORD_ROUTE")},
+          {icon:"🚛",label:"Transports",count:contacts.filter(c=>c.statutLot==="EN_LIVRAISON").length,color:C.purple,bg:C.purpleL,action:()=>onGoLots("EN_LIVRAISON")},
+          {icon:"✅",label:"Livraisons",count:contacts.filter(c=>c.statutLot==="LIVRE_CHAUFFERIE").length,color:C.green,bg:C.greenL,action:()=>onGoLots("LIVRE_CHAUFFERIE")},
+          {icon:"⚠️",label:"Alertes critiques",count:alertes.length,color:C.red,bg:C.redL,action:onGoAlertes},
         ].map((card,i)=>(
           <div key={i} onClick={card.action} style={{
-            background:card.bg,borderRadius:14,padding:16,cursor:"pointer",
+            background:card.bg,borderRadius:14,padding:"14px 10px",cursor:"pointer",
             WebkitTapHighlightColor:"transparent"}}>
-            <div style={{fontSize:28,marginBottom:8}}>{card.icon}</div>
-            <div style={{fontSize:26,fontWeight:700,color:card.color}}>{card.count}</div>
-            <div style={{fontSize:12,color:C.tx2,marginTop:2}}>{card.label}</div>
+            <div style={{fontSize:22,marginBottom:6}}>{card.icon}</div>
+            <div style={{fontSize:22,fontWeight:700,color:card.color,fontFamily:FONT_TITLE}}>{card.count}</div>
+            <div style={{fontSize:11,color:C.tx2,marginTop:2}}>{card.label}</div>
           </div>
         ))}
       </div>
-      {contacts.filter(c=>c.lotNumero).slice(0,3).map(c=>{
+      <div style={{fontSize:13,fontWeight:700,color:C.tx2,marginBottom:10,fontFamily:FONT_TITLE}}>
+        Chantiers du jour
+      </div>
+      {chantiersJour.length===0&&(
+        <div style={{fontSize:13,color:C.tx3,marginBottom:14}}>Aucun chantier en cours.</div>
+      )}
+      {chantiersJour.slice(0,5).map(c=>{
         const st = STATUT_LOT[c.statutLot||"NOUVEAU"]||STATUT_LOT.NOUVEAU;
         return (
-          <div key={c.id} style={{background:"#fff",border:`1px solid ${C.bd}`,
+          <div key={c.id} onClick={()=>onGoLots("EN_COURS_EXPLOITATION")}
+            style={{background:"#fff",border:`1px solid ${C.bd}`,cursor:"pointer",
             borderRadius:14,padding:14,marginBottom:10,display:"flex",
-            alignItems:"center",gap:12}}>
+            alignItems:"center",gap:12,WebkitTapHighlightColor:"transparent"}}>
             <div style={{width:10,height:10,borderRadius:"50%",background:st.color,flexShrink:0}}/>
             <div style={{flex:1}}>
               <div style={{fontFamily:"monospace",fontSize:12,color:C.greenD,fontWeight:600}}>{c.lotNumero}</div>
@@ -3995,7 +4009,7 @@ const EcranLots = ({contacts, onNewLot, onOpenLot, filtreInitial="TOUS"}) => {
                   </span>
                 )}
                 {c.tonnageBordRoute>0&&(
-                  <span style={{marginLeft:8,color:"#8B6914",fontWeight:600}}>
+                  <span style={{marginLeft:8,color:"#A66A2E",fontWeight:600}}>
                     · 🌲 {fmtNum(c.tonnageBordRoute,1)} t bord route
                   </span>
                 )}
@@ -4640,7 +4654,7 @@ const EcranClotureExploitation = ({lot, visites=[], onBack, onSaved, toast, entr
 
   return (
     <div style={{display:"flex",flexDirection:"column",height:"100%",background:C.bg}}>
-      <div style={{background:C.brown||"#8B6914",color:"#fff",padding:"12px 16px 14px",flexShrink:0}}>
+      <div style={{background:C.brown||"#A66A2E",color:"#fff",padding:"12px 16px 14px",flexShrink:0}}>
         <div style={{display:"flex",alignItems:"center",gap:12}}>
           <button onClick={onBack} style={{background:"rgba(255,255,255,.15)",border:"none",
             color:"#fff",padding:"6px 10px",borderRadius:8,fontSize:13,cursor:"pointer",
@@ -4848,15 +4862,15 @@ const buildCompteRenduContactHTML = (contact) => {
 body{font-family:Arial,Helvetica,sans-serif;font-size:11px;color:#1A1A18;background:#fff}
 .page{width:210mm;min-height:297mm;padding:14mm 16mm;margin:0 auto}
 .header{display:flex;justify-content:space-between;align-items:flex-start;
-  border-bottom:2.5px solid #1D9E75;padding-bottom:14px;margin-bottom:18px}
-.logo h1{font-size:22px;font-weight:700;color:#085041;letter-spacing:-0.5px}
+  border-bottom:2.5px solid #4CAF50;padding-bottom:14px;margin-bottom:18px}
+.logo h1{font-size:22px;font-weight:700;color:#1E5B3A;letter-spacing:-0.5px}
 .logo p{font-size:9px;color:#9A9892;margin-top:3px}
 .doc-ref{text-align:right}
 .doc-ref h2{font-size:17px;font-weight:700;color:#1A1A18;text-transform:uppercase}
-.doc-ref .num{font-family:monospace;font-size:14px;color:#085041;margin-top:4px}
+.doc-ref .num{font-family:monospace;font-size:14px;color:#1E5B3A;margin-top:4px}
 .doc-ref .dt{font-size:9px;color:#9A9892;margin-top:3px}
 .sec{margin-bottom:16px}
-.sec h3{font-size:10px;font-weight:700;color:#085041;text-transform:uppercase;
+.sec h3{font-size:10px;font-weight:700;color:#1E5B3A;text-transform:uppercase;
   letter-spacing:.5px;border-bottom:1px solid #DDDBD5;padding-bottom:5px;margin-bottom:10px}
 table{width:100%;border-collapse:collapse;margin-bottom:14px}
 td{padding:7px 10px;border-bottom:1px solid #ECEAE6;font-size:10.5px}
@@ -4949,15 +4963,15 @@ const buildSimpleDocHTML = (lot, title, sections, footerNote) => {
 body{font-family:Arial,Helvetica,sans-serif;font-size:11px;color:#1A1A18;background:#fff}
 .page{width:210mm;min-height:297mm;padding:14mm 16mm;margin:0 auto}
 .header{display:flex;justify-content:space-between;align-items:flex-start;
-  border-bottom:2.5px solid #1D9E75;padding-bottom:14px;margin-bottom:18px}
-.logo h1{font-size:22px;font-weight:700;color:#085041;letter-spacing:-0.5px}
+  border-bottom:2.5px solid #4CAF50;padding-bottom:14px;margin-bottom:18px}
+.logo h1{font-size:22px;font-weight:700;color:#1E5B3A;letter-spacing:-0.5px}
 .logo p{font-size:9px;color:#9A9892;margin-top:3px}
 .doc-ref{text-align:right}
 .doc-ref h2{font-size:17px;font-weight:700;color:#1A1A18;text-transform:uppercase}
-.doc-ref .num{font-family:monospace;font-size:14px;color:#085041;margin-top:4px}
+.doc-ref .num{font-family:monospace;font-size:14px;color:#1E5B3A;margin-top:4px}
 .doc-ref .dt{font-size:9px;color:#9A9892;margin-top:3px}
 .sec{margin-bottom:16px}
-.sec h3{font-size:10px;font-weight:700;color:#085041;text-transform:uppercase;
+.sec h3{font-size:10px;font-weight:700;color:#1E5B3A;text-transform:uppercase;
   letter-spacing:.5px;border-bottom:1px solid #DDDBD5;padding-bottom:5px;margin-bottom:10px}
 table{width:100%;border-collapse:collapse;margin-bottom:14px}
 td{padding:7px 10px;border-bottom:1px solid #ECEAE6;font-size:10.5px}
@@ -5024,26 +5038,26 @@ const buildBonCommandeHTML = (lot, visite, extra) => {
 body{font-family:Arial,Helvetica,sans-serif;font-size:11px;color:#1A1A18;background:#fff}
 .page{width:210mm;min-height:297mm;padding:14mm 16mm;margin:0 auto}
 .header{display:flex;justify-content:space-between;align-items:flex-start;
-  border-bottom:2.5px solid #1D9E75;padding-bottom:14px;margin-bottom:18px}
-.logo h1{font-size:22px;font-weight:700;color:#085041;letter-spacing:-0.5px}
+  border-bottom:2.5px solid #4CAF50;padding-bottom:14px;margin-bottom:18px}
+.logo h1{font-size:22px;font-weight:700;color:#1E5B3A;letter-spacing:-0.5px}
 .logo p{font-size:9px;color:#9A9892;margin-top:3px}
 .doc-ref{text-align:right}
 .doc-ref h2{font-size:17px;font-weight:700;color:#1A1A18;text-transform:uppercase}
-.doc-ref .num{font-family:monospace;font-size:14px;color:#085041;margin-top:4px}
+.doc-ref .num{font-family:monospace;font-size:14px;color:#1E5B3A;margin-top:4px}
 .doc-ref .dt{font-size:9px;color:#9A9892;margin-top:3px}
 .two{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px}
 .card{border:1px solid #DDDBD5;border-radius:6px;padding:11px}
-.card h3{font-size:10px;font-weight:700;color:#085041;text-transform:uppercase;
+.card h3{font-size:10px;font-weight:700;color:#1E5B3A;text-transform:uppercase;
   letter-spacing:.5px;border-bottom:1px solid #ECEAE6;padding-bottom:5px;margin-bottom:8px}
 .card p{font-size:10.5px;color:#1A1A18;line-height:1.85}
 .card .sub{font-size:9.5px;color:#5A5955}
 .sec{margin-bottom:16px}
-.sec h3{font-size:10px;font-weight:700;color:#085041;text-transform:uppercase;
+.sec h3{font-size:10px;font-weight:700;color:#1E5B3A;text-transform:uppercase;
   letter-spacing:.5px;border-bottom:1px solid #DDDBD5;padding-bottom:5px;margin-bottom:10px}
 table{width:100%;border-collapse:collapse;margin-bottom:14px}
-th{background:#085041;color:#fff;padding:7px 10px;text-align:left;font-size:10px;font-weight:600}
+th{background:#1E5B3A;color:#fff;padding:7px 10px;text-align:left;font-size:10px;font-weight:600}
 td{padding:7px 10px;border-bottom:1px solid #ECEAE6;font-size:10.5px}
-.total td{font-weight:700;background:#E1F5EE;font-size:11px}
+.total td{font-weight:700;background:#E8F5E9;font-size:11px}
 .note{background:#FAEEDA;border:1px solid #BA7517;border-radius:5px;padding:9px 12px;
   font-size:9.5px;color:#412402;line-height:1.7;margin-bottom:14px}
 .cert-badge{display:inline-block;background:#E6F1FB;color:#042C53;
@@ -5053,11 +5067,11 @@ td{padding:7px 10px;border-bottom:1px solid #ECEAE6;font-size:10.5px}
   color:#5A5955;line-height:1.7;margin-bottom:16px}
 .sigs{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-top:20px;page-break-inside:avoid}
 .sig{border:1px solid #DDDBD5;border-radius:6px;padding:12px}
-.sig h4{font-size:10px;font-weight:700;color:#085041;margin-bottom:3px}
+.sig h4{font-size:10px;font-weight:700;color:#1E5B3A;margin-bottom:3px}
 .sig .who{font-size:9.5px;color:#5A5955;margin-bottom:40px}
 .sig .line{border-top:1px solid #1A1A18;padding-top:5px;font-size:9px;color:#9A9892}
-.replant{background:#E1F5EE;border:1px solid #1D9E75;border-radius:5px;
-  padding:8px 12px;font-size:9.5px;color:#085041;margin-bottom:14px}
+.replant{background:#E8F5E9;border:1px solid #4CAF50;border-radius:5px;
+  padding:8px 12px;font-size:9.5px;color:#1E5B3A;margin-bottom:14px}
 .footer{margin-top:auto;padding-top:12px;border-top:1px solid #DDDBD5;
   font-size:8.5px;color:#9A9892;text-align:center;line-height:1.6}
 @media print{
@@ -5877,26 +5891,26 @@ const buildRedHTML = (lot, visite, transport, livraison, typeDecl) => {
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:Arial,sans-serif;font-size:11px;color:#1A1A18}
 .page{width:210mm;min-height:297mm;padding:14mm 16mm;margin:0 auto}
-.header{border-bottom:3px solid #085041;padding-bottom:12px;margin-bottom:20px;
+.header{border-bottom:3px solid #1E5B3A;padding-bottom:12px;margin-bottom:20px;
   display:flex;justify-content:space-between;align-items:flex-start}
-.logo h1{font-size:20px;font-weight:700;color:#085041}
+.logo h1{font-size:20px;font-weight:700;color:#1E5B3A}
 .logo p{font-size:9px;color:#9A9892;margin-top:3px}
-.badge{background:#E1F5EE;border:2px solid #085041;border-radius:6px;
+.badge{background:#E8F5E9;border:2px solid #1E5B3A;border-radius:6px;
   padding:8px 14px;text-align:right}
-.badge h2{font-size:14px;font-weight:700;color:#085041}
+.badge h2{font-size:14px;font-weight:700;color:#1E5B3A}
 .badge p{font-size:9px;color:#5A5955;margin-top:2px}
 .alert{background:#E6F1FB;border:1px solid #185FA5;border-radius:6px;
   padding:10px 14px;margin-bottom:16px;font-size:10px;color:#042C53;line-height:1.7}
 .sec{margin-bottom:16px}
-.sec h3{font-size:10px;font-weight:700;color:#085041;text-transform:uppercase;
+.sec h3{font-size:10px;font-weight:700;color:#1E5B3A;text-transform:uppercase;
   letter-spacing:.5px;border-bottom:1px solid #DDDBD5;padding-bottom:5px;margin-bottom:10px}
 table{width:100%;border-collapse:collapse;margin-bottom:12px}
-th{background:#085041;color:#fff;padding:6px 10px;text-align:left;font-size:10px}
+th{background:#1E5B3A;color:#fff;padding:6px 10px;text-align:left;font-size:10px}
 td{padding:7px 10px;border-bottom:1px solid #ECEAE6;font-size:10.5px}
 td:first-child{font-weight:600;width:45%}
 .sig{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-top:24px;page-break-inside:avoid}
 .sig-box{border:1px solid #DDDBD5;border-radius:6px;padding:12px}
-.sig-box h4{font-size:10px;font-weight:700;color:#085041;margin-bottom:3px}
+.sig-box h4{font-size:10px;font-weight:700;color:#1E5B3A;margin-bottom:3px}
 .sig-line{margin-top:50px;border-top:1px solid #1A1A18;padding-top:5px;font-size:9px;color:#9A9892}
 .footer{margin-top:20px;padding-top:10px;border-top:1px solid #DDDBD5;
   font-size:8.5px;color:#9A9892;text-align:center;line-height:1.6}
@@ -6235,7 +6249,7 @@ const EcranCarte = ({contacts, visites, onOpenLot}) => {
       const popup = `
         <div style="font-family:-apple-system,sans-serif;min-width:200px;padding:2px">
           <div style="font-family:monospace;font-size:14px;font-weight:700;
-            color:#085041;margin-bottom:4px">${lot.lotNumero}</div>
+            color:#1E5B3A;margin-bottom:4px">${lot.lotNumero}</div>
           <div style="font-size:13px;color:#1A1A18;font-weight:500">
             ${lot.nom}${lot.prenom?" "+lot.prenom:""}</div>
           <div style="font-size:12px;color:#5A5955;margin-top:2px">📍 ${lot.commune}</div>
@@ -6251,7 +6265,7 @@ const EcranCarte = ({contacts, visites, onOpenLot}) => {
             🌿 ${v.essences.map(e=>e.label).join(", ")}</div>`:""}
           <button onclick="window.__aplt_open('${lot.id}')"
             style="width:100%;margin-top:10px;padding:8px;border-radius:8px;
-              background:#1D9E75;color:#fff;border:none;cursor:pointer;
+              background:#4CAF50;color:#fff;border:none;cursor:pointer;
               font-size:12px;font-weight:600;font-family:inherit;">
             Ouvrir la fiche →
           </button>
@@ -6285,9 +6299,9 @@ const EcranCarte = ({contacts, visites, onOpenLot}) => {
     ["NOUVEAU","#9A9892"],
     ["VISITE_PREVUE","#BA7517"],
     ["EN_COURS_EXPLOITATION","#185FA5"],
-    ["BORD_ROUTE","#8B6914"],
+    ["BORD_ROUTE","#A66A2E"],
     ["EN_LIVRAISON","#534AB7"],
-    ["LIVRE_CHAUFFERIE","#1D9E75"],
+    ["LIVRE_CHAUFFERIE","#4CAF50"],
     ["ALERTE","#A32D2D"],
   ];
 
@@ -8209,6 +8223,204 @@ const EcranLivraison = ({lot, onBack, onSaved, toast, entrepriseId}) => {
   );
 };
 
+// ── TABLEAU DE BORD DESKTOP (ADMIN) ────────────────────────────
+const DASHBOARD_NAV = [
+  {id:"dashboard",   icon:"📊", label:"Tableau de bord"},
+  {id:"lots",        icon:"🌲", label:"Lots"},
+  {id:"carte",       icon:"🗺️", label:"Carte"},
+  {id:"transports",  icon:"🚛", label:"Transports"},
+  {id:"livraisons",  icon:"📦", label:"Livraisons"},
+  {id:"chaufferies", icon:"🔥", label:"Chaufferies"},
+  {id:"alertes",     icon:"🔔", label:"Alertes"},
+  {id:"rapports",    icon:"📈", label:"Rapports"},
+  {id:"parametres",  icon:"⚙️", label:"Paramètres"},
+];
+
+const EcranDashboardPC = ({user, contacts, visites, notifications, transports=[], onLogout}) => {
+  const [section, setSection] = useState("dashboard");
+  const [lotDetail, setLotDetail] = useState(null);
+
+  const lots = contacts.filter(c=>c.lotNumero);
+  const enExploitation = lots.filter(c=>["VALIDE_EXPLOITATION","EN_COURS_EXPLOITATION"].includes(c.statutLot));
+  const tonnesLivrees = lots.filter(c=>c.statutLot==="LIVRE_CHAUFFERIE")
+    .reduce((s,c)=>s+(parseFloat(c.tonnageCumul)||0),0);
+  const transportsEnCours = lots.filter(c=>c.statutLot==="EN_LIVRAISON").length;
+  const alertesCritiques = notifications.filter(n=>!n.lu);
+  const volumeEstimeTotal = lots.reduce((s,c)=>s+(parseFloat(c.tonnageCumul)||0),0);
+
+  const KPI_CARDS = [
+    {icon:"🌲",label:"Lots en exploitation",val:enExploitation.length,color:C.greenD},
+    {icon:"⚖️",label:"Tonnes livrées",val:fmtNum(tonnesLivrees)+" t",color:C.brown},
+    {icon:"🌲",label:"Volume estimé total",val:fmtNum(volumeEstimeTotal)+" t",color:C.blue},
+    {icon:"🚛",label:"Transports en cours",val:transportsEnCours,color:C.purple},
+    {icon:"⚠️",label:"Alertes critiques",val:alertesCritiques.length,color:C.red,danger:true},
+  ];
+
+  return (
+    <div style={{display:"flex",height:"100dvh",fontFamily:FONT_BODY,background:C.bg,color:C.tx}}>
+      {/* Sidebar */}
+      <div style={{width:230,background:C.sb,color:"#fff",flexShrink:0,
+        display:"flex",flexDirection:"column",padding:"20px 0"}}>
+        <div style={{display:"flex",alignItems:"center",gap:10,padding:"0 20px 24px"}}>
+          <img src="/logo.png" alt="APPLITAG" style={{width:30,height:30,objectFit:"contain"}}/>
+          <div>
+            <div style={{fontSize:15,fontWeight:700,fontFamily:FONT_TITLE}}>APPLITAG</div>
+            <div style={{fontSize:10,opacity:.6}}>by ALTEGAD SAS</div>
+          </div>
+        </div>
+        {DASHBOARD_NAV.map(item=>(
+          <div key={item.id} onClick={()=>setSection(item.id)} style={{
+            display:"flex",alignItems:"center",gap:10,padding:"11px 20px",cursor:"pointer",
+            background:section===item.id?"rgba(255,255,255,.12)":"transparent",
+            borderLeft:`3px solid ${section===item.id?C.greenPale:"transparent"}`,
+            fontSize:14,fontWeight:section===item.id?600:400}}>
+            <span style={{fontSize:16}}>{item.icon}</span>{item.label}
+          </div>
+        ))}
+        <div style={{flex:1}}/>
+        <div onClick={onLogout} style={{display:"flex",alignItems:"center",gap:10,
+          padding:"11px 20px",cursor:"pointer",fontSize:13,opacity:.7}}>
+          <span style={{fontSize:16}}>⎋</span>Déconnexion
+        </div>
+      </div>
+
+      {/* Contenu principal */}
+      <div style={{flex:1,overflowY:"auto",padding:24}}>
+        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:20}}>
+          <div style={{fontSize:20,fontWeight:700,fontFamily:FONT_TITLE,color:C.tx}}>
+            {DASHBOARD_NAV.find(n=>n.id===section)?.label||"Tableau de bord"}
+          </div>
+          <div style={{display:"flex",alignItems:"center",gap:10}}>
+            {alertesCritiques.length>0&&(
+              <div style={{background:C.redL,color:C.red,fontSize:12,fontWeight:600,
+                padding:"6px 12px",borderRadius:20}}>🔔 {alertesCritiques.length}</div>
+            )}
+            <div style={{width:34,height:34,borderRadius:"50%",background:C.greenL,
+              color:C.greenD,display:"flex",alignItems:"center",justifyContent:"center",
+              fontWeight:700,fontSize:14}}>
+              {(user?.prenom||user?.nom||"?")[0]}
+            </div>
+            <div>
+              <div style={{fontSize:13,fontWeight:600}}>{user?.prenom} {user?.nom}</div>
+              <div style={{fontSize:11,color:C.tx3,textTransform:"capitalize"}}>{user?.role}</div>
+            </div>
+          </div>
+        </div>
+
+        {section==="dashboard" && (
+          <>
+            <div style={{display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:14,marginBottom:20}}>
+              {KPI_CARDS.map((k,i)=>(
+                <div key={i} style={{background:"#fff",borderRadius:14,padding:16,
+                  border:`1px solid ${C.bd}`,borderLeft:k.danger?`4px solid ${C.red}`:`1px solid ${C.bd}`}}>
+                  <div style={{fontSize:20,marginBottom:6}}>{k.icon}</div>
+                  <div style={{fontSize:24,fontWeight:700,color:k.color,fontFamily:FONT_TITLE}}>{k.val}</div>
+                  <div style={{fontSize:12,color:C.tx3,marginTop:2}}>{k.label}</div>
+                </div>
+              ))}
+            </div>
+
+            <div style={{display:"grid",gridTemplateColumns:"2fr 1fr",gap:16,alignItems:"start"}}>
+              <div style={{background:"#fff",borderRadius:14,border:`1px solid ${C.bd}`,
+                padding:16,height:480,display:"flex",flexDirection:"column"}}>
+                <div style={{fontSize:14,fontWeight:700,marginBottom:10,fontFamily:FONT_TITLE}}>
+                  Carte des lots et transports
+                </div>
+                <div style={{flex:1,borderRadius:10,overflow:"hidden"}}>
+                  <EcranCarte contacts={contacts} visites={visites}
+                    onOpenLot={lot=>setLotDetail(lot)}/>
+                </div>
+              </div>
+
+              <div style={{background:"#fff",borderRadius:14,border:`1px solid ${C.bd}`,padding:16}}>
+                <div style={{fontSize:14,fontWeight:700,marginBottom:12,fontFamily:FONT_TITLE}}>
+                  Activité récente
+                </div>
+                {notifications.length===0 && (
+                  <div style={{fontSize:13,color:C.tx3}}>Aucune activité récente.</div>
+                )}
+                {notifications.slice(0,8).map((n,i)=>(
+                  <div key={n.id||i} style={{display:"flex",gap:10,marginBottom:14}}>
+                    <span style={{fontSize:16}}>{n.lu?"✅":"🔔"}</span>
+                    <div style={{flex:1}}>
+                      <div style={{fontSize:12,color:C.tx,lineHeight:1.4}}>{n.message||n.titre||"—"}</div>
+                      <div style={{fontSize:10,color:C.tx3,marginTop:2}}>
+                        {n.date?new Date(n.date).toLocaleString("fr-FR"):""}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {lotDetail && (
+              <div style={{marginTop:16,background:"#fff",borderRadius:14,
+                border:`1px solid ${C.bd}`,padding:16}}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
+                  <div style={{fontSize:14,fontWeight:700,fontFamily:FONT_TITLE}}>
+                    🌲 {lotDetail.lotNumero} · {lotDetail.commune}
+                  </div>
+                  <button onClick={()=>setLotDetail(null)} style={{border:"none",background:"transparent",
+                    cursor:"pointer",fontSize:18,color:C.tx3}}>✕</button>
+                </div>
+                <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:12,fontSize:13}}>
+                  <div><span style={{color:C.tx3}}>Statut</span><br/>
+                    <strong>{(STATUT_LOT[lotDetail.statutLot||"NOUVEAU"]||STATUT_LOT.NOUVEAU).label}</strong></div>
+                  <div><span style={{color:C.tx3}}>Propriétaire</span><br/><strong>{lotDetail.nom||"—"}</strong></div>
+                  <div><span style={{color:C.tx3}}>Tonnage cumulé</span><br/>
+                    <strong>{fmtNum(lotDetail.tonnageCumul||0)} t</strong></div>
+                  <div><span style={{color:C.tx3}}>Nature produit</span><br/><strong>{lotDetail.potentiel||"—"}</strong></div>
+                </div>
+              </div>
+            )}
+          </>
+        )}
+
+        {section==="lots" && (
+          <div style={{background:"#fff",borderRadius:14,border:`1px solid ${C.bd}`,
+            height:"calc(100dvh - 140px)",overflow:"hidden"}}>
+            <EcranLots contacts={contacts} onNewLot={()=>{}}
+              onOpenLot={setLotDetail} filtreInitial="TOUS"/>
+          </div>
+        )}
+
+        {section==="carte" && (
+          <div style={{background:"#fff",borderRadius:14,border:`1px solid ${C.bd}`,
+            height:"calc(100dvh - 140px)",overflow:"hidden"}}>
+            <EcranCarte contacts={contacts} visites={visites} onOpenLot={setLotDetail}/>
+          </div>
+        )}
+
+        {["transports","livraisons","chaufferies","rapports","parametres"].includes(section) && (
+          <div style={{background:"#fff",borderRadius:14,border:`1px solid ${C.bd}`,
+            padding:40,textAlign:"center",color:C.tx3}}>
+            <div style={{fontSize:32,marginBottom:10}}>🚧</div>
+            Module "{DASHBOARD_NAV.find(n=>n.id===section)?.label}" — bientôt disponible sur le tableau de bord desktop.
+          </div>
+        )}
+
+        {section==="alertes" && (
+          <div style={{background:"#fff",borderRadius:14,border:`1px solid ${C.bd}`,padding:16}}>
+            {notifications.length===0 && <div style={{color:C.tx3,fontSize:13}}>Aucune alerte.</div>}
+            {notifications.map((n,i)=>(
+              <div key={n.id||i} style={{display:"flex",gap:10,padding:"10px 0",
+                borderBottom:i<notifications.length-1?`1px solid ${C.bd}`:"none"}}>
+                <span style={{fontSize:16}}>{n.lu?"✅":"🔴"}</span>
+                <div style={{flex:1}}>
+                  <div style={{fontSize:13,color:C.tx}}>{n.message||n.titre||"—"}</div>
+                  <div style={{fontSize:11,color:C.tx3,marginTop:2}}>
+                    {n.date?new Date(n.date).toLocaleString("fr-FR"):""}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
 export default function App() {
   const [user,      setUser]      = useState(()=>getUser());
   const [operateur, setOperateur] = useState(()=>{ try { return JSON.parse(localStorage.getItem("applitag_operateur")||"null"); } catch { return null; } });
@@ -8228,6 +8440,14 @@ export default function App() {
   const [transports,   setTransports]   = useState([]);
   const [livraisons,   setLivraisons]   = useState([]);
   const entrepriseId = getEntrepriseId();
+
+  // Bascule vers le tableau de bord desktop (admin) sur grand écran
+  const [isWideScreen, setIsWideScreen] = useState(()=>window.innerWidth>=1024);
+  useEffect(()=>{
+    const onResize = () => setIsWideScreen(window.innerWidth>=1024);
+    window.addEventListener("resize", onResize);
+    return ()=>window.removeEventListener("resize", onResize);
+  },[]);
 
   const toast = useCallback((msg,type="success")=>{
     const id=uid();
@@ -8316,16 +8536,16 @@ export default function App() {
 
   if (transitioning) return (
     <div style={{display:"flex",flexDirection:"column",alignItems:"center",
-      justifyContent:"center",height:"100dvh",background:"#085041",color:"#fff",
-      fontFamily:"-apple-system,sans-serif"}}>
+      justifyContent:"center",height:"100dvh",background:C.sb,color:"#fff",
+      fontFamily:FONT_BODY}}>
       <div style={{fontSize:48,marginBottom:16}}>🌲</div>
-      <div style={{fontSize:18,fontWeight:700}}>APPLITAG</div>
+      <div style={{fontSize:18,fontWeight:700,fontFamily:FONT_TITLE}}>APPLITAG</div>
     </div>
   );
 
   if (operateur) return (
     <div style={{display:"flex",flexDirection:"column",height:"100dvh",
-      fontFamily:"-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif",
+      fontFamily:FONT_BODY,
       maxWidth:430,margin:"0 auto",boxShadow:"0 0 40px rgba(0,0,0,.15)"}}>
       <EcranOperateur operateur={operateur} onLogout={handleLogoutOperateur} toast={toast}/>
     </div>
@@ -8333,7 +8553,7 @@ export default function App() {
 
   if (!user) return (
     <div style={{display:"flex",flexDirection:"column",height:"100dvh",
-      fontFamily:"-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif",
+      fontFamily:FONT_BODY,
       maxWidth:430,margin:"0 auto",boxShadow:"0 0 40px rgba(0,0,0,.15)"}}>
       <LoginScreen onLogin={handleLogin} onLoginOperateur={handleLoginOperateur} onLoginDemo={handleLoginDemo}/>
     </div>
@@ -8341,7 +8561,7 @@ export default function App() {
 
   if (showQr) return (
     <div style={{display:"flex",flexDirection:"column",height:"100dvh",
-      fontFamily:"-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif",
+      fontFamily:FONT_BODY,
       maxWidth:430,margin:"0 auto",boxShadow:"0 0 40px rgba(0,0,0,.15)"}}>
       <QrCodeAdmin entrepriseId={entrepriseId} entrepriseNom="APPLITAG"
         onClose={()=>setShowQr(false)}/>
@@ -8351,7 +8571,7 @@ export default function App() {
   // Rôles simplifiés (non-admin)
   if (user?.role==="proprietaire") return (
     <div style={{display:"flex",flexDirection:"column",height:"100dvh",
-      fontFamily:"-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif",
+      fontFamily:FONT_BODY,
       maxWidth:430,margin:"0 auto",boxShadow:"0 0 40px rgba(0,0,0,.15)"}}>
       <div style={{background:C.sb,color:"#fff",padding:"12px 16px 10px",flexShrink:0,
         display:"flex",alignItems:"center",gap:10}}>
@@ -8369,7 +8589,7 @@ export default function App() {
 
   if (user?.role==="chauffeur") return (
     <div style={{display:"flex",flexDirection:"column",height:"100dvh",
-      fontFamily:"-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif",
+      fontFamily:FONT_BODY,
       maxWidth:430,margin:"0 auto",boxShadow:"0 0 40px rgba(0,0,0,.15)"}}>
       <div style={{background:"#534AB7",color:"#fff",padding:"12px 16px 10px",flexShrink:0,
         display:"flex",alignItems:"center",gap:10}}>
@@ -8387,7 +8607,7 @@ export default function App() {
 
   if (user?.role==="broyage") return (
     <div style={{display:"flex",flexDirection:"column",height:"100dvh",
-      fontFamily:"-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif",
+      fontFamily:FONT_BODY,
       maxWidth:430,margin:"0 auto",boxShadow:"0 0 40px rgba(0,0,0,.15)"}}>
       <div style={{background:"#D85A30",color:"#fff",padding:"12px 16px 10px",flexShrink:0,
         display:"flex",alignItems:"center",gap:10}}>
@@ -8405,7 +8625,7 @@ export default function App() {
 
   if (user?.role==="chaufferie") return (
     <div style={{display:"flex",flexDirection:"column",height:"100dvh",
-      fontFamily:"-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif",
+      fontFamily:FONT_BODY,
       maxWidth:430,margin:"0 auto",boxShadow:"0 0 40px rgba(0,0,0,.15)"}}>
       <div style={{background:"#8B2500",color:"#fff",padding:"12px 16px 10px",flexShrink:0,
         display:"flex",alignItems:"center",gap:10}}>
@@ -8439,9 +8659,15 @@ export default function App() {
     alertes:"Alertes", profil:"Profil",
   };
 
+  if (user?.role==="admin" && isWideScreen) return (
+    <EcranDashboardPC user={user} contacts={contacts} visites={visites}
+      notifications={notifications} transports={transports} toasts={toasts}
+      onLogout={handleLogout}/>
+  );
+
   return (
     <div style={{display:"flex",flexDirection:"column",height:"100dvh",
-      fontFamily:"-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif",
+      fontFamily:FONT_BODY,
       background:C.bg,color:C.tx,maxWidth:430,margin:"0 auto",
       boxShadow:"0 0 40px rgba(0,0,0,.15)"}}>
 
@@ -8464,7 +8690,7 @@ export default function App() {
           <div style={{display:"flex",alignItems:"center",gap:12}}>
             <img src="/logo.png" alt="APPLITAG" style={{width:32,height:32,objectFit:"contain"}}/>
             <div style={{flex:1}}>
-              <div style={{fontSize:16,fontWeight:600}}>{SCREEN_TITLES[screen]||"APPLITAG"}</div>
+              <div style={{fontSize:16,fontWeight:600,fontFamily:FONT_TITLE}}>{SCREEN_TITLES[screen]||"APPLITAG"}</div>
               <div style={{fontSize:11,opacity:.6}}>{user.prenom||user.nom} · {user.role}</div>
             </div>
             {user.role==="admin"&&(
