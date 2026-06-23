@@ -5033,16 +5033,22 @@ const TYPE_TRAVAUX_OPTS = {
   autre:                "Autre",
 };
 
+const MODE_REGLEMENT_BC_OPTS = {cheque:"📝 Chèque",virement:"🏦 Virement",traite:"📃 Traite"};
+const DELAI_REGLEMENT_BC_OPTS = {comptant:"Comptant","30j":"30 jours","60j":"60 jours","90j":"90 jours"};
+
 const buildBonCommandeHTML = (lot, visite, extra) => {
-  const {prixUnitaire,typeTravaux,nomDO,qualiteDO,dateSign,conditionsParticulieres,entrepriseDO,
+  const {modePrix,prixGlobal,prixHoraire,typeTravaux,entrepriseObj,nomDO,qualiteDO,dateSign,
+    conditionsParticulieres,modeReglementBC,delaiReglementBC,dateReception,observationsBC,
     sigDataProprio,sigDataExploit,nomSignProprio,nomSignExploit} = extra;
   const volumeT = visite?.volumeEstimeT || lot.volumeEstime || "—";
-  const prixNum = parseFloat(prixUnitaire)||0;
-  const totalHT = prixNum&&volumeT&&volumeT!=="—" ? fmtNum(prixNum*parseFloat(volumeT),2) : null;
   const essStr = visite?.essences?.map(e=>`${e.label} (${e.pct}%)`).join(", ") || lot.potentiel || "—";
   const certBadge = visite?.certification&&visite.certification!=="aucune"
     ? `<span class="cert-badge">${visite.certification.toUpperCase()}</span>` : "";
   const designation = TYPE_TRAVAUX_OPTS[typeTravaux] || "À préciser";
+  const prixLabel = modePrix==="horaire"
+    ? (prixHoraire?`${fmtNum(prixHoraire,2)} €/h HT`:"À négocier")
+    : (prixGlobal?`${fmtNum(prixGlobal,2)} € HT`:"À négocier");
+  const prixTitre = modePrix==="horaire" ? "Tarif horaire unitaire" : "Prix global forfaitaire";
 
   return `<!DOCTYPE html><html lang="fr">
 <head>
@@ -5128,9 +5134,14 @@ td{padding:7px 10px;border-bottom:1px solid #ECEAE6;font-size:10.5px}
   <div class="card">
     <h3>🏢 Acheteur / Donneur d'ordre</h3>
     <p>
-      ${entrepriseDO?`<strong>${entrepriseDO}</strong><br/>`:"<strong>APPLITAG SAS</strong><br/>"}
-      ${nomDO?`${nomDO}<br/>`:""}
-      ${qualiteDO?`<span class="sub">${qualiteDO}</span><br/>`:""}
+      <strong>${entrepriseObj?.nom||"APPLITAG SAS"}</strong><br/>
+      ${entrepriseObj?.adressePostale?entrepriseObj.adressePostale+"<br/>":""}
+      ${[entrepriseObj?.codePostal,entrepriseObj?.commune].filter(Boolean).join(" ")?[entrepriseObj?.codePostal,entrepriseObj?.commune].filter(Boolean).join(" ")+"<br/>":""}
+      ${entrepriseObj?.siret?`<span class="sub">SIRET ${entrepriseObj.siret}</span><br/>`:""}
+      ${entrepriseObj?.telephone?`📞 ${entrepriseObj.telephone}<br/>`:""}
+      ${entrepriseObj?.email?`📧 ${entrepriseObj.email}<br/>`:""}
+      ${nomDO?`<br/>Signataire : ${nomDO}<br/>`:""}
+      ${qualiteDO?`<span class="sub">${qualiteDO}</span>`:""}
     </p>
   </div>
 </div>
@@ -5165,46 +5176,49 @@ td{padding:7px 10px;border-bottom:1px solid #ECEAE6;font-size:10.5px}
 <div class="sec">
   <h3>📊 Estimation & Conditions commerciales</h3>
   <table>
-    <tr><th>Désignation</th><th>Quantité estimée</th><th>Unité</th><th>Prix unitaire HT</th><th>Montant HT estimé</th></tr>
+    <tr><th>Désignation</th><th>Volume estimé</th><th>${prixTitre}</th></tr>
     <tr>
       <td>${designation} — ${lot.potentiel||"bois énergie"}</td>
-      <td>${fmtNum(volumeT)}</td>
-      <td>tonnes</td>
-      <td>${prixUnitaire?fmtNum(prixUnitaire,2)+" €":"À négocier"}</td>
-      <td>${totalHT?totalHT+" €":"—"}</td>
+      <td>${fmtNum(volumeT)} t</td>
+      <td><strong>${prixLabel}</strong></td>
     </tr>
-    ${visite?.volumeEstimeT?`<tr class="total">
-      <td colspan="3"><strong>Total estimé</strong></td>
-      <td><strong>${prixUnitaire?fmtNum(prixUnitaire,2)+" €/t":"—"}</strong></td>
-      <td><strong>${totalHT?totalHT+" €":"À définir"}</strong></td>
-    </tr>`:""}
   </table>
   ${conditionsParticulieres?`<div class="note">📝 Conditions particulières : ${conditionsParticulieres}</div>`:""}
 </div>
 
-<!-- CONDITIONS DE PAIEMENT (reprises de la visite terrain) -->
-${visite&&(visite.tauxTVA||visite.acompte||visite.modeReglement)?`
+<!-- CONDITIONS DE PAIEMENT -->
 <div class="sec">
   <h3>💳 Conditions de paiement</h3>
   <table>
-    <tr><th>TVA</th><th>Acompte</th><th>Solde</th><th>Mode de règlement</th></tr>
+    <tr><th>Mode de règlement</th><th>Délai de règlement</th></tr>
+    <tr>
+      <td>${MODE_REGLEMENT_BC_OPTS[modeReglementBC]||"—"}</td>
+      <td>${DELAI_REGLEMENT_BC_OPTS[delaiReglementBC]||"—"}</td>
+    </tr>
+  </table>
+  ${visite&&(visite.tauxTVA||visite.acompte||visite.iban)?`
+  <table>
+    <tr><th>TVA</th><th>Acompte</th><th>IBAN</th><th>Banque</th></tr>
     <tr>
       <td>${visite.tauxTVA?visite.tauxTVA+" %":"—"}</td>
       <td>${visite.acompte?visite.acompte+" €":"—"}</td>
-      <td>${visite.delaiSolde||"—"}</td>
-      <td>${({cheque:"Chèque",virement:"Virement",sepa:"Prélèvement SEPA",cb:"Carte bancaire"})[visite.modeReglement]||"—"}</td>
-    </tr>
-  </table>
-  ${(visite.modeReglement==="virement"||visite.modeReglement==="sepa")&&(visite.iban||visite.nomBanque)?`
-  <table>
-    <tr><th>IBAN</th><th>BIC / SWIFT</th><th>Banque</th></tr>
-    <tr>
       <td>${visite.iban||"—"}</td>
-      <td>${visite.swift||"—"}</td>
       <td>${[visite.nomBanque,visite.villeBanque].filter(Boolean).join(" · ")||"—"}</td>
     </tr>
   </table>`:""}
-</div>`:""}
+</div>
+
+<!-- RÉCEPTION & OBSERVATIONS -->
+<div class="sec">
+  <h3>📅 Réception de la commande</h3>
+  <table>
+    <tr><th>Date de réception</th><th>Observations</th></tr>
+    <tr>
+      <td>${dateReception?new Date(dateReception).toLocaleDateString("fr-FR"):"—"}</td>
+      <td>${observationsBC||"—"}</td>
+    </tr>
+  </table>
+</div>
 
 <!-- EXPLOITATION -->
 ${visite?`
@@ -5272,14 +5286,21 @@ ${visite?.replantation==="oui"?`
 </div></body></html>`;
 };
 
-const EcranBonCommande = ({lot, visites, onBack, toast}) => {
+const EcranBonCommande = ({lot, visites, entrepriseId, onBack, onGoDelegations, toast}) => {
   const visite = visites.find(v=>v.lotId===lot.id||v.lotNumero===lot.lotNumero);
 
-  const [prixUnitaire,    setPrix]    = useState(visite?.prixTonne||"");
+  const [modePrix,        setModePrix] = useState("global");
+  const [prixGlobal,      setPrixGlobal] = useState("");
+  const [prixHoraire,     setPrixHoraire] = useState("");
   const [typeTravaux,     setTypeTravaux] = useState("");
-  const [entrepriseDO,    setEntDO]   = useState("APPLITAG SAS");
+  const [entreprises,     setEntreprises] = useState([]);
+  const [selEntId,        setSelEntId]  = useState("");
   const [nomDO,           setNomDO]   = useState("");
   const [qualiteDO,       setQualDO]  = useState("Responsable achats");
+  const [modeReglementBC, setModeRegBC] = useState(["cheque","virement"].includes(visite?.modeReglement)?visite.modeReglement:"");
+  const [delaiReglementBC,setDelaiRegBC] = useState("");
+  const [dateReception,   setDateReception] = useState(todayS());
+  const [observationsBC,  setObsBC]   = useState("");
   const [dateSign,        setDateS]   = useState(todayS());
   const [condPart,        setCondP]   = useState("");
   const [sigDataProprio,  setSigProp] = useState(visite?.sigDataProprio||null);
@@ -5288,14 +5309,22 @@ const EcranBonCommande = ({lot, visites, onBack, toast}) => {
   const [nomSignExploit,  setNomSigE] = useState(visite?.nomSignExploit||"");
   const [generating,      setGen]     = useState(false);
 
+  useEffect(()=>{
+    fetch(`${API}/entreprises/entreprise/${entrepriseId}`)
+      .then(r=>r.json()).then(d=>{ if(Array.isArray(d)) setEntreprises(d); }).catch(()=>{});
+  },[entrepriseId]);
+
+  const entrepriseObj = entreprises.find(e=>e.id===selEntId)||null;
   const volumeT = visite?.volumeEstimeT || "";
-  const prixNum = parseFloat(prixUnitaire)||0;
-  const totalHT = prixNum&&volumeT ? fmtNum(prixNum*parseFloat(volumeT),2) : null;
+  const prixAffiche = modePrix==="horaire"
+    ? (prixHoraire?`${fmtNum(parseFloat(prixHoraire),2)} €/h`:null)
+    : (prixGlobal?`${fmtNum(parseFloat(prixGlobal),2)} €`:null);
 
   const handleGenerer = () => {
     setGen(true);
-    const extra = {prixUnitaire,typeTravaux,nomDO,qualiteDO,dateSign,
-      conditionsParticulieres:condPart,entrepriseDO,
+    const extra = {modePrix,prixGlobal,prixHoraire,typeTravaux,nomDO,qualiteDO,dateSign,
+      conditionsParticulieres:condPart,entrepriseObj,
+      modeReglementBC,delaiReglementBC,dateReception,observationsBC,
       sigDataProprio, sigDataExploit, nomSignProprio, nomSignExploit};
     const html = buildBonCommandeHTML(lot, visite, extra);
     generatePdfFromHtml(html, `BonCommande_${lot.lotNumero||"APPLITAG"}.pdf`, toast, ()=>setGen(false));
@@ -5338,10 +5367,55 @@ const EcranBonCommande = ({lot, visites, onBack, toast}) => {
           )}
         </div>
 
+        {/* Localisation — reprise de la visite terrain */}
+        <SectionTitle icon="📍" label="Localisation du lot"/>
+        <div style={{background:"#fff",borderRadius:14,padding:16,marginBottom:16,
+          border:`1px solid ${C.bd}`,fontSize:13,color:C.tx,lineHeight:1.8}}>
+          📍 {lot.commune||"—"}{lot.refCadastrale?` · ${lot.refCadastrale}`:""}<br/>
+          {lot.adresseParcelle?<>📌 {lot.adresseParcelle}<br/></>:null}
+          {visite?.gps?.lat
+            ? <>🛰️ GPS : {visite.gps.lat.toFixed(5)}°N · {visite.gps.lng.toFixed(5)}°E
+                {visite.gps.accuracy?` (± ${Math.round(visite.gps.accuracy)} m)`:""}</>
+            : <span style={{color:C.tx3}}>🛰️ GPS non renseigné (aucune visite avec position)</span>}
+        </div>
+
         {/* Acheteur / Donneur d'ordre */}
         <SectionTitle icon="🏢" label="Donneur d'ordre"/>
-        <MInput label="Entreprise" value={entrepriseDO} onChange={setEntDO}
-          placeholder="Nom de l'entreprise acheteuse"/>
+        {entreprises.length>0 ? (
+          <div style={{marginBottom:10}}>
+            <div style={{fontSize:13,fontWeight:600,color:C.tx2,marginBottom:8}}>Entreprise</div>
+            <select value={selEntId} onChange={e=>setSelEntId(e.target.value)}
+              style={{width:"100%",height:INPUT_H,padding:"0 14px",borderRadius:12,
+                border:`1.5px solid ${C.bd}`,fontSize:FONT_INPUT,fontFamily:"inherit",
+                background:"#fff",color:C.tx,outline:"none"}}>
+              <option value="">— Sélectionner —</option>
+              {entreprises.map(e=><option key={e.id} value={e.id}>{e.nom}</option>)}
+            </select>
+            <div onClick={onGoDelegations} style={{marginTop:8,fontSize:12,color:C.green,
+              fontWeight:600,cursor:"pointer",WebkitTapHighlightColor:"transparent"}}>
+              + Créer une nouvelle fiche entreprise
+            </div>
+          </div>
+        ) : (
+          <div style={{background:C.amberL,borderRadius:14,padding:16,marginBottom:14,
+            border:`1px solid ${C.amber}`,textAlign:"center"}}>
+            <div style={{fontSize:12,color:C.amberD,marginBottom:10}}>
+              ⚠️ Aucune entreprise enregistrée dans la base
+            </div>
+            <button onClick={onGoDelegations} style={{height:44,padding:"0 18px",borderRadius:10,
+              background:C.amber,color:"#fff",border:"none",cursor:"pointer",
+              fontFamily:"inherit",fontSize:13,fontWeight:600}}>
+              🏢 Créer une fiche entreprise
+            </button>
+          </div>
+        )}
+        {entrepriseObj&&(
+          <div style={{fontSize:11,color:C.tx3,marginBottom:10,lineHeight:1.7}}>
+            {entrepriseObj.adressePostale?entrepriseObj.adressePostale+" · ":""}
+            {[entrepriseObj.codePostal,entrepriseObj.commune].filter(Boolean).join(" ")}
+            {entrepriseObj.siret?` · SIRET ${entrepriseObj.siret}`:""}
+          </div>
+        )}
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
           <MInput label="Nom signataire" value={nomDO} onChange={setNomDO}
             placeholder="Prénom Nom" hint="optionnel"/>
@@ -5370,21 +5444,40 @@ const EcranBonCommande = ({lot, visites, onBack, toast}) => {
 
         {/* Prix */}
         <SectionTitle icon="💶" label="Conditions commerciales"/>
+        <div style={{display:"flex",gap:8,marginBottom:12}}>
+          {[["global","💰 Prix global"],["horaire","⏱️ Prix horaire unitaire"]].map(([v,l])=>(
+            <button key={v} onClick={()=>setModePrix(v)} style={{
+              flex:1,padding:"10px 0",borderRadius:10,fontSize:13,fontWeight:modePrix===v?600:400,
+              border:`1.5px solid ${modePrix===v?C.green:C.bd}`,
+              background:modePrix===v?C.greenL:"#fff",
+              cursor:"pointer",fontFamily:"inherit",color:modePrix===v?C.greenD:C.tx2,
+              WebkitTapHighlightColor:"transparent"}}>
+              {l}
+            </button>
+          ))}
+        </div>
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
-          <MInput label="Prix unitaire (€/t)" value={prixUnitaire} onChange={setPrix}
-            type="number" placeholder="ex: 42.50" hint="HT"/>
+          {modePrix==="horaire" ? (
+            <MInput label="Prix horaire unitaire (€/h)" value={prixHoraire} onChange={setPrixHoraire}
+              type="number" placeholder="ex: 65" hint="HT"/>
+          ) : (
+            <MInput label="Prix global (€)" value={prixGlobal} onChange={setPrixGlobal}
+              type="number" placeholder="ex: 4500" hint="HT"/>
+          )}
           <div style={{paddingTop:20}}>
-            {totalHT ? (
+            {prixAffiche ? (
               <div style={{background:C.greenL,borderRadius:12,padding:"12px 14px",
                 border:`1.5px solid ${C.green}`,textAlign:"center",height:52,
                 display:"flex",flexDirection:"column",justifyContent:"center"}}>
-                <div style={{fontSize:10,color:C.greenD,fontWeight:600}}>TOTAL HT ESTIMÉ</div>
-                <div style={{fontSize:18,fontWeight:700,color:C.greenD}}>{totalHT} €</div>
+                <div style={{fontSize:10,color:C.greenD,fontWeight:600}}>
+                  {modePrix==="horaire"?"TARIF HORAIRE HT":"TOTAL HT"}
+                </div>
+                <div style={{fontSize:18,fontWeight:700,color:C.greenD}}>{prixAffiche}</div>
               </div>
             ) : (
               <div style={{background:C.bg2,borderRadius:12,padding:"12px 14px",
                 height:52,display:"flex",alignItems:"center",justifyContent:"center"}}>
-                <span style={{fontSize:12,color:C.tx3}}>Saisir prix/t</span>
+                <span style={{fontSize:12,color:C.tx3}}>Saisir le prix</span>
               </div>
             )}
           </div>
@@ -5393,24 +5486,48 @@ const EcranBonCommande = ({lot, visites, onBack, toast}) => {
           placeholder="Modalités de paiement, délais, accès spécifiques…"
           big hint="optionnel"/>
 
-        {/* Conditions de paiement — reprises de la visite terrain */}
+        {/* Conditions de paiement */}
         <SectionTitle icon="💳" label="Conditions de paiement"/>
-        {visite ? (
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:14}}>
+          <div>
+            <div style={{fontSize:13,fontWeight:600,color:C.tx2,marginBottom:8}}>Mode de règlement</div>
+            <select value={modeReglementBC} onChange={e=>setModeRegBC(e.target.value)}
+              style={{width:"100%",height:INPUT_H,padding:"0 14px",borderRadius:12,
+                border:`1.5px solid ${C.bd}`,fontSize:FONT_INPUT,fontFamily:"inherit",
+                background:"#fff",color:C.tx,outline:"none"}}>
+              <option value="">— Sélectionner —</option>
+              <option value="cheque">📝 Chèque</option>
+              <option value="virement">🏦 Virement</option>
+              <option value="traite">📃 Traite</option>
+            </select>
+          </div>
+          <div>
+            <div style={{fontSize:13,fontWeight:600,color:C.tx2,marginBottom:8}}>Délai de règlement</div>
+            <select value={delaiReglementBC} onChange={e=>setDelaiRegBC(e.target.value)}
+              style={{width:"100%",height:INPUT_H,padding:"0 14px",borderRadius:12,
+                border:`1.5px solid ${C.bd}`,fontSize:FONT_INPUT,fontFamily:"inherit",
+                background:"#fff",color:C.tx,outline:"none"}}>
+              <option value="">— Sélectionner —</option>
+              <option value="comptant">Comptant</option>
+              <option value="30j">30 jours</option>
+              <option value="60j">60 jours</option>
+              <option value="90j">90 jours</option>
+            </select>
+          </div>
+        </div>
+
+        {visite&&(visite.tauxTVA||visite.acompte||visite.iban) && (
           <div style={{background:"#fff",borderRadius:14,padding:16,marginBottom:14,
             border:`1px solid ${C.bd}`}}>
             <div style={{fontSize:11,color:C.tx3,marginBottom:10}}>
-              ℹ️ Reprises automatiquement de la visite terrain
+              ℹ️ Conditions complémentaires reprises de la visite terrain
             </div>
             {[
               ["TVA", visite.tauxTVA?`${visite.tauxTVA} %`:null],
               ["Acompte", visite.acompte?`${visite.acompte} €`:null],
-              ["Solde", visite.delaiSolde],
-              ["Mode de règlement", {cheque:"📝 Chèque",virement:"🏦 Virement",sepa:"🔄 Prélèvement SEPA",cb:"💳 Carte bancaire"}[visite.modeReglement]],
-              ...(visite.modeReglement==="virement"||visite.modeReglement==="sepa" ? [
-                ["IBAN", visite.iban],
-                ["BIC / SWIFT", visite.swift],
-                ["Banque", [visite.nomBanque,visite.villeBanque].filter(Boolean).join(" · ")||null],
-              ] : []),
+              ["IBAN", visite.iban],
+              ["BIC / SWIFT", visite.swift],
+              ["Banque", [visite.nomBanque,visite.villeBanque].filter(Boolean).join(" · ")||null],
             ].filter(([,v])=>v).map(([k,v],i,arr)=>(
               <div key={k} style={{display:"flex",justifyContent:"space-between",
                 padding:"8px 0",borderBottom:i<arr.length-1?`1px solid ${C.bd}`:"none"}}>
@@ -5419,12 +5536,14 @@ const EcranBonCommande = ({lot, visites, onBack, toast}) => {
               </div>
             ))}
           </div>
-        ) : (
-          <div style={{background:C.bg2,borderRadius:14,padding:16,marginBottom:14,
-            fontSize:12,color:C.tx3,textAlign:"center"}}>
-            Aucune visite terrain — conditions de paiement non disponibles
-          </div>
         )}
+
+        {/* Réception & observations */}
+        <SectionTitle icon="📅" label="Réception de la commande"/>
+        <MInput label="Date de réception de la commande" value={dateReception}
+          onChange={setDateReception} type="date"/>
+        <MInput label="Observations" value={observationsBC} onChange={setObsBC}
+          placeholder="Remarques, réserves, précisions diverses…" big hint="optionnel"/>
 
         {/* Date signature */}
         <SectionTitle icon="✍️" label="Signatures électroniques"/>
@@ -5458,8 +5577,11 @@ const EcranBonCommande = ({lot, visites, onBack, toast}) => {
           [true,  "Identité vendeur (propriétaire)"],
           [true,  "Identité acheteur (donneur d'ordre)"],
           [true,  "Parcelle : commune, surface, cadastre, essences"],
-          [!!visite,"GPS parcelle (coordonnées visite)"],
-          [!!(prixUnitaire&&volumeT),"Tableau prix × volume = total HT"],
+          [!!visite?.gps?.lat,"GPS parcelle (coordonnées visite)"],
+          [!!entrepriseObj,"Coordonnées complètes de l'entreprise"],
+          [!!(prixGlobal||prixHoraire),modePrix==="horaire"?"Tarif horaire unitaire":"Prix global forfaitaire"],
+          [!!(modeReglementBC&&delaiReglementBC),"Mode et délai de règlement"],
+          [!!dateReception,"Date de réception de la commande"],
           [!!visite,"Conditions d'exploitation (accès, contraintes)"],
           [visite?.replantation==="oui","Clause de replantation"],
           [visite?.certification!=="aucune"&&!!visite?.certification,"Certification "+visite?.certification?.toUpperCase()],
@@ -8827,7 +8949,9 @@ export default function App() {
           <EcranBonCommande
             lot={activeContact}
             visites={visites}
+            entrepriseId={entrepriseId}
             onBack={()=>setScreen("fiche-lot")}
+            onGoDelegations={()=>setScreen("delegations")}
             toast={toast}/>
         )}
         {screen==="cloture-exploitation"&&activeContact&&(
