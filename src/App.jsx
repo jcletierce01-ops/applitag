@@ -1293,6 +1293,17 @@ const indicesPonderes = (essences) => {
   };
 };
 
+// La "densité verte" ITEBE est calibrée pour du bois fraîchement abattu, à une humidité de
+// référence d'env. 50% (sur brut). Le poids réel d'un lot dépend de son humidité mesurée à la
+// réception (le bois ressuyé sur plateforme pèse moins, à volume égal, qu'un bois vert) :
+// poids(H) = volume × densité_verte × (1 − H_réf/100) / (1 − H_mesurée/100)
+const HUMIDITE_REF_ITEBE = 50;
+const poidsAjusteHumidite = (volumeM3, densite, humiditePct) => {
+  const h = Math.min(95, Math.max(0, parseFloat(humiditePct)));
+  const facteur = (1 - HUMIDITE_REF_ITEBE/100) / (1 - h/100);
+  return volumeM3 * densite * facteur / 1000;
+};
+
 const EssenceEditor = ({essences,onChange}) => {
   const LISTE = LISTE_ESSENCES_ITEBE;
   const total = essences.reduce((s,e)=>s+e.pct,0);
@@ -4612,7 +4623,7 @@ const EcranClotureExploitation = ({lot, visites=[], onBack, onSaved, toast, entr
     ? tasDetails.reduce((s,t)=>s+(parseFloat(t.longueur)||0)*(parseFloat(t.largeur)||0)*(parseFloat(t.hauteur)||0),0)
     : nbTas * longueur * largeur * hauteur;
   const volReel = Math.round(volApparent * foisonnement * 100)/100;
-  const poidsEstime = Math.round(volReel * indices.densite / 1000 * 100)/100;
+  const poidsEstime = Math.round(poidsAjusteHumidite(volReel, indices.densite, humidite) * 100)/100;
   const energieMWh = Math.round(poidsEstime * indices.pci * 100)/100;
 
   const handlePhoto = () => {
@@ -4750,6 +4761,10 @@ const EcranClotureExploitation = ({lot, visites=[], onBack, onSaved, toast, entr
           </div>
           <div style={{fontSize:11,color:C.tx3,marginTop:8,textAlign:"center"}}>
             Énergie estimée : {energieMWh} MWh
+          </div>
+          <div style={{fontSize:10,color:C.tx3,marginTop:6,textAlign:"center",lineHeight:1.5}}>
+            Essence(s) : {essence} · Densité verte {Math.round(indices.densite)} kg/m³<br/>
+            Poids corrigé pour {humidite}% d'humidité (réf. ITEBE {HUMIDITE_REF_ITEBE}%)
           </div>
         </div>
 
