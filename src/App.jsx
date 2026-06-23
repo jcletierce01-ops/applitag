@@ -4684,14 +4684,14 @@ const EcranClotureExploitation = ({lot, visites=[], onBack, onSaved, toast, entr
           min={1} max={50} step={1} unit=" tas" color={C.amber}/>
 
         {nbTas===1 ? (
-          <>
-            <MSlider label="Profondeur" value={longueur} onChange={setLong}
-              min={1} max={30} step={0.5} unit=" m" color={C.blue}/>
-            <MSlider label="Largeur" value={largeur} onChange={setLarg}
-              min={0.5} max={1000} step={0.5} unit=" m" color={C.blue}/>
-            <MSlider label="Hauteur" value={hauteur} onChange={setHaut}
-              min={0.5} max={10} step={0.1} unit=" m" color={C.blue}/>
-          </>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8,marginBottom:14}}>
+            <MInput label="Profondeur (m)" value={String(longueur)} type="number"
+              onChange={v=>setLong(parseFloat(v)||0)} placeholder="max 30 m"/>
+            <MInput label="Largeur (m)" value={String(largeur)} type="number"
+              onChange={v=>setLarg(parseFloat(v)||0)} placeholder="max 1000 m"/>
+            <MInput label="Hauteur (m)" value={String(hauteur)} type="number"
+              onChange={v=>setHaut(parseFloat(v)||0)} placeholder="max 10 m"/>
+          </div>
         ) : (
           <div style={{marginBottom:14}}>
             <div style={{fontSize:12,color:C.tx3,marginBottom:10,lineHeight:1.6}}>
