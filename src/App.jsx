@@ -3676,6 +3676,7 @@ const EcranDelegations = ({entrepriseId, toast, onBack}) => {
   const [telephone,     setTel]          = useState("");
   const [email,         setEmail]        = useState("");
   const [contactNom,    setContactNom]   = useState("");
+  const [contactTel,    setContactTel]   = useState("");
   const [typesProposes, setTypesProp]    = useState([]);
 
   // Mission sur un lot
@@ -3708,7 +3709,7 @@ const EcranDelegations = ({entrepriseId, toast, onBack}) => {
     setSaving(true);
     const entreprise = {
       nom, siret, adressePostale, commune, codePostal,
-      telephone, email, contactNom, typesProposes, entrepriseId,
+      telephone, email, contactNom, contactTel, typesProposes, entrepriseId,
     };
     try {
       const res = await fetch(`${API}/entreprises`, {
@@ -3723,7 +3724,7 @@ const EcranDelegations = ({entrepriseId, toast, onBack}) => {
       toast("Entreprise enregistrée localement ✓");
     }
     setNom(""); setSiret(""); setAdresse(""); setCommune(""); setCP("");
-    setTel(""); setEmail(""); setContactNom(""); setTypesProp([]);
+    setTel(""); setEmail(""); setContactNom(""); setContactTel(""); setTypesProp([]);
     setShowNew(false);
     setSaving(false);
   };
@@ -3844,6 +3845,8 @@ const EcranDelegations = ({entrepriseId, toast, onBack}) => {
             </div>
             <MInput label="Contact référent" value={contactNom} onChange={setContactNom}
               placeholder="Prénom Nom" hint="optionnel"/>
+            <MInput label="Téléphone du contact référent" value={contactTel} onChange={setContactTel}
+              placeholder="06 12 34 56 78" type="tel" hint="optionnel"/>
 
             <div style={{fontSize:13,fontWeight:600,color:C.tx2,marginBottom:8,marginTop:6}}>
               Types de travaux proposés
