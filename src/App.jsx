@@ -5618,7 +5618,7 @@ const EcranBonCommande = ({lot, visites, entrepriseId, onBack, onGoDelegations, 
 };
 
 // ── ÉCRAN SAISIES ADMIN ───────────────────────────────────────
-const EcranSaisiesAdmin = ({contacts, visites, reportings=[], transports=[], livraisons=[]}) => {
+const EcranSaisiesAdmin = ({contacts, visites, reportings=[], transports=[], livraisons=[], onBack}) => {
   const [onglet, setOnglet] = useState("lots");
   const TABS = [
     {id:"lots",icon:"🌲",label:"Lots"},
@@ -5641,8 +5641,11 @@ const EcranSaisiesAdmin = ({contacts, visites, reportings=[], transports=[], liv
   return (
     <div style={{display:"flex",flexDirection:"column",height:"100%"}}>
       <div style={{background:C.sb,color:"#fff",padding:"10px 0 0",flexShrink:0}}>
-        <div style={{padding:"0 16px 8px",fontSize:15,fontWeight:600}}>
-          🔑 Saisies administrateur
+        <div style={{display:"flex",alignItems:"center",gap:12,padding:"0 16px 8px"}}>
+          <button onClick={onBack} style={{background:"rgba(255,255,255,.15)",border:"none",
+            color:"#fff",padding:"6px 10px",borderRadius:8,fontSize:13,cursor:"pointer",
+            WebkitTapHighlightColor:"transparent"}}>{"<"} Accueil</button>
+          <div style={{fontSize:15,fontWeight:600}}>🔑 Saisies administrateur</div>
         </div>
         <div style={{display:"flex",overflowX:"auto",scrollbarWidth:"none"}}>
           {TABS.map(t=>(
@@ -8873,7 +8876,8 @@ export default function App() {
           <EcranSaisiesAdmin
             contacts={contacts} visites={visites}
             reportings={reportings} transports={transports}
-            livraisons={livraisons}/>
+            livraisons={livraisons}
+            onBack={()=>setScreen("accueil")}/>
         )}
         {screen==="profil"&&(
           <div style={{padding:PADDING}}>
