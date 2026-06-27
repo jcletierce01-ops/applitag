@@ -864,6 +864,12 @@ const validatePhone = (tel) => {
   return null;
 };
 
+// Formate un numéro de téléphone saisi en groupes de 2 chiffres séparés d'un espace (ex: 06 12 34 56 78)
+const formatPhone = (v) => {
+  const digits = v.replace(/\D/g,"").slice(0,10);
+  return digits.replace(/(\d{2})(?=\d)/g,"$1 ");
+};
+
 const Fiche0 = ({onBack, onSaved, toast, contactCount, entrepriseId}) => {
   const [origine,       setOrigine]  = useState("");
   const [nomApporteur,  setApporteur]= useState("");
@@ -874,6 +880,7 @@ const Fiche0 = ({onBack, onSaved, toast, contactCount, entrepriseId}) => {
   const [telephone,     setTel]      = useState("");
   const [email,         setEmail]    = useState("");
   const [adressePostale,setAdresse]  = useState("");
+  const [complementAdresse,setComplementAdresse] = useState("");
   const [commune,       setCommune]  = useState("");
   const [codePostal,    setCP]       = useState("");
   const [adresseParcelle,setParc]    = useState("");
@@ -906,7 +913,7 @@ const Fiche0 = ({onBack, onSaved, toast, contactCount, entrepriseId}) => {
     const lotNumero = genLotNumero(codePostal, seq);
     const contact = {
       nom, prenom, telephone, email,
-      adressePostale, commune, adresseParcelle,
+      adressePostale, complementAdresse, commune, adresseParcelle,
       surfaceHa: surfaceHa ? parseFloat(surfaceHa) : null,
       refCadastrale, typeContact, origine, nomApporteur, dateContact,
       statut, potentiel: typeRessource==="mixte"
@@ -970,12 +977,14 @@ const Fiche0 = ({onBack, onSaved, toast, contactCount, entrepriseId}) => {
           placeholder="Nom de famille" required error={errors.nom}/>
         <MInput label="Prénom" value={prenom} onChange={setPrenom}
           placeholder="Prénom" hint="optionnel"/>
-        <MInput label="Téléphone" value={telephone} onChange={setTel}
+        <MInput label="Téléphone" value={telephone} onChange={v=>setTel(formatPhone(v))}
           placeholder="06 xx xx xx xx" type="tel" required error={errors.telephone}/>
         <MInput label="Email" value={email} onChange={setEmail}
           placeholder="email@exemple.fr" type="email" hint="optionnel"/>
         <MInput label="Adresse postale" value={adressePostale} onChange={setAdresse}
           placeholder="Adresse du propriétaire" hint="optionnel"/>
+        <MInput label="Complément d'adresse" value={complementAdresse} onChange={setComplementAdresse}
+          placeholder="Bâtiment, étage, lieu-dit…" hint="optionnel"/>
 
         <SectionTitle icon="🌲" label="Parcelle"/>
         <div style={{display:"grid",gridTemplateColumns:"2fr 1fr",gap:10}}>
@@ -2765,7 +2774,7 @@ const EcranReleves = ({entrepriseId, user, toast, notifications=[], setNotificat
 // ── FICHE EDIT ────────────────────────────────────────────────
 const CHAMP_LABELS = {
   nom:"Nom", prenom:"Prénom", telephone:"Téléphone", email:"Email",
-  adressePostale:"Adresse postale", commune:"Commune",
+  adressePostale:"Adresse postale", complementAdresse:"Complément d'adresse", commune:"Commune",
   adresseParcelle:"Adresse parcelle", surfaceHa:"Surface (ha)",
   refCadastrale:"Réf. cadastrale", typeContact:"Type contact",
   origine:"Origine", nomApporteur:"Apporteur", dateContact:"Date contact",
@@ -2780,6 +2789,7 @@ const Fiche0Edit = ({contact, onBack, onSaved, toast, user, onLaunchVisite, onLa
   const [telephone,     setTel]      = useState(contact.telephone||"");
   const [email,         setEmail]    = useState(contact.email||"");
   const [adressePostale,setAdresse]  = useState(contact.adressePostale||"");
+  const [complementAdresse,setComplementAdresse] = useState(contact.complementAdresse||"");
   const [commune,       setCommune]  = useState(contact.commune||"");
   const [adresseParcelle,setParc]    = useState(contact.adresseParcelle||"");
   const [surfaceHa,     setSurface]  = useState(contact.surfaceHa||"");
@@ -2812,7 +2822,7 @@ const Fiche0Edit = ({contact, onBack, onSaved, toast, user, onLaunchVisite, onLa
     if (phoneErr) { toast(`Téléphone : ${phoneErr}`,"warn"); return; }
     setSaving(true);
     const data = {
-      nom, prenom, telephone, email, adressePostale,
+      nom, prenom, telephone, email, adressePostale, complementAdresse,
       commune, adresseParcelle,
       surfaceHa: surfaceHa ? parseFloat(surfaceHa) : null,
       refCadastrale, typeContact, origine, nomApporteur, dateContact,
@@ -2934,9 +2944,10 @@ const Fiche0Edit = ({contact, onBack, onSaved, toast, user, onLaunchVisite, onLa
             <GridSelect options={TYPE_CONTACT_OPTS} value={typeContact} onChange={setType} cols={3}/>
             <MInput label="Nom" value={nom} onChange={setNom} required placeholder="Nom"/>
             <MInput label="Prénom" value={prenom} onChange={setPrenom} placeholder="Prénom" hint="optionnel"/>
-            <MInput label="Téléphone" value={telephone} onChange={setTel} type="tel" required placeholder="06..."/>
+            <MInput label="Téléphone" value={telephone} onChange={v=>setTel(formatPhone(v))} type="tel" required placeholder="06..."/>
             <MInput label="Email" value={email} onChange={setEmail} type="email" hint="optionnel" placeholder="email@..."/>
             <MInput label="Adresse postale" value={adressePostale} onChange={setAdresse} hint="optionnel" placeholder="Adresse"/>
+            <MInput label="Complément d'adresse" value={complementAdresse} onChange={setComplementAdresse} hint="optionnel" placeholder="Bâtiment, étage, lieu-dit…"/>
 
             <SectionTitle icon="🌲" label="Parcelle"/>
             <MInput label="Commune" value={commune} onChange={setCommune} required placeholder="Commune"/>
@@ -3806,12 +3817,15 @@ const EcranDelegations = ({entrepriseId, toast, onBack}) => {
   const [nom,           setNom]          = useState("");
   const [siret,         setSiret]        = useState("");
   const [adressePostale,setAdresse]      = useState("");
+  const [complementAdresse,setComplementAdresse] = useState("");
   const [commune,       setCommune]      = useState("");
   const [codePostal,    setCP]           = useState("");
   const [telephone,     setTel]          = useState("");
   const [email,         setEmail]        = useState("");
   const [contactNom,    setContactNom]   = useState("");
+  const [contactPrenom, setContactPrenom]= useState("");
   const [contactTel,    setContactTel]   = useState("");
+  const [contactFonction,setContactFonction] = useState("");
   const [typesProposes, setTypesProp]    = useState([]);
 
   // Mission sur un lot
@@ -3843,8 +3857,9 @@ const EcranDelegations = ({entrepriseId, toast, onBack}) => {
     if (!nom.trim()) { toast("Le nom de l'entreprise est obligatoire","warn"); return; }
     setSaving(true);
     const entreprise = {
-      nom, siret, adressePostale, commune, codePostal,
-      telephone, email, contactNom, contactTel, typesProposes, entrepriseId,
+      nom, siret, adressePostale, complementAdresse, commune, codePostal,
+      telephone, email, contactNom, contactPrenom, contactTel, contactFonction,
+      typesProposes, entrepriseId,
     };
     try {
       const res = await fetch(`${API}/entreprises`, {
@@ -3858,8 +3873,9 @@ const EcranDelegations = ({entrepriseId, toast, onBack}) => {
       setEntreprises(prev=>[{...entreprise,id:uid()},...prev]);
       toast("Entreprise enregistrée localement ✓");
     }
-    setNom(""); setSiret(""); setAdresse(""); setCommune(""); setCP("");
-    setTel(""); setEmail(""); setContactNom(""); setContactTel(""); setTypesProp([]);
+    setNom(""); setSiret(""); setAdresse(""); setComplementAdresse(""); setCommune(""); setCP("");
+    setTel(""); setEmail(""); setContactNom(""); setContactPrenom(""); setContactTel("");
+    setContactFonction(""); setTypesProp([]);
     setShowNew(false);
     setSaving(false);
   };
@@ -3970,18 +3986,26 @@ const EcranDelegations = ({entrepriseId, toast, onBack}) => {
               placeholder="14 chiffres" hint="optionnel"/>
             <MInput label="Adresse" value={adressePostale} onChange={setAdresse}
               placeholder="Adresse postale" hint="optionnel"/>
+            <MInput label="Complément d'adresse" value={complementAdresse} onChange={setComplementAdresse}
+              placeholder="Bâtiment, étage, lieu-dit…" hint="optionnel"/>
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
               <MInput label="Code postal" value={codePostal} onChange={setCP} hint="optionnel"/>
               <MInput label="Commune" value={commune} onChange={setCommune} hint="optionnel"/>
             </div>
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
-              <MInput label="Téléphone" value={telephone} onChange={setTel} hint="optionnel"/>
+              <MInput label="Téléphone" value={telephone} onChange={v=>setTel(formatPhone(v))} hint="optionnel"/>
               <MInput label="Email" value={email} onChange={setEmail} hint="optionnel"/>
             </div>
-            <MInput label="Contact référent" value={contactNom} onChange={setContactNom}
-              placeholder="Prénom Nom" hint="optionnel"/>
-            <MInput label="Téléphone du contact référent" value={contactTel} onChange={setContactTel}
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+              <MInput label="Nom du contact référent" value={contactNom} onChange={setContactNom}
+                placeholder="Nom" hint="optionnel"/>
+              <MInput label="Prénom du contact référent" value={contactPrenom} onChange={setContactPrenom}
+                placeholder="Prénom" hint="optionnel"/>
+            </div>
+            <MInput label="Téléphone du contact référent" value={contactTel} onChange={v=>setContactTel(formatPhone(v))}
               placeholder="06 12 34 56 78" type="tel" hint="optionnel"/>
+            <MInput label="Fonction" value={contactFonction} onChange={setContactFonction}
+              placeholder="Ex: Gérant, Responsable travaux…" hint="optionnel"/>
 
             <div style={{fontSize:13,fontWeight:600,color:C.tx2,marginBottom:8,marginTop:6}}>
               Types de travaux proposés
@@ -4268,7 +4292,7 @@ const ModalDelegationVisite = ({lot, operateurs, onDeleguee, onIgnorer}) => {
             )}
             <SectionTitle icon="📋" label="Délégué"/>
             <MInput label="Nom" value={nomDelegue} onChange={setNomDelegue} placeholder="Prénom Nom" required/>
-            <MInput label="Téléphone" value={telDelegue} onChange={setTelDelegue} placeholder="06 XX XX XX XX" type="tel" hint="optionnel"/>
+            <MInput label="Téléphone" value={telDelegue} onChange={v=>setTelDelegue(formatPhone(v))} placeholder="06 XX XX XX XX" type="tel" hint="optionnel"/>
             <SectionTitle icon="📅" label="Validité"/>
             <MInput label="Valide jusqu'au" value={dateExpiry} onChange={setDateExpiry} type="date"/>
             <div style={{display:"flex",flexDirection:"column",gap:10,marginTop:16}}>
@@ -5069,7 +5093,7 @@ td.v{font-weight:600}
     <tr><td class="k">Nom / Type</td><td class="v">${contact.nom||""} ${contact.prenom||""} — ${typeLabel}</td></tr>
     <tr><td class="k">Téléphone</td><td class="v">${contact.telephone||"—"}</td></tr>
     <tr><td class="k">Email</td><td class="v">${contact.email||"—"}</td></tr>
-    <tr><td class="k">Adresse</td><td class="v">${contact.adressePostale||"—"}</td></tr>
+    <tr><td class="k">Adresse</td><td class="v">${contact.adressePostale||"—"}${contact.complementAdresse?" — "+contact.complementAdresse:""}</td></tr>
   </table>
 </div>
 
@@ -5263,6 +5287,7 @@ td{padding:7px 10px;border-bottom:1px solid #ECEAE6;font-size:10.5px}
       <strong>${lot.nom||""} ${lot.prenom||""}</strong><br/>
       ${lot.estPersonneMorale&&lot.typePersonneMorale?`<span class="sub">${lot.typePersonneMorale.toUpperCase()}</span><br/>`:""}
       ${lot.adressePostale?lot.adressePostale+"<br/>":""}
+      ${lot.complementAdresse?lot.complementAdresse+"<br/>":""}
       ${lot.telephone?`📞 ${lot.telephone}<br/>`:""}
       ${lot.email?`📧 ${lot.email}<br/>`:""}
       ${lot.nomSignataire?`<br/>Signataire : <strong>${lot.nomSignataire}</strong><br/>`:""}
@@ -5274,6 +5299,7 @@ td{padding:7px 10px;border-bottom:1px solid #ECEAE6;font-size:10.5px}
     <p>
       <strong>${entrepriseObj?.nom||"APPLITAG SAS"}</strong><br/>
       ${entrepriseObj?.adressePostale?entrepriseObj.adressePostale+"<br/>":""}
+      ${entrepriseObj?.complementAdresse?entrepriseObj.complementAdresse+"<br/>":""}
       ${[entrepriseObj?.codePostal,entrepriseObj?.commune].filter(Boolean).join(" ")?[entrepriseObj?.codePostal,entrepriseObj?.commune].filter(Boolean).join(" ")+"<br/>":""}
       ${entrepriseObj?.siret?`<span class="sub">SIRET ${entrepriseObj.siret}</span><br/>`:""}
       ${entrepriseObj?.telephone?`📞 ${entrepriseObj.telephone}<br/>`:""}
@@ -5550,6 +5576,7 @@ const EcranBonCommande = ({lot, visites, entrepriseId, onBack, onGoDelegations, 
         {entrepriseObj&&(
           <div style={{fontSize:11,color:C.tx3,marginBottom:10,lineHeight:1.7}}>
             {entrepriseObj.adressePostale?entrepriseObj.adressePostale+" · ":""}
+            {entrepriseObj.complementAdresse?entrepriseObj.complementAdresse+" · ":""}
             {[entrepriseObj.codePostal,entrepriseObj.commune].filter(Boolean).join(" ")}
             {entrepriseObj.siret?` · SIRET ${entrepriseObj.siret}`:""}
           </div>
@@ -7023,7 +7050,7 @@ const FicheLotCentrale = ({
               </div>
               {[
                 ["📞",lot.telephone],["📧",lot.email],
-                ["📮",lot.adressePostale],
+                ["📮",lot.adressePostale],["📮",lot.complementAdresse],
                 lot.estPersonneMorale&&["🏢",lot.typePersonneMorale?.toUpperCase()],
                 lot.nomSignataire&&["✍️",`Signataire : ${lot.nomSignataire}`],
               ].filter(Boolean).map(([e,v],i)=>v&&(
