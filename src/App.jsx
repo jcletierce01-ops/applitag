@@ -8304,7 +8304,7 @@ const CAPACITES_CHARGEMENT = {
   semi: 30, camion_remorque: 30, benne_ampliroll: 15,
 };
 
-const EcranDechiquetage = ({lot, onBack, onSaved, toast, entrepriseId}) => {
+const EcranDechiquetage = ({lot, operateurs=[], onBack, onSaved, toast, entrepriseId}) => {
   const [lotSuggere,    setLotSuggere]  = useState(lot.lotNumero||"");
   const [operateurDechiquetage,setOpDechiquetage] = useState("");
   const [machine,       setMachine]     = useState("");
@@ -8330,6 +8330,23 @@ const EcranDechiquetage = ({lot, onBack, onSaved, toast, entrepriseId}) => {
     fetch(`${API}/transports/lot/${lot.id}`)
       .then(r=>r.json()).then(d=>{ if(Array.isArray(d)) setMissionsTransport(d); }).catch(()=>{});
   },[lot.id]);
+
+  // Opérateur délégué par l'entreprise prestataire missionnée sur ce lot → pré-rempli automatiquement
+  useEffect(()=>{
+    if (operateurDechiquetage) return;
+    const op = operateurs.find(o=>
+      (o.etfId===lot.etfId || (lot.etfNom && o.etfNom===lot.etfNom)) &&
+      (o.assignations||[]).some(a=>(a.lotId===lot.id||a.lotNumero===lot.lotNumero)&&a.typeOperation==="dechiquetage")
+    );
+    if (op) setOpDechiquetage(`${op.nom}${op.prenom?" "+op.prenom:""}`);
+  },[operateurs, lot]);
+
+  // Heure de début du prochain chargement du jour : pré-remplie à l'heure de saisie moins 30 minutes
+  useEffect(()=>{
+    if (heureDebut) return;
+    const d = new Date(Date.now()-30*60000);
+    setHeureDebut(`${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`);
+  },[]);
 
   const handleSelectMission = (id) => {
     setMissionId(id);
@@ -9586,6 +9603,7 @@ export default function App() {
         {screen==="dechiquetage"&&activeContact&&(
           <EcranDechiquetage
             lot={activeContact}
+            operateurs={operateurs}
             onBack={()=>setScreen("fiche-lot")}
             onSaved={(newStatut)=>{
               setContacts(prev=>prev.map(c=>c.id===activeContact.id?{...c,statutLot:newStatut}:c));
