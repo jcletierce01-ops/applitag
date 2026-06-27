@@ -40,6 +40,23 @@ const genCode = () => Math.random().toString(36).slice(2,8).toUpperCase();
 const ORDRES_EXPL_KEY = "applitag_ordres_exploitation";
 const ordresExplLocalGet = () => { try { return JSON.parse(localStorage.getItem(ORDRES_EXPL_KEY)||"[]"); } catch { return []; } };
 const ordresExplLocalSave = (arr) => { try { localStorage.setItem(ORDRES_EXPL_KEY, JSON.stringify(arr)); } catch {} };
+
+// Entreprise par défaut de l'administrateur (instance mono-tenant), réutilisée pour les
+// annonces publiques déposées sans connexion.
+const DEFAULT_ENTREPRISE_ID = "c1b035b8-c2d5-4b84-a07e-2a3d503fb96c";
+
+// Stockage de repli pour les annonces publiques (gisements signalés, offres de service,
+// demandes de plaquettes), tant que l'API /annonces n'est pas garantie disponible.
+const ANNONCES_KEY = "applitag_annonces";
+const annoncesLocalGet = () => { try { return JSON.parse(localStorage.getItem(ANNONCES_KEY)||"[]"); } catch { return []; } };
+const annoncesLocalSave = (arr) => { try { localStorage.setItem(ANNONCES_KEY, JSON.stringify(arr)); } catch {} };
+
+const TYPES_PRESTATION_ANNONCE = [
+  ["abattage","🪓","Abattage"],
+  ["debardage","🚜","Débardage"],
+  ["dechiquetage","🪚","Déchiquetage"],
+  ["transport","🚛","Transport"],
+];
 // Formate un nombre avec séparateur de milliers (espace) et virgule décimale
 const fmtNum = (n, decimals=0) => {
   const num = parseFloat(n);
@@ -473,6 +490,47 @@ const LoginScreen = ({onLogin, onLoginOperateur, onLoginDemo}) => {
     setOrdreTrouve(updated);
     setOrdreLoading(false);
   };
+
+  // ── Annonces publiques : gisement signalé / offre de service / demande de plaquettes ──
+  const [annonceType,     setAnnonceType]    = useState(null); // gisement | service | demande
+  const [annonceNom,      setAnnonceNom]      = useState("");
+  const [annonceTel,      setAnnonceTel]      = useState("");
+  const [annonceCommune,  setAnnonceCommune]  = useState("");
+  const [annonceSurface,  setAnnonceSurface]  = useState("");
+  const [annonceEssence,  setAnnonceEssence]  = useState("");
+  const [annoncePrestations,setAnnoncePrest]  = useState([]);
+  const [annonceCommentaire,setAnnonceComment]= useState("");
+  const [annonceEnvoyee,  setAnnonceEnvoyee]  = useState(false);
+  const [annonceSaving,   setAnnonceSaving]   = useState(false);
+
+  const toggleAnnoncePrestation = v => setAnnoncePrest(prev=>prev.includes(v)?prev.filter(x=>x!==v):[...prev,v]);
+
+  const resetAnnonce = () => {
+    setAnnonceType(null); setAnnonceNom(""); setAnnonceTel(""); setAnnonceCommune("");
+    setAnnonceSurface(""); setAnnonceEssence(""); setAnnoncePrest([]); setAnnonceComment("");
+    setAnnonceEnvoyee(false);
+  };
+
+  const handleEnvoyerAnnonce = async () => {
+    if (!annonceNom.trim()||!annonceTel.trim()) { setError("Indiquez votre nom et votre téléphone"); return; }
+    setError(""); setAnnonceSaving(true);
+    const annonce = {
+      id: uid(), type: annonceType, statut:"nouvelle", entrepriseId: DEFAULT_ENTREPRISE_ID,
+      nom: annonceNom, telephone: annonceTel, commune: annonceCommune,
+      surfaceHa: annonceSurface||null, essence: annonceEssence,
+      prestations: annoncePrestations, commentaire: annonceCommentaire,
+      dateEnvoi: nowISO(),
+    };
+    try {
+      await fetch(`${API}/annonces`, {
+        method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(annonce),
+      });
+    } catch {}
+    annoncesLocalSave([annonce, ...annoncesLocalGet()]);
+    setAnnonceEnvoyee(true);
+    setAnnonceSaving(false);
+  };
+
   const qrRef = useRef(null);
   const scannerRef = useRef(null);
 
@@ -637,6 +695,20 @@ const LoginScreen = ({onLogin, onLoginOperateur, onLoginDemo}) => {
                   </div>
                 </div>
               </button>
+              <button onClick={()=>{ resetAnnonce(); setError(""); setStep("annonce"); }} style={{
+                width:"100%",padding:18,borderRadius:14,
+                background:"rgba(76,175,80,.15)",border:"1px solid rgba(76,175,80,.4)",
+                color:"rgba(255,255,255,.8)",fontFamily:"inherit",fontSize:15,fontWeight:500,
+                cursor:"pointer",WebkitTapHighlightColor:"transparent",
+                display:"flex",alignItems:"center",gap:14,textAlign:"left"}}>
+                <span style={{fontSize:28}}>📢</span>
+                <div>
+                  <div>Signaler / Proposer une annonce</div>
+                  <div style={{fontSize:11,opacity:.6,fontWeight:400,marginTop:2}}>
+                    Gisement, prestation ou demande de plaquettes
+                  </div>
+                </div>
+              </button>
               <button onClick={()=>setStep("demo")} style={{
                 width:"100%",padding:18,borderRadius:14,
                 background:"rgba(255,200,0,.1)",border:"1px solid rgba(255,200,0,.25)",
@@ -735,6 +807,152 @@ const LoginScreen = ({onLogin, onLoginOperateur, onLoginDemo}) => {
               cursor:"pointer",WebkitTapHighlightColor:"transparent"}}>
               {"<"} Retour à l'accueil
             </button>
+          </div>
+        )}
+
+        {step==="annonce"&&(
+          <div>
+            <div style={{textAlign:"center",marginBottom:20}}>
+              <div style={{fontSize:28,marginBottom:8}}>📢</div>
+              <div style={{fontSize:16,fontWeight:700}}>Annonce</div>
+              <div style={{fontSize:12,color:"rgba(255,255,255,.5)",marginTop:6,lineHeight:1.5}}>
+                {annonceEnvoyee ? "" : "Aucun compte requis — vous serez recontacté"}
+              </div>
+            </div>
+
+            {annonceEnvoyee ? (
+              <div>
+                <div style={{background:"rgba(76,175,80,.2)",borderRadius:14,padding:20,
+                  marginBottom:16,textAlign:"center",border:"1px solid rgba(76,175,80,.5)"}}>
+                  <div style={{fontSize:32,marginBottom:8}}>✅</div>
+                  <div style={{fontSize:14,fontWeight:600,color:"#fff"}}>Annonce transmise</div>
+                  <div style={{fontSize:12,color:"rgba(255,255,255,.7)",marginTop:6,lineHeight:1.6}}>
+                    L'administrateur va l'examiner et vous recontacter au {annonceTel}.
+                  </div>
+                </div>
+                <button onClick={()=>{ resetAnnonce(); setStep("home"); }}
+                  style={{width:"100%",padding:14,borderRadius:12,
+                  background:"rgba(255,255,255,.1)",border:"1px solid rgba(255,255,255,.2)",
+                  color:"rgba(255,255,255,.7)",fontFamily:"inherit",fontSize:13,
+                  cursor:"pointer",WebkitTapHighlightColor:"transparent"}}>
+                  {"<"} Retour à l'accueil
+                </button>
+              </div>
+            ) : !annonceType ? (
+              <div style={{display:"flex",flexDirection:"column",gap:10}}>
+                {[
+                  ["gisement","🌲","Signaler un gisement","Un terrain ou une parcelle à exploiter"],
+                  ["service","🛠️","Proposer mes services","Abattage, débardage, déchiquetage, transport"],
+                  ["demande","🪵","Demande de plaquettes forestières","Besoin d'approvisionnement bois énergie"],
+                ].map(([v,e,l,s])=>(
+                  <button key={v} onClick={()=>setAnnonceType(v)} style={{
+                    width:"100%",padding:16,borderRadius:14,textAlign:"left",
+                    background:"rgba(255,255,255,.08)",border:"1px solid rgba(255,255,255,.18)",
+                    color:"#fff",fontFamily:"inherit",cursor:"pointer",
+                    display:"flex",alignItems:"center",gap:14,
+                    WebkitTapHighlightColor:"transparent"}}>
+                    <span style={{fontSize:26}}>{e}</span>
+                    <div>
+                      <div style={{fontSize:14,fontWeight:600}}>{l}</div>
+                      <div style={{fontSize:11,opacity:.6,marginTop:2}}>{s}</div>
+                    </div>
+                  </button>
+                ))}
+                <button onClick={()=>setStep("home")}
+                  style={{width:"100%",padding:14,borderRadius:12,marginTop:6,
+                  background:"rgba(255,255,255,.1)",border:"1px solid rgba(255,255,255,.2)",
+                  color:"rgba(255,255,255,.7)",fontFamily:"inherit",fontSize:13,
+                  cursor:"pointer",WebkitTapHighlightColor:"transparent"}}>
+                  {"<"} Retour à l'accueil
+                </button>
+              </div>
+            ) : (
+              <div>
+                <div style={{fontSize:13,fontWeight:600,color:"rgba(255,255,255,.8)",marginBottom:14}}>
+                  {{"gisement":"🌲 Signaler un gisement","service":"🛠️ Proposer mes services",
+                    "demande":"🪵 Demande de plaquettes forestières"}[annonceType]}
+                </div>
+                <input value={annonceNom} onChange={e=>setAnnonceNom(e.target.value)}
+                  placeholder="Votre nom *"
+                  style={{width:"100%",height:48,padding:"0 14px",borderRadius:10,
+                    border:"1.5px solid rgba(255,255,255,.25)",background:"rgba(255,255,255,.08)",
+                    color:"#fff",fontFamily:"inherit",fontSize:15,outline:"none",marginBottom:10}}/>
+                <input value={annonceTel} onChange={e=>setAnnonceTel(formatPhone(e.target.value))}
+                  placeholder="Votre téléphone *" type="tel"
+                  style={{width:"100%",height:48,padding:"0 14px",borderRadius:10,
+                    border:"1.5px solid rgba(255,255,255,.25)",background:"rgba(255,255,255,.08)",
+                    color:"#fff",fontFamily:"inherit",fontSize:15,outline:"none",marginBottom:10}}/>
+                <input value={annonceCommune} onChange={e=>setAnnonceCommune(e.target.value)}
+                  placeholder="Commune"
+                  style={{width:"100%",height:48,padding:"0 14px",borderRadius:10,
+                    border:"1.5px solid rgba(255,255,255,.25)",background:"rgba(255,255,255,.08)",
+                    color:"#fff",fontFamily:"inherit",fontSize:15,outline:"none",marginBottom:10}}/>
+
+                {annonceType==="gisement"&&(
+                  <>
+                    <input value={annonceSurface} onChange={e=>setAnnonceSurface(e.target.value)}
+                      placeholder="Surface estimée (ha) — optionnel" type="number"
+                      style={{width:"100%",height:48,padding:"0 14px",borderRadius:10,
+                        border:"1.5px solid rgba(255,255,255,.25)",background:"rgba(255,255,255,.08)",
+                        color:"#fff",fontFamily:"inherit",fontSize:15,outline:"none",marginBottom:10}}/>
+                    <input value={annonceEssence} onChange={e=>setAnnonceEssence(e.target.value)}
+                      placeholder="Essence dominante — optionnel"
+                      style={{width:"100%",height:48,padding:"0 14px",borderRadius:10,
+                        border:"1.5px solid rgba(255,255,255,.25)",background:"rgba(255,255,255,.08)",
+                        color:"#fff",fontFamily:"inherit",fontSize:15,outline:"none",marginBottom:10}}/>
+                  </>
+                )}
+
+                {annonceType==="service"&&(
+                  <div style={{marginBottom:10}}>
+                    <div style={{fontSize:12,color:"rgba(255,255,255,.6)",marginBottom:8}}>
+                      Prestations proposées
+                    </div>
+                    <div style={{display:"grid",gridTemplateColumns:"repeat(2,1fr)",gap:8}}>
+                      {TYPES_PRESTATION_ANNONCE.map(([v,e,l])=>(
+                        <div key={v} onClick={()=>toggleAnnoncePrestation(v)} style={{
+                          padding:"10px 8px",borderRadius:10,cursor:"pointer",textAlign:"center",
+                          border:`1.5px solid ${annoncePrestations.includes(v)?"#4CAF50":"rgba(255,255,255,.25)"}`,
+                          background:annoncePrestations.includes(v)?"rgba(76,175,80,.25)":"rgba(255,255,255,.05)",
+                          WebkitTapHighlightColor:"transparent"}}>
+                          <div style={{fontSize:18}}>{e}</div>
+                          <div style={{fontSize:11,color:"#fff",marginTop:2}}>{l}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                <textarea value={annonceCommentaire} onChange={e=>setAnnonceComment(e.target.value)}
+                  placeholder={annonceType==="demande"?"Volume souhaité, fréquence, contexte… — optionnel":"Précisions — optionnel"}
+                  rows={3}
+                  style={{width:"100%",padding:14,borderRadius:10,
+                    border:"1.5px solid rgba(255,255,255,.25)",background:"rgba(255,255,255,.08)",
+                    color:"#fff",fontFamily:"inherit",fontSize:14,outline:"none",
+                    marginBottom:14,resize:"vertical"}}/>
+
+                {error&&(
+                  <div style={{color:C.amber,fontSize:13,textAlign:"center",marginBottom:12}}>
+                    ⚠ {error}
+                  </div>
+                )}
+
+                <button onClick={handleEnvoyerAnnonce} disabled={annonceSaving}
+                  style={{width:"100%",height:50,borderRadius:12,
+                    background:"rgba(76,175,80,.4)",border:"1px solid rgba(76,175,80,.7)",
+                    color:"#fff",fontFamily:"inherit",fontSize:14,fontWeight:600,cursor:"pointer",
+                    WebkitTapHighlightColor:"transparent",marginBottom:10}}>
+                  {annonceSaving?"Envoi…":"📤 Envoyer l'annonce"}
+                </button>
+                <button onClick={()=>setAnnonceType(null)}
+                  style={{width:"100%",padding:14,borderRadius:12,
+                  background:"rgba(255,255,255,.1)",border:"1px solid rgba(255,255,255,.2)",
+                  color:"rgba(255,255,255,.7)",fontFamily:"inherit",fontSize:13,
+                  cursor:"pointer",WebkitTapHighlightColor:"transparent"}}>
+                  {"<"} Changer de type d'annonce
+                </button>
+              </div>
+            )}
           </div>
         )}
 
@@ -2479,6 +2697,7 @@ const EcranReleves = ({entrepriseId, user, toast, notifications=[], setNotificat
   const [acces, setAcces] = useState([]);
   const [contacts, setContacts] = useState([]);
   const [entreprises, setEntreprises] = useState([]);
+  const [annonces, setAnnonces] = useState([]);
   const [showNew, setShowNew] = useState(false);
   const [showNewAcces, setShowNewAcces] = useState(false);
   const [opNom, setOpNom] = useState("");
@@ -2513,9 +2732,51 @@ const EcranReleves = ({entrepriseId, user, toast, notifications=[], setNotificat
       .then(r=>r.json()).then(d=>{ if(Array.isArray(d)) setContacts(d); }).catch(()=>{});
     fetch(`${API}/entreprises/entreprise/${entrepriseId}`,{headers:authHeaders()})
       .then(r=>r.json()).then(d=>{ if(Array.isArray(d)) setEntreprises(d); }).catch(()=>{});
+    (async () => {
+      let fromApi = [];
+      try {
+        const r = await fetch(`${API}/annonces/entreprise/${entrepriseId}`,{headers:authHeaders()});
+        const d = await r.json();
+        if (Array.isArray(d)) fromApi = d;
+      } catch {}
+      const fromLocal = annoncesLocalGet().filter(a=>a.entrepriseId===entrepriseId);
+      const ids = new Set(fromApi.map(a=>a.id));
+      setAnnonces([...fromApi, ...fromLocal.filter(a=>!ids.has(a.id))]
+        .sort((a,b)=>new Date(b.dateEnvoi)-new Date(a.dateEnvoi)));
+    })();
   },[entrepriseId]);
 
+  const handleTraiterAnnonce = async (annonce, statut) => {
+    try {
+      await fetch(`${API}/annonces/${annonce.id}`, {
+        method:"PATCH", headers:authHeaders(), body:JSON.stringify({statut}),
+      });
+    } catch {}
+    annoncesLocalSave(annoncesLocalGet().map(a=>a.id===annonce.id?{...a,statut}:a));
+    setAnnonces(prev=>prev.map(a=>a.id===annonce.id?{...a,statut}:a));
+    toast(statut==="traitee"?"Annonce marquée traitée ✓":"Annonce rejetée");
+  };
+
+  const handleCreerLotDepuisAnnonce = async (annonce) => {
+    const contact = {
+      nom: annonce.nom, telephone: annonce.telephone, commune: annonce.commune,
+      potentiel: annonce.essence||"", commentaire: annonce.commentaire||"",
+      surfaceHa: annonce.surfaceHa?parseFloat(annonce.surfaceHa):null,
+      typeContact:"proprietaire_forestier", origine:"annonce", statut:"nouveau",
+      dateContact: todayS(), entrepriseId,
+    };
+    try {
+      const res = await fetch(`${API}/contacts`, {
+        method:"POST", headers:authHeaders(), body:JSON.stringify(contact),
+      });
+      if (!res.ok) throw new Error();
+    } catch {}
+    await handleTraiterAnnonce(annonce, "traitee");
+    toast(`Fiche contact créée pour ${annonce.nom} ✓`);
+  };
+
   const entrepriseSel = entreprises.find(e=>e.id===opEtfId)||null;
+  const annoncesNouvelles = annonces.filter(a=>a.statut==="nouvelle"||!a.statut);
 
   const handleCreateOp = async () => {
     if (!opNom||!entrepriseSel||!opPin) { toast("Remplir nom, entreprise et PIN","warn"); return; }
@@ -2587,7 +2848,9 @@ const EcranReleves = ({entrepriseId, user, toast, notifications=[], setNotificat
     <div style={{display:"flex",flexDirection:"column",height:"100%"}}>
       <div style={{display:"flex",gap:0,padding:"8px 16px 0",background:"#fff",
         borderBottom:`1px solid ${C.bd}`,flexShrink:0}}>
-        {[["operateurs","👷 Opérateurs"],["acces","🔑 Accès lot"],["notifs","🔔 Alertes"]].map(([id,label])=>(
+        {[["operateurs","👷 Opérateurs"],["acces","🔑 Accès lot"],
+          ["annonces",`📢 Annonces${annoncesNouvelles.length>0?` (${annoncesNouvelles.length})`:""}`],
+          ["notifs","🔔 Alertes"]].map(([id,label])=>(
           <button key={id} onClick={()=>{ setSousOnglet(id); setShowNew(false); setShowNewAcces(false); setSelOp(null); }} style={{
             flex:1,height:36,background:"transparent",border:"none",
             borderBottom:`2.5px solid ${sousOnglet===id?C.green:"transparent"}`,
@@ -2870,6 +3133,67 @@ const EcranReleves = ({entrepriseId, user, toast, notifications=[], setNotificat
                 ))}
               </div>
             )}
+          </div>
+        )}
+
+        {sousOnglet==="annonces"&&(
+          <div>
+            {annonces.length===0 ? (
+              <div style={{textAlign:"center",padding:"48px 0",color:C.tx3}}>
+                <div style={{fontSize:40,marginBottom:12}}>📢</div>
+                <div style={{fontSize:16,fontWeight:500,marginBottom:6}}>Aucune annonce</div>
+                <div style={{fontSize:13}}>Les gisements signalés et offres de service apparaîtront ici</div>
+              </div>
+            ) : annonces.map(a=>{
+              const meta = {
+                gisement:{icon:"🌲",label:"Gisement signalé",bg:C.greenL,color:C.greenD},
+                service:{icon:"🛠️",label:"Offre de service",bg:C.blueL,color:C.blueD},
+                demande:{icon:"🪵",label:"Demande de plaquettes",bg:C.amberL,color:C.amberD},
+              }[a.type]||{icon:"📢",label:a.type,bg:C.bg2,color:C.tx3};
+              const traitee = a.statut==="traitee"||a.statut==="rejetee";
+              return (
+                <div key={a.id} style={{background:"#fff",border:`1px solid ${C.bd}`,
+                  borderRadius:14,padding:16,marginBottom:10,opacity:traitee?.6:1}}>
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:8}}>
+                    <span style={{fontSize:11,padding:"3px 8px",borderRadius:6,fontWeight:600,
+                      background:meta.bg,color:meta.color}}>{meta.icon} {meta.label}</span>
+                    <span style={{fontSize:10,color:C.tx3}}>
+                      {new Date(a.dateEnvoi).toLocaleDateString("fr-FR")}
+                    </span>
+                  </div>
+                  <div style={{fontSize:15,fontWeight:700,color:C.tx,marginBottom:2}}>{a.nom}</div>
+                  <div style={{fontSize:12,color:C.tx3,lineHeight:1.8,marginBottom:10}}>
+                    📞 {a.telephone}{a.commune&&<> · 📍 {a.commune}</>}
+                    {a.surfaceHa&&<><br/>🌲 {a.surfaceHa} ha estimés</>}
+                    {a.essence&&<><br/>🪵 {a.essence}</>}
+                    {a.prestations?.length>0&&<><br/>🛠️ {a.prestations.map(p=>TYPES_PRESTATION_ANNONCE.find(([v])=>v===p)?.[2]||p).join(", ")}</>}
+                    {a.commentaire&&<><br/>💬 {a.commentaire}</>}
+                  </div>
+                  {traitee ? (
+                    <div style={{fontSize:12,fontWeight:600,color:a.statut==="traitee"?C.greenD:C.tx3}}>
+                      {a.statut==="traitee"?"✅ Traitée":"🗑️ Rejetée"}
+                    </div>
+                  ) : (
+                    <div style={{display:"flex",gap:8}}>
+                      {a.type==="gisement"&&(
+                        <button onClick={()=>handleCreerLotDepuisAnnonce(a)} style={{flex:2,height:40,
+                          borderRadius:10,background:C.green,color:"#fff",border:"none",
+                          fontFamily:"inherit",fontSize:12,fontWeight:600,cursor:"pointer",
+                          WebkitTapHighlightColor:"transparent"}}>➕ Créer la fiche lot</button>
+                      )}
+                      <button onClick={()=>handleTraiterAnnonce(a,"traitee")} style={{flex:1,height:40,
+                        borderRadius:10,background:C.blueL,color:C.blueD,border:`1px solid ${C.blue}`,
+                        fontFamily:"inherit",fontSize:12,fontWeight:600,cursor:"pointer",
+                        WebkitTapHighlightColor:"transparent"}}>✅ Traitée</button>
+                      <button onClick={()=>handleTraiterAnnonce(a,"rejetee")} style={{flex:1,height:40,
+                        borderRadius:10,background:C.redL,color:C.red,border:"none",
+                        fontFamily:"inherit",fontSize:12,fontWeight:600,cursor:"pointer",
+                        WebkitTapHighlightColor:"transparent"}}>🗑️</button>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
         )}
       </div>
