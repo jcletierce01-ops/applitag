@@ -309,7 +309,7 @@ const DEMO_USERS = {
   operateur:   {nom:"Dupont",   prenom:"Martin",   role:"operateur",    id:"demo-op1",      pin:"1111"},
   proprietaire:{nom:"Martin",   prenom:"Jean",     role:"proprietaire", id:"demo-prop1",    pin:"2222"},
   chauffeur:   {nom:"Robert",   prenom:"Pierre",   role:"chauffeur",    id:"demo-chauf",    pin:"3333"},
-  broyage:     {nom:"Forestier",prenom:"François", role:"broyage",      id:"demo-broyage",  pin:"4444"},
+  dechiquetage:{nom:"Forestier",prenom:"François", role:"dechiquetage", id:"demo-dechiquetage", pin:"4444"},
   chaufferie:  {nom:"Énergie",  prenom:"Sophie",   role:"chaufferie",   id:"demo-chauff",   pin:"5555"},
 };
 
@@ -660,7 +660,7 @@ const LoginScreen = ({onLogin, onLoginOperateur, onLoginDemo}) => {
                 {role:"proprietaire",icon:"🏠",label:"Propriétaire",      sub:"Jean Martin · LOT-89-001"},
                 {role:"operateur",   icon:"👷",label:"Opérateur terrain", sub:"Martin Dupont · ETF Gaillard"},
                 {role:"chauffeur",   icon:"🚛",label:"Chauffeur",         sub:"Pierre Robert · Transport Moreau"},
-                {role:"broyage",     icon:"🪚",label:"Broyage",           sub:"François Forestier · Jenz HEM 593"},
+                {role:"dechiquetage",icon:"🪚",label:"Déchiquetage",      sub:"François Forestier · Jenz HEM 593"},
                 {role:"chaufferie",  icon:"🔥",label:"Chaufferie",        sub:"Sophie Énergie · Migennes"},
               ].map(({role,icon,label,sub})=>(
                 <button key={role} onClick={()=>onLoginDemo(role)} style={{
@@ -2425,7 +2425,7 @@ const EcranReleves = ({entrepriseId, user, toast, notifications=[], setNotificat
     } catch { toast("Erreur","warn"); }
   };
 
-  const typeLabel = t=>({"mandataire":"🔭 Visite terrain","abattage":"🪓 Abattage","debardage":"🚜 Débardage","broyage":"🌿 Broyage"}[t]||t);
+  const typeLabel = t=>({"mandataire":"🔭 Visite terrain","abattage":"🪓 Abattage","debardage":"🚜 Débardage","dechiquetage":"🪚 Déchiquetage"}[t]||t);
   const toggleOpRole = v => setOpRoles(prev=>prev.includes(v)?prev.filter(x=>x!==v):[...prev,v]);
 
   return (
@@ -2473,7 +2473,7 @@ const EcranReleves = ({entrepriseId, user, toast, notifications=[], setNotificat
                   <div style={{fontSize:13,fontWeight:600,color:C.tx2,marginBottom:8}}>Type</div>
                   <div style={{display:"grid",gridTemplateColumns:"repeat(2,1fr)",gap:8}}>
                     {[["mandataire","🔭","Visite terrain"],["abattage","🪓","Abattage"],
-                      ["debardage","🚜","Débardage"],["broyage","🌿","Broyage"]]
+                      ["debardage","🚜","Débardage"],["dechiquetage","🪚","Déchiquetage"]]
                       .filter(([v])=>!selOp.roles?.length||selOp.roles.includes(v))
                       .map(([v,e,l])=>(
                       <button key={v} onClick={()=>setAssignType(v)} style={{
@@ -2540,7 +2540,7 @@ const EcranReleves = ({entrepriseId, user, toast, notifications=[], setNotificat
                 </div>
                 <div style={{display:"grid",gridTemplateColumns:"repeat(2,1fr)",gap:8,marginBottom:14}}>
                   {[["mandataire","🔭","Mandataire — visite terrain"],["abattage","🪓","Abattage"],
-                    ["debardage","🚜","Débardage"],["broyage","🌿","Broyage"]].map(([v,e,l])=>(
+                    ["debardage","🚜","Débardage"],["dechiquetage","🪚","Déchiquetage"]].map(([v,e,l])=>(
                     <div key={v} onClick={()=>toggleOpRole(v)} style={{
                       padding:"10px 12px",borderRadius:10,cursor:"pointer",display:"flex",
                       alignItems:"center",gap:8,
@@ -2644,7 +2644,7 @@ const EcranReleves = ({entrepriseId, user, toast, notifications=[], setNotificat
                 <div style={{marginBottom:14}}>
                   <div style={{fontSize:13,fontWeight:600,color:C.tx2,marginBottom:8}}>Type</div>
                   <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8}}>
-                    {[["abattage","🪓","Abattage"],["debardage","🚜","Débardage"],["broyage","🌿","Broyage"]].map(([v,e,l])=>(
+                    {[["abattage","🪓","Abattage"],["debardage","🚜","Débardage"],["dechiquetage","🪚","Déchiquetage"]].map(([v,e,l])=>(
                       <button key={v} onClick={()=>setTypeOperation(v)} style={{
                         padding:"12px 6px",borderRadius:12,
                         border:`1.5px solid ${typeOperation===v?C.green:C.bd}`,
@@ -2911,8 +2911,8 @@ const Fiche0Edit = ({contact, onBack, onSaved, toast, user, onLaunchVisite, onLa
               const showValider     = ["VISITE_REALISEE","VALIDE_EXPLOITATION"].includes(s);
               const showCloture     = ["VALIDE_EXPLOITATION","EN_COURS_EXPLOITATION"].includes(s);
               const showDechi       = ["BORD_ROUTE","A_DECHIQUETER"].includes(s);
-              const showTransp      = ["A_DECHIQUETER","EN_COURS_BROYAGE","EN_LIVRAISON"].includes(s);
-              const showLivraison   = ["EN_COURS_BROYAGE","EN_LIVRAISON"].includes(s);
+              const showTransp      = ["A_DECHIQUETER","EN_COURS_DECHIQUETAGE","EN_LIVRAISON"].includes(s);
+              const showLivraison   = ["EN_COURS_DECHIQUETAGE","EN_LIVRAISON"].includes(s);
               const btns = [
                 showVisite    && {icon:"🔭",label:"Visite",    bg:C.greenL, bd:C.green,  color:C.greenD,  action:onLaunchVisite},
                 showValider   && {icon:"✅",label:"Valider",   bg:C.blueL,  bd:C.blue,   color:C.blueD,   action:onLaunchValidation},
@@ -3035,7 +3035,7 @@ const Fiche0Edit = ({contact, onBack, onSaved, toast, user, onLaunchVisite, onLa
 // ── ÉCRAN OPÉRATEUR TERRAIN ───────────────────────────────────
 // Statuts à partir desquels la clôture d'exploitation a eu lieu — au-delà,
 // la saisie de relevé terrain n'est plus pertinente pour l'opérateur.
-const STATUTS_CLOTURES = ["BORD_ROUTE","A_DECHIQUETER","EN_COURS_BROYAGE","EN_LIVRAISON","LIVRE_CHAUFFERIE"];
+const STATUTS_CLOTURES = ["BORD_ROUTE","A_DECHIQUETER","EN_COURS_DECHIQUETAGE","EN_LIVRAISON","LIVRE_CHAUFFERIE"];
 
 const EcranOperateur = ({operateur, onLogout, toast}) => {
   const [screen, setScreen] = useState("lots"); // lots | releve
@@ -3284,7 +3284,7 @@ const EcranOperateur = ({operateur, onLogout, toast}) => {
                 <div style={{fontFamily:"monospace",fontSize:13,fontWeight:700,
                   color:C.greenD,marginBottom:8}}>🏷 {a.lotNumero}</div>
                 <div style={{fontSize:12,color:C.tx3,marginBottom:12}}>
-                  {{"mandataire":"🔭 Visite terrain","abattage":"🪓 Abattage","debardage":"🚜 Débardage","broyage":"🌿 Broyage"}[a.typeOperation]||a.typeOperation}
+                  {{"mandataire":"🔭 Visite terrain","abattage":"🪓 Abattage","debardage":"🚜 Débardage","dechiquetage":"🪚 Déchiquetage"}[a.typeOperation]||a.typeOperation}
                 </div>
                 {estMandataire ? (
                   visiteFaite ? (
@@ -3695,7 +3695,7 @@ const STATUT_LOT = {
   EN_COURS_EXPLOITATION: {label:"En exploitation",    color:"#185FA5", bg:"#E6F1FB"},
   BORD_ROUTE:            {label:"Bord de route",      color:"#A66A2E", bg:"#F3EBE0"},
   A_DECHIQUETER:         {label:"À déchiqueter",      color:"#D85A30", bg:"#FAECE7"},
-  EN_COURS_BROYAGE:      {label:"En cours broyage",   color:"#D85A30", bg:"#FAECE7"},
+  EN_COURS_DECHIQUETAGE:      {label:"Déchiquetage en cours", color:"#D85A30", bg:"#FAECE7"},
   EN_LIVRAISON:          {label:"En livraison",       color:"#534AB7", bg:"#EEEDFE"},
   LIVRE_CHAUFFERIE:      {label:"Livré chaufferie",   color:"#4CAF50", bg:"#E8F5E9"},
   EN_STOCK_PLATEFORME:   {label:"En stock plateforme",color:"#185FA5", bg:"#E6F1FB"},
@@ -3705,7 +3705,7 @@ const STATUT_LOT = {
 
 // ── ÉCRAN ACCUEIL ─────────────────────────────────────────────
 const EcranAccueil = ({contacts, visites, notifications, user, onNewLot, onGoLots, onGoAlertes, onGoDelegations}) => {
-  const STATUTS_EXPLOITATION = ["VALIDE_EXPLOITATION","EN_COURS_EXPLOITATION","BORD_ROUTE","A_DECHIQUETER","EN_COURS_BROYAGE","EN_LIVRAISON","LIVRE_CHAUFFERIE","EN_STOCK_PLATEFORME","LIVRE"];
+  const STATUTS_EXPLOITATION = ["VALIDE_EXPLOITATION","EN_COURS_EXPLOITATION","BORD_ROUTE","A_DECHIQUETER","EN_COURS_DECHIQUETAGE","EN_LIVRAISON","LIVRE_CHAUFFERIE","EN_STOCK_PLATEFORME","LIVRE"];
   const lotsAVisiter = contacts.filter(c=>c.lotNumero&&(c.statutLot==="VISITE_PREVUE"||c.statutLot==="NOUVEAU"||!c.statutLot)&&!STATUTS_EXPLOITATION.includes(c.statutLot));
   const chantiersJour = contacts.filter(c=>["EN_COURS_EXPLOITATION","VALIDE_EXPLOITATION"].includes(c.statutLot));
   const alertes = notifications.filter(n=>!n.lu);
@@ -3803,7 +3803,6 @@ const TYPES_TRAVAUX_DELEGATION = [
   ["debardage","🚜","Débardage"],
   ["dechiquetage","🪚","Déchiquetage"],
   ["transport","🚛","Transport"],
-  ["broyage","🌿","Broyage"],
   ["autre","…","Autre"],
 ];
 
@@ -6042,9 +6041,9 @@ const EcranRoleProprietaire = ({user, contacts, visites, reportings=[], livraiso
             <div style={{background:C.bg2,borderRadius:10,padding:12,marginBottom:10}}>
               {[
                 {label:"Visite terrain",done:!!visite,icon:"🔭"},
-                {label:"Validation exploitation",done:["VALIDE_EXPLOITATION","EN_COURS_EXPLOITATION","BORD_ROUTE","A_DECHIQUETER","EN_COURS_BROYAGE","EN_LIVRAISON","LIVRE_CHAUFFERIE"].includes(lot.statutLot),icon:"✅"},
-                {label:"Exploitation en cours",done:["EN_COURS_EXPLOITATION","BORD_ROUTE","A_DECHIQUETER","EN_COURS_BROYAGE","EN_LIVRAISON","LIVRE_CHAUFFERIE"].includes(lot.statutLot),icon:"🪓"},
-                {label:"Bord de route",done:["BORD_ROUTE","A_DECHIQUETER","EN_COURS_BROYAGE","EN_LIVRAISON","LIVRE_CHAUFFERIE"].includes(lot.statutLot),icon:"🌲"},
+                {label:"Validation exploitation",done:["VALIDE_EXPLOITATION","EN_COURS_EXPLOITATION","BORD_ROUTE","A_DECHIQUETER","EN_COURS_DECHIQUETAGE","EN_LIVRAISON","LIVRE_CHAUFFERIE"].includes(lot.statutLot),icon:"✅"},
+                {label:"Exploitation en cours",done:["EN_COURS_EXPLOITATION","BORD_ROUTE","A_DECHIQUETER","EN_COURS_DECHIQUETAGE","EN_LIVRAISON","LIVRE_CHAUFFERIE"].includes(lot.statutLot),icon:"🪓"},
+                {label:"Bord de route",done:["BORD_ROUTE","A_DECHIQUETER","EN_COURS_DECHIQUETAGE","EN_LIVRAISON","LIVRE_CHAUFFERIE"].includes(lot.statutLot),icon:"🌲"},
                 {label:"Livraison chaufferie",done:["LIVRE_CHAUFFERIE"].includes(lot.statutLot),icon:"🔥"},
               ].map((s,i)=>(
                 <div key={i} style={{display:"flex",alignItems:"center",gap:10,
@@ -6155,7 +6154,7 @@ const EcranRoleChauffeur = ({user, transports=[]}) => {
   );
 };
 
-const EcranRoleBroyage = ({user, contacts}) => {
+const EcranRoleDechiquetage = ({user, contacts}) => {
   const lotsABroyer = contacts.filter(c=>["BORD_ROUTE","A_DECHIQUETER"].includes(c.statutLot));
   const [actif, setActif] = useState(null);
   return (
@@ -6782,8 +6781,8 @@ const PIPELINE = [
   {id:"VALIDE_EXPLOITATION",label:"Validé",        icon:"📋"},
   {id:"EN_COURS_EXPLOITATION",label:"Exploitation",icon:"🪓"},
   {id:"BORD_ROUTE",         label:"Bord route",    icon:"🌲"},
-  {id:"A_DECHIQUETER",      label:"À broyer",      icon:"🪚"},
-  {id:"EN_COURS_BROYAGE",   label:"Broyage",       icon:"⚙️"},
+  {id:"A_DECHIQUETER",      label:"À déchiqueter", icon:"🪚"},
+  {id:"EN_COURS_DECHIQUETAGE",   label:"Déchiquetage", icon:"⚙️"},
   {id:"EN_LIVRAISON",       label:"En livraison",  icon:"🚛"},
   {id:"LIVRE_CHAUFFERIE",   label:"Livré",         icon:"🔥"},
 ];
@@ -6852,11 +6851,11 @@ const FicheLotCentrale = ({
       {icon:"🏁",label:"Clôture",bg:C.amberL,bd:C.amber,color:C.amberD,fn:onLaunchCloture},
     ["BORD_ROUTE","A_DECHIQUETER"].includes(s) &&
       {icon:"🪚",label:"Déchi.",bg:"#FAECE7",bd:"#D85A30",color:"#D85A30",fn:onLaunchDechiquetage},
-    ["A_DECHIQUETER","EN_COURS_BROYAGE","EN_LIVRAISON"].includes(s) &&
+    ["A_DECHIQUETER","EN_COURS_DECHIQUETAGE","EN_LIVRAISON"].includes(s) &&
       {icon:"🚛",label:"Transp.",bg:C.purpleL,bd:C.purple,color:C.purpleD,fn:onLaunchTransporteur},
-    ["EN_COURS_BROYAGE","EN_LIVRAISON"].includes(s) &&
+    ["EN_COURS_DECHIQUETAGE","EN_LIVRAISON"].includes(s) &&
       {icon:"📦",label:"Livraison",bg:C.greenL,bd:C.green,color:C.greenD,fn:onLaunchLivraison},
-    ["LIVRE_CHAUFFERIE","EN_STOCK_PLATEFORME","BORD_ROUTE","A_DECHIQUETER","EN_COURS_BROYAGE","EN_LIVRAISON"].includes(s) &&
+    ["LIVRE_CHAUFFERIE","EN_STOCK_PLATEFORME","BORD_ROUTE","A_DECHIQUETER","EN_COURS_DECHIQUETAGE","EN_LIVRAISON"].includes(s) &&
       {icon:"🏁",label:"Fin chantier",bg:"#F0EBF8",bd:"#7B2FBE",color:"#7B2FBE",fn:onLaunchFinChantier},
   ].filter(Boolean);
 
@@ -7236,7 +7235,7 @@ const FicheLotCentrale = ({
                   <div style={{fontSize:12,color:C.tx3,lineHeight:1.9}}>
                     🚛 {t.immatTracteur||"—"} · {t.immatRemorque||""}<br/>
                     👤 {t.nomChauffeur||t.chauffeur||"—"}<br/>
-                    🏢 {t.societeTransp||t.entrepriseBroyage||"—"}<br/>
+                    🏢 {t.societeTransp||t.entrepriseDechiquetage||t.entrepriseBroyage||"—"}<br/>
                     {t.heureDebut&&`⏱️ Départ : ${t.heureDebut}`}
                     {t.heureFin&&` → ${t.heureFin}`}
                   </div>
@@ -7356,10 +7355,10 @@ const FicheLotCentrale = ({
                onAction: onBonCommande},
 
               {icon:"📝",titre:"Ordre d'exploitation",
-               statut:["VALIDE_EXPLOITATION","EN_COURS_EXPLOITATION","BORD_ROUTE","A_DECHIQUETER","EN_COURS_BROYAGE","EN_LIVRAISON","LIVRE_CHAUFFERIE"].includes(lot.statutLot)?"✅ Disponible":"⏳ En attente validation",
-               color:["VALIDE_EXPLOITATION","EN_COURS_EXPLOITATION","BORD_ROUTE","A_DECHIQUETER","EN_COURS_BROYAGE","EN_LIVRAISON","LIVRE_CHAUFFERIE"].includes(lot.statutLot)?C.green:C.tx3,
-               bg:["VALIDE_EXPLOITATION","EN_COURS_EXPLOITATION","BORD_ROUTE","A_DECHIQUETER","EN_COURS_BROYAGE","EN_LIVRAISON","LIVRE_CHAUFFERIE"].includes(lot.statutLot)?C.greenL:C.bg2,
-               action:["VALIDE_EXPLOITATION","EN_COURS_EXPLOITATION","BORD_ROUTE","A_DECHIQUETER","EN_COURS_BROYAGE","EN_LIVRAISON","LIVRE_CHAUFFERIE"].includes(lot.statutLot)?"Générer PDF":null,
+               statut:["VALIDE_EXPLOITATION","EN_COURS_EXPLOITATION","BORD_ROUTE","A_DECHIQUETER","EN_COURS_DECHIQUETAGE","EN_LIVRAISON","LIVRE_CHAUFFERIE"].includes(lot.statutLot)?"✅ Disponible":"⏳ En attente validation",
+               color:["VALIDE_EXPLOITATION","EN_COURS_EXPLOITATION","BORD_ROUTE","A_DECHIQUETER","EN_COURS_DECHIQUETAGE","EN_LIVRAISON","LIVRE_CHAUFFERIE"].includes(lot.statutLot)?C.green:C.tx3,
+               bg:["VALIDE_EXPLOITATION","EN_COURS_EXPLOITATION","BORD_ROUTE","A_DECHIQUETER","EN_COURS_DECHIQUETAGE","EN_LIVRAISON","LIVRE_CHAUFFERIE"].includes(lot.statutLot)?C.greenL:C.bg2,
+               action:["VALIDE_EXPLOITATION","EN_COURS_EXPLOITATION","BORD_ROUTE","A_DECHIQUETER","EN_COURS_DECHIQUETAGE","EN_LIVRAISON","LIVRE_CHAUFFERIE"].includes(lot.statutLot)?"Générer PDF":null,
                onAction:()=>generatePdfFromHtml(buildSimpleDocHTML(lot,"Ordre d'exploitation",[
                  {icon:"🌲",label:"Parcelle",rows:[
                    ["Commune",lot.commune], ["Réf. cadastrale",lot.refCadastrale],
@@ -7374,10 +7373,10 @@ const FicheLotCentrale = ({
                  `OrdreExploitation_${lot.lotNumero||"APPLITAG"}.pdf`, toast)},
 
               {icon:"🏁",titre:"Réception d'exploitation",
-               statut:["BORD_ROUTE","A_DECHIQUETER","EN_COURS_BROYAGE","EN_LIVRAISON","LIVRE_CHAUFFERIE"].includes(lot.statutLot)?"✅ Effectuée":"⏳ En attente",
-               color:["BORD_ROUTE","A_DECHIQUETER","EN_COURS_BROYAGE","EN_LIVRAISON","LIVRE_CHAUFFERIE"].includes(lot.statutLot)?C.green:C.tx3,
-               bg:["BORD_ROUTE","A_DECHIQUETER","EN_COURS_BROYAGE","EN_LIVRAISON","LIVRE_CHAUFFERIE"].includes(lot.statutLot)?C.greenL:C.bg2,
-               action:["BORD_ROUTE","A_DECHIQUETER","EN_COURS_BROYAGE","EN_LIVRAISON","LIVRE_CHAUFFERIE"].includes(lot.statutLot)?"Générer PDF":null,
+               statut:["BORD_ROUTE","A_DECHIQUETER","EN_COURS_DECHIQUETAGE","EN_LIVRAISON","LIVRE_CHAUFFERIE"].includes(lot.statutLot)?"✅ Effectuée":"⏳ En attente",
+               color:["BORD_ROUTE","A_DECHIQUETER","EN_COURS_DECHIQUETAGE","EN_LIVRAISON","LIVRE_CHAUFFERIE"].includes(lot.statutLot)?C.green:C.tx3,
+               bg:["BORD_ROUTE","A_DECHIQUETER","EN_COURS_DECHIQUETAGE","EN_LIVRAISON","LIVRE_CHAUFFERIE"].includes(lot.statutLot)?C.greenL:C.bg2,
+               action:["BORD_ROUTE","A_DECHIQUETER","EN_COURS_DECHIQUETAGE","EN_LIVRAISON","LIVRE_CHAUFFERIE"].includes(lot.statutLot)?"Générer PDF":null,
                onAction:()=>generatePdfFromHtml(buildSimpleDocHTML(lot,"Réception de fin d'exploitation",[
                  {icon:"🌲",label:"Lot",rows:[
                    ["Commune",lot.commune],
@@ -7388,10 +7387,10 @@ const FicheLotCentrale = ({
                  `ReceptionExploitation_${lot.lotNumero||"APPLITAG"}.pdf`, toast)},
 
               {icon:"🪚",titre:"Ordre de déchiquetage",
-               statut:["A_DECHIQUETER","EN_COURS_BROYAGE","EN_LIVRAISON","LIVRE_CHAUFFERIE"].includes(lot.statutLot)?"✅ Disponible":"⏳ En attente bord de route",
-               color:["A_DECHIQUETER","EN_COURS_BROYAGE","EN_LIVRAISON","LIVRE_CHAUFFERIE"].includes(lot.statutLot)?C.green:C.tx3,
-               bg:["A_DECHIQUETER","EN_COURS_BROYAGE","EN_LIVRAISON","LIVRE_CHAUFFERIE"].includes(lot.statutLot)?C.greenL:C.bg2,
-               action:["A_DECHIQUETER","EN_COURS_BROYAGE","EN_LIVRAISON","LIVRE_CHAUFFERIE"].includes(lot.statutLot)?"Générer PDF":null,
+               statut:["A_DECHIQUETER","EN_COURS_DECHIQUETAGE","EN_LIVRAISON","LIVRE_CHAUFFERIE"].includes(lot.statutLot)?"✅ Disponible":"⏳ En attente bord de route",
+               color:["A_DECHIQUETER","EN_COURS_DECHIQUETAGE","EN_LIVRAISON","LIVRE_CHAUFFERIE"].includes(lot.statutLot)?C.green:C.tx3,
+               bg:["A_DECHIQUETER","EN_COURS_DECHIQUETAGE","EN_LIVRAISON","LIVRE_CHAUFFERIE"].includes(lot.statutLot)?C.greenL:C.bg2,
+               action:["A_DECHIQUETER","EN_COURS_DECHIQUETAGE","EN_LIVRAISON","LIVRE_CHAUFFERIE"].includes(lot.statutLot)?"Générer PDF":null,
                onAction:()=>generatePdfFromHtml(buildSimpleDocHTML(lot,"Ordre de déchiquetage",[
                  {icon:"🌲",label:"Lot",rows:[
                    ["Commune",lot.commune],
@@ -7992,7 +7991,7 @@ const CAPACITES_CHARGEMENT = {
 
 const EcranDechiquetage = ({lot, onBack, onSaved, toast, entrepriseId}) => {
   const [lotSuggere,    setLotSuggere]  = useState(lot.lotNumero||"");
-  const [operateurBroyage,setOpBroyage] = useState("");
+  const [operateurDechiquetage,setOpDechiquetage] = useState("");
   const [machine,       setMachine]     = useState("");
   const [typeChargement,setTypeCharg]   = useState("semi");
   const [tonnageCharge, setTonnageCharge] = useState("");
@@ -8009,7 +8008,7 @@ const EcranDechiquetage = ({lot, onBack, onSaved, toast, entrepriseId}) => {
   const [autreEvenement,setAutreEv]    = useState("");
   const [saving,        setSaving]      = useState(false);
 
-  const entrepriseBroyage = lot.etfNom || "Non déléguée";
+  const entrepriseDechiquetage = lot.etfNom || "Non déléguée";
 
   // Ordres de mission transport déjà attribués à ce lot
   useEffect(()=>{
@@ -8069,7 +8068,7 @@ const EcranDechiquetage = ({lot, onBack, onSaved, toast, entrepriseId}) => {
         method:"POST", headers:{"Content-Type":"application/json"},
         body:JSON.stringify({
           lotId:lot.id, lotNumero:lotSuggere, entrepriseId,
-          entrepriseBroyage, operateurBroyage, machine, typeChargement,
+          entrepriseDechiquetage, operateurDechiquetage, machine, typeChargement,
           tonnageCharge: parseFloat(tonnageCharge)||null,
           numeroCMR, photoCMR, immatTracteur, immatRemorque,
           heureDebut, heureFin, evenements, autreEvenement, statut:"EN_LIVRAISON",
@@ -8109,13 +8108,13 @@ const EcranDechiquetage = ({lot, onBack, onSaved, toast, entrepriseId}) => {
           <div style={{fontSize:12,color:C.tx3,marginTop:4}}>{lot.commune} · {lot.surfaceHa} ha</div>
         </div>
 
-        <SectionTitle icon="🏭" label="Entreprise de broyage"/>
+        <SectionTitle icon="🏭" label="Entreprise de déchiquetage"/>
         <div style={{background:"#fff",border:`1px solid ${C.bd}`,borderRadius:12,
           padding:14,marginBottom:14}}>
           <div style={{fontSize:11,color:C.tx3,marginBottom:4}}>Entreprise déléguée sur ce lot</div>
-          <div style={{fontSize:15,fontWeight:700,color:C.tx}}>{entrepriseBroyage}</div>
+          <div style={{fontSize:15,fontWeight:700,color:C.tx}}>{entrepriseDechiquetage}</div>
         </div>
-        <MInput label="Opérateur broyage" value={operateurBroyage} onChange={setOpBroyage}
+        <MInput label="Opérateur déchiquetage" value={operateurDechiquetage} onChange={setOpDechiquetage}
           placeholder="Nom opérateur"/>
         <MInput label="Machine" value={machine} onChange={setMachine}
           placeholder="Ex: Jenz HEM 593, Doppstadt AK 430…"/>
@@ -8286,14 +8285,14 @@ const EcranTransporteur = ({lot, onBack, onSaved, toast, entrepriseId}) => {
           typeVehicule, immatTracteur, immatRemorque, nomChauffeur,
           societeTransp, numeroCMR,
           confirmReception, heureArrivee, departConfirme, destinationConfirmee,
-          statut: departConfirme?"EN_LIVRAISON":"EN_COURS_BROYAGE",
+          statut: departConfirme?"EN_LIVRAISON":"EN_COURS_DECHIQUETAGE",
         }),
       });
       toast("Transport enregistré ✓");
-      onSaved(departConfirme?"EN_LIVRAISON":"EN_COURS_BROYAGE");
+      onSaved(departConfirme?"EN_LIVRAISON":"EN_COURS_DECHIQUETAGE");
     } catch {
       toast("Transport enregistré localement ✓");
-      onSaved(departConfirme?"EN_LIVRAISON":"EN_COURS_BROYAGE");
+      onSaved(departConfirme?"EN_LIVRAISON":"EN_COURS_DECHIQUETAGE");
     }
     setSaving(false);
   };
@@ -8569,7 +8568,7 @@ const EcranLivraison = ({lot, onBack, onSaved, toast, entrepriseId}) => {
               La position GPS ne correspond pas à la destination prévue.<br/>
               → Alerte envoyée au donneur d'ordre<br/>
               → Alerte envoyée au transporteur<br/>
-              → Alerte envoyée à l'entreprise de broyage
+              → Alerte envoyée à l'entreprise de déchiquetage
             </div>
           </div>
         )}
@@ -8884,7 +8883,7 @@ export default function App() {
           try {
             const local = JSON.parse(localStorage.getItem("applitag_contacts")||"[]");
             if(local.length>0) {
-              const ordre = ["NOUVEAU","VISITE_PREVUE","VISITE_REALISEE","VALIDE_EXPLOITATION","EN_COURS_EXPLOITATION","BORD_ROUTE","A_DECHIQUETER","EN_COURS_BROYAGE","EN_LIVRAISON","LIVRE_CHAUFFERIE"];
+              const ordre = ["NOUVEAU","VISITE_PREVUE","VISITE_REALISEE","VALIDE_EXPLOITATION","EN_COURS_EXPLOITATION","BORD_ROUTE","A_DECHIQUETER","EN_COURS_DECHIQUETAGE","EN_LIVRAISON","LIVRE_CHAUFFERIE"];
               const merged = d.map(c=>{
                 const l = local.find(x=>x.id===c.id);
                 if(l && ordre.indexOf(l.statutLot)>ordre.indexOf(c.statutLot)) return {...c,statutLot:l.statutLot};
@@ -9033,21 +9032,21 @@ export default function App() {
     </div>
   );
 
-  if (user?.role==="broyage") return (
+  if (user?.role==="dechiquetage") return (
     <div style={{display:"flex",flexDirection:"column",height:"100dvh",
       fontFamily:FONT_BODY,
       maxWidth:430,margin:"0 auto",boxShadow:"0 0 40px rgba(0,0,0,.15)"}}>
       <div style={{background:"#D85A30",color:"#fff",padding:"12px 16px 10px",flexShrink:0,
         display:"flex",alignItems:"center",gap:10}}>
         <div style={{flex:1}}>
-          <div style={{fontSize:15,fontWeight:600}}>🪚 Espace Broyage</div>
+          <div style={{fontSize:15,fontWeight:600}}>🪚 Espace Déchiquetage</div>
           <div style={{fontSize:11,opacity:.6}}>{user.prenom} {user.nom}</div>
         </div>
         <button onClick={handleLogout} style={{background:"rgba(255,255,255,.1)",
           border:"none",color:"rgba(255,255,255,.6)",padding:"6px 10px",borderRadius:8,
           fontSize:12,cursor:"pointer"}}>⎋</button>
       </div>
-      <EcranRoleBroyage user={user} contacts={contacts}/>
+      <EcranRoleDechiquetage user={user} contacts={contacts}/>
     </div>
   );
 
