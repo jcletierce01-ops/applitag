@@ -361,6 +361,16 @@ const DEMO_VISITES = [
 ];
 
 const DEMO_REPORTINGS = [
+  {id:"demo-r0a",lotId:"demo-lot-1",lotNumero:"LOT-2026-06-89-001",
+   dateJour:"2026-06-18",heureDebut:"07:00",heureFin:"17:00",
+   typeOperationJour:"abattage",machineJour:"Tronçonneuse Stihl 500i",
+   nbTasJour:4,foisonnement:0.55,nbOperateurs:2,
+   observations:"Démarrage abattage section principale"},
+  {id:"demo-r0b",lotId:"demo-lot-1",lotNumero:"LOT-2026-06-89-001",
+   dateJour:"2026-06-20",heureDebut:"07:30",heureFin:"16:30",
+   typeOperationJour:"debardage",machineJour:"John Deere 1270G",
+   nbTasJour:4,foisonnement:0.55,nbOperateurs:2,
+   observations:"Débardage en cours"},
   {id:"demo-r1",lotId:"demo-lot-2",lotNumero:"LOT-2026-06-89-002",
    dateJour:"2026-06-10",heureDebut:"07:00",heureFin:"17:00",
    typeOperationJour:"abattage",machineJour:"Tronçonneuse Stihl 500i",
@@ -394,6 +404,22 @@ const DEMO_LIVRAISONS = [
    nomReceptionnaire:"Sophie Énergie",
    dateHeureLivraison:"2026-06-08T14:30:00",
    gpsAlerteDeclenche:false},
+  {id:"demo-l2",lotId:"demo-lot-1",lotNumero:"LOT-2026-06-89-001",
+   typeDest:"chaufferie",nomDestination:"Chaufferie Migennes Énergie",
+   numeroCMR:"CMR-2026-0093",pesee:"24.6",humiditeReception:30,
+   nomReceptionnaire:"Sophie Énergie",
+   dateHeureLivraison:"2026-06-22T11:15:00",
+   gpsAlerteDeclenche:false},
+  {id:"demo-l3",lotId:"demo-lot-1",lotNumero:"LOT-2026-06-89-001",
+   typeDest:"chaufferie",nomDestination:"Chaufferie Migennes Énergie",
+   numeroCMR:"CMR-2026-0098",pesee:"27.1",humiditeReception:29,
+   nomReceptionnaire:"Sophie Énergie",
+   dateHeureLivraison:"2026-06-24T09:50:00",
+   gpsAlerteDeclenche:false},
+];
+
+const DEMO_DECHIQUETAGES = [
+  {id:"demo-d1",lotId:"demo-lot-1",lotNumero:"LOT-2026-06-89-001",dateJour:"2026-06-23"},
 ];
 
 // ── LOGIN SCREEN COMPONENT ────────────────────────────────────
@@ -498,7 +524,7 @@ const LoginScreen = ({onLogin, onLoginOperateur, onLoginDemo}) => {
       <div style={{padding:"32px 24px 24px",textAlign:"center"}}>
         <img src="/logo.png" alt="APPLITAG" style={{width:80,height:80,objectFit:"contain",marginBottom:12}}/>
         <div style={{fontSize:22,fontWeight:700,fontFamily:FONT_TITLE}}>APPLITAG</div>
-        <div style={{fontSize:13,opacity:.6,marginTop:4}}>Gestion forestière terrain</div>
+        <div style={{fontSize:13,opacity:.6,marginTop:4}}>Gestion des flux bois énergie</div>
       </div>
 
       <div style={{flex:1,padding:PADDING,overflowY:"auto",background:C.sb}}>
@@ -631,8 +657,8 @@ const LoginScreen = ({onLogin, onLoginOperateur, onLoginDemo}) => {
             <div style={{display:"flex",flexDirection:"column",gap:10}}>
               {[
                 {role:"admin",       icon:"🔑",label:"Administrateur",   sub:"Accès complet · toutes les données"},
-                {role:"operateur",   icon:"👷",label:"Opérateur terrain", sub:"Martin Dupont · ETF Gaillard"},
                 {role:"proprietaire",icon:"🏠",label:"Propriétaire",      sub:"Jean Martin · LOT-89-001"},
+                {role:"operateur",   icon:"👷",label:"Opérateur terrain", sub:"Martin Dupont · ETF Gaillard"},
                 {role:"chauffeur",   icon:"🚛",label:"Chauffeur",         sub:"Pierre Robert · Transport Moreau"},
                 {role:"broyage",     icon:"🪚",label:"Broyage",           sub:"François Forestier · Jenz HEM 593"},
                 {role:"chaufferie",  icon:"🔥",label:"Chaufferie",        sub:"Sophie Énergie · Migennes"},
@@ -5778,8 +5804,16 @@ const EcranSaisiesAdmin = ({contacts, visites, reportings=[], transports=[], liv
 };
 
 // ── ÉCRANS RÔLES SIMPLIFIÉS ───────────────────────────────────
-const EcranRoleProprietaire = ({user, contacts, visites}) => {
+const EcranRoleProprietaire = ({user, contacts, visites, reportings=[], livraisons=[], dechiquetages=[]}) => {
   const mesSLots = contacts.filter(c=>c.nom?.toLowerCase()===user.nom?.toLowerCase());
+
+  const dateDebutOperation = (lot, typeMatch) => {
+    const dates = reportings
+      .filter(r=>(r.lotId===lot.id||r.lotNumero===lot.lotNumero)&&typeMatch(r.typeOperationJour||""))
+      .map(r=>r.dateJour).filter(Boolean).sort();
+    return dates[0]||null;
+  };
+
   return (
     <div data-scrollable="1" style={{flex:1,overflowY:"auto",padding:PADDING,background:C.bg}}>
       <div style={{textAlign:"center",padding:"24px 0 16px"}}>
@@ -5794,7 +5828,20 @@ const EcranRoleProprietaire = ({user, contacts, visites}) => {
         </div>
       ):mesSLots.map(lot=>{
         const st=STATUT_LOT[lot.statutLot||"NOUVEAU"]||STATUT_LOT.NOUVEAU;
-        const visite=visites.find(v=>v.lotId===lot.id);
+        const visite=visites.find(v=>v.lotId===lot.id||v.lotNumero===lot.lotNumero);
+
+        const livraisonsChaufferie = livraisons
+          .filter(l=>(l.lotId===lot.id||l.lotNumero===lot.lotNumero)&&l.typeDest==="chaufferie")
+          .sort((a,b)=>new Date(a.dateHeureLivraison||0)-new Date(b.dateHeureLivraison||0));
+        const poidsCumule = livraisonsChaufferie.reduce((s,l)=>s+(parseFloat(l.pesee)||0),0);
+        const prixTonne = parseFloat(visite?.prixTonne)||0;
+        const sommeDue = poidsCumule*prixTonne;
+
+        const dateAbattage = dateDebutOperation(lot, t=>t.startsWith("abattage"));
+        const dateDebardage = dateDebutOperation(lot, t=>t.includes("debardage"));
+        const dechiq = dechiquetages.find(d=>d.lotId===lot.id||d.lotNumero===lot.lotNumero);
+        const dateDechiquetage = dechiq?.dateJour||dechiq?.date||null;
+
         return (
           <div key={lot.id} style={{background:"#fff",borderRadius:16,padding:20,
             marginBottom:14,border:`1px solid ${C.bd}`,
@@ -5809,8 +5856,54 @@ const EcranRoleProprietaire = ({user, contacts, visites}) => {
             <div style={{fontSize:14,fontWeight:600,marginBottom:8}}>
               📍 {lot.commune} · 🌲 {lot.surfaceHa} ha
             </div>
+
+            {/* Informations recueillies lors de la visite terrain */}
+            {visite&&(
+              <div style={{background:C.greenL,borderRadius:10,padding:12,marginBottom:10,
+                fontSize:12,color:C.tx,lineHeight:1.8}}>
+                <div style={{fontWeight:700,color:C.greenD,marginBottom:4}}>🔭 Visite terrain — {visite.date}</div>
+                {visite.essences?.length>0&&<>🌿 {visite.essences.map(e=>`${e.label} (${e.pct}%)`).join(", ")}<br/></>}
+                ⚖️ Volume estimé : {fmtNum(visite.volumeEstimeT||0)} t<br/>
+                {visite.gps?.lat&&<>🛰️ GPS : {visite.gps.lat.toFixed(5)}°N · {visite.gps.lng.toFixed(5)}°E<br/></>}
+                🚛 Accès : {visite.accesCamion==="praticable"?"Praticable":visite.accesCamion==="difficile"?"Difficile":visite.accesCamion||"—"}
+              </div>
+            )}
+
+            {/* Contrat signé — non modifiable */}
+            {(visite?.sigDataProprio||visite?.nomSignProprio)&&(
+              <div style={{background:C.bg2,borderRadius:10,padding:12,marginBottom:10}}>
+                <div style={{fontWeight:700,color:C.tx2,fontSize:12,marginBottom:6}}>
+                  📄 Contrat signé {prixTonne?`— ${fmtNum(prixTonne,2)} €/t HT`:""}
+                </div>
+                {visite.sigDataProprio&&(
+                  <img src={visite.sigDataProprio} style={{width:120,height:40,objectFit:"contain",
+                    background:"#fff",border:`1px solid ${C.bd}`,borderRadius:6}}/>
+                )}
+                <div style={{fontSize:11,color:C.tx3,marginTop:4}}>
+                  Signataire : {visite.nomSignProprio||lot.nom+" "+(lot.prenom||"")}
+                </div>
+              </div>
+            )}
+
+            {/* Dates de début par opération */}
+            <div style={{background:C.bg2,borderRadius:10,padding:12,marginBottom:10}}>
+              <div style={{fontWeight:700,color:C.tx2,fontSize:12,marginBottom:6}}>📅 Démarrage des opérations</div>
+              {[
+                ["🪓 Abattage",dateAbattage],
+                ["🚜 Débardage",dateDebardage],
+                ["🪚 Déchiquetage",dateDechiquetage],
+              ].map(([l,d])=>(
+                <div key={l} style={{display:"flex",justifyContent:"space-between",fontSize:12,padding:"4px 0"}}>
+                  <span style={{color:C.tx2}}>{l}</span>
+                  <span style={{fontWeight:600,color:d?C.tx:C.tx3}}>
+                    {d?new Date(d).toLocaleDateString("fr-FR"):"Non démarré"}
+                  </span>
+                </div>
+              ))}
+            </div>
+
             {/* Timeline statut */}
-            <div style={{background:C.bg2,borderRadius:10,padding:12}}>
+            <div style={{background:C.bg2,borderRadius:10,padding:12,marginBottom:10}}>
               {[
                 {label:"Visite terrain",done:!!visite,icon:"🔭"},
                 {label:"Validation exploitation",done:["VALIDE_EXPLOITATION","EN_COURS_EXPLOITATION","BORD_ROUTE","A_DECHIQUETER","EN_COURS_BROYAGE","EN_LIVRAISON","LIVRE_CHAUFFERIE"].includes(lot.statutLot),icon:"✅"},
@@ -5827,11 +5920,42 @@ const EcranRoleProprietaire = ({user, contacts, visites}) => {
                 </div>
               ))}
             </div>
-            {visite?.prixTonne&&(
-              <div style={{marginTop:10,background:C.greenL,borderRadius:10,padding:10,
-                fontSize:12,color:C.greenD,fontWeight:600}}>
-                💶 {fmtNum(visite.prixTonne,2)} €/t HT ·
-                Total estimé : {fmtNum(parseFloat(lot.tonnageCumul||visite.volumeEstimeT||0)*parseFloat(visite.prixTonne))} €
+
+            {/* Suivi des poids livrés en chaufferie */}
+            <div style={{background:C.bg2,borderRadius:10,padding:12,marginBottom:10}}>
+              <div style={{fontWeight:700,color:C.tx2,fontSize:12,marginBottom:6}}>
+                🔥 Poids livrés en chaufferie
+              </div>
+              {livraisonsChaufferie.length===0?(
+                <div style={{fontSize:12,color:C.tx3}}>Aucune livraison enregistrée à ce jour</div>
+              ):livraisonsChaufferie.map((l,i)=>(
+                <div key={l.id||i} style={{display:"flex",justifyContent:"space-between",
+                  fontSize:12,padding:"4px 0",borderBottom:`1px solid ${C.bd}`}}>
+                  <span style={{color:C.tx2}}>
+                    {l.dateHeureLivraison?new Date(l.dateHeureLivraison).toLocaleDateString("fr-FR"):"—"}
+                  </span>
+                  <span style={{fontWeight:600,color:C.tx}}>{fmtNum(parseFloat(l.pesee)||0)} t</span>
+                </div>
+              ))}
+            </div>
+
+            {/* Total cumulé et somme due */}
+            {(poidsCumule>0||prixTonne>0)&&(
+              <div style={{background:C.greenL,borderRadius:10,padding:12,
+                fontSize:12,color:C.greenD}}>
+                <div style={{display:"flex",justifyContent:"space-between",marginBottom:4}}>
+                  <span>Poids cumulé livré</span>
+                  <strong>{fmtNum(poidsCumule)} t</strong>
+                </div>
+                <div style={{display:"flex",justifyContent:"space-between",marginBottom:4}}>
+                  <span>Prix d'achat</span>
+                  <strong>{prixTonne?fmtNum(prixTonne,2)+" €/t HT":"—"}</strong>
+                </div>
+                <div style={{display:"flex",justifyContent:"space-between",paddingTop:6,
+                  borderTop:`1px solid ${C.green}`,fontSize:14,fontWeight:700}}>
+                  <span>Total dû à ce jour</span>
+                  <span>{fmtNum(sommeDue,2)} €</span>
+                </div>
               </div>
             )}
           </div>
@@ -8582,6 +8706,7 @@ export default function App() {
   const [reportings,   setReportings]   = useState([]);
   const [transports,   setTransports]   = useState([]);
   const [livraisons,   setLivraisons]   = useState([]);
+  const [dechiquetages,setDechiquetages] = useState([]);
   const entrepriseId = getEntrepriseId();
 
   // Bascule vers le tableau de bord desktop (admin) sur grand écran
@@ -8601,7 +8726,7 @@ export default function App() {
   const [notifications, setNotifications] = useState([]);
 
   useEffect(()=>{
-    if (!user) return;
+    if (!user || isDemoMode) return;
     fetch(`${API}/contacts`, {headers:authHeaders()})
       .then(r=>r.json())
       .then(d=>{
@@ -8629,6 +8754,14 @@ export default function App() {
       .then(r=>r.json()).then(d=>{ if(Array.isArray(d)) setNotifications(d); }).catch(()=>{});
     fetch(`${API}/operateurs/entreprise/${entrepriseId}`, {headers:authHeaders()})
       .then(r=>r.json()).then(d=>{ if(Array.isArray(d)) setOperateurs(d); }).catch(()=>{});
+    fetch(`${API}/reportings`, {headers:authHeaders()})
+      .then(r=>r.json()).then(d=>{ if(Array.isArray(d)) setReportings(d); }).catch(()=>{});
+    fetch(`${API}/transports`, {headers:authHeaders()})
+      .then(r=>r.json()).then(d=>{ if(Array.isArray(d)) setTransports(d); }).catch(()=>{});
+    fetch(`${API}/livraisons`, {headers:authHeaders()})
+      .then(r=>r.json()).then(d=>{ if(Array.isArray(d)) setLivraisons(d); }).catch(()=>{});
+    fetch(`${API}/dechiquetage`, {headers:authHeaders()})
+      .then(r=>r.json()).then(d=>{ if(Array.isArray(d)) setDechiquetages(d); }).catch(()=>{});
   },[user]);
 
   const [transitioning, setTransitioning] = useState(false);
@@ -8659,6 +8792,7 @@ export default function App() {
     setReportings(DEMO_REPORTINGS);
     setTransports(DEMO_TRANSPORTS);
     setLivraisons(DEMO_LIVRAISONS);
+    setDechiquetages(DEMO_DECHIQUETAGES);
     setAuth("demo-token", u, DEMO_ENTREPRISE_ID);
   };
   const handleLogoutOperateur = () => {
@@ -8726,7 +8860,8 @@ export default function App() {
           border:"none",color:"rgba(255,255,255,.6)",padding:"6px 10px",borderRadius:8,
           fontSize:12,cursor:"pointer"}}>⎋</button>
       </div>
-      <EcranRoleProprietaire user={user} contacts={contacts} visites={visites}/>
+      <EcranRoleProprietaire user={user} contacts={contacts} visites={visites}
+        reportings={reportings} livraisons={livraisons} dechiquetages={dechiquetages}/>
     </div>
   );
 
