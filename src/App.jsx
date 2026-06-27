@@ -2309,16 +2309,17 @@ const ListeVisites = ({visites}) => (
 
 // ── APP ────────────────────────────────────────────────────────
 // ── ÉCRAN RELEVÉS ─────────────────────────────────────────────
-const EcranReleves = ({entrepriseId, user, toast, notifications=[], setNotifications}) => {
+const EcranReleves = ({entrepriseId, user, toast, notifications=[], setNotifications, onGoDelegations}) => {
   const [sousOnglet, setSousOnglet] = useState("notifs");
   const [operateurs, setOperateurs] = useState([]);
   const [acces, setAcces] = useState([]);
   const [contacts, setContacts] = useState([]);
+  const [entreprises, setEntreprises] = useState([]);
   const [showNew, setShowNew] = useState(false);
   const [showNewAcces, setShowNewAcces] = useState(false);
   const [opNom, setOpNom] = useState("");
   const [opPrenom, setOpPrenom] = useState("");
-  const [opEtfNom, setOpEtfNom] = useState("");
+  const [opEtfId, setOpEtfId] = useState("");
   const [opPin, setOpPin] = useState("");
   const [opRoles, setOpRoles] = useState([]);
   const [opSaving, setOpSaving] = useState(false);
@@ -2346,21 +2347,25 @@ const EcranReleves = ({entrepriseId, user, toast, notifications=[], setNotificat
       .then(r=>r.json()).then(d=>{ if(Array.isArray(d)) setAcces(d); }).catch(()=>{});
     fetch(`${API}/contacts`,{headers:authHeaders()})
       .then(r=>r.json()).then(d=>{ if(Array.isArray(d)) setContacts(d); }).catch(()=>{});
-  },[]);
+    fetch(`${API}/entreprises/entreprise/${entrepriseId}`,{headers:authHeaders()})
+      .then(r=>r.json()).then(d=>{ if(Array.isArray(d)) setEntreprises(d); }).catch(()=>{});
+  },[entrepriseId]);
+
+  const entrepriseSel = entreprises.find(e=>e.id===opEtfId)||null;
 
   const handleCreateOp = async () => {
-    if (!opNom||!opEtfNom||!opPin) { toast("Remplir nom, ETF et PIN","warn"); return; }
+    if (!opNom||!entrepriseSel||!opPin) { toast("Remplir nom, entreprise et PIN","warn"); return; }
     setOpSaving(true);
     try {
       const res = await fetch(`${API}/operateurs`,{
         method:"POST",headers:authHeaders(),
-        body:JSON.stringify({nom:opNom,prenom:opPrenom,etfNom:opEtfNom,pin:opPin,roles:opRoles,entrepriseId}),
+        body:JSON.stringify({nom:opNom,prenom:opPrenom,etfNom:entrepriseSel.nom,etfId:entrepriseSel.id,pin:opPin,roles:opRoles,entrepriseId}),
       });
       if (!res.ok) throw new Error();
       const saved = await res.json();
-      setOperateurs(prev=>[{...saved,roles:opRoles,assignations:[]},...prev]);
+      setOperateurs(prev=>[{...saved,etfNom:entrepriseSel.nom,etfId:entrepriseSel.id,roles:opRoles,assignations:[]},...prev]);
       setShowNew(false);
-      setOpNom(""); setOpPrenom(""); setOpEtfNom(""); setOpPin(""); setOpRoles([]);
+      setOpNom(""); setOpPrenom(""); setOpEtfId(""); setOpPin(""); setOpRoles([]);
       toast(`Opérateur ${saved.nom} créé ✓`);
     } catch { toast("Erreur API","warn"); }
     setOpSaving(false);
@@ -2495,7 +2500,31 @@ const EcranReleves = ({entrepriseId, user, toast, notifications=[], setNotificat
                 <SectionTitle icon="👷" label="Nouvel opérateur"/>
                 <MInput label="Nom" value={opNom} onChange={setOpNom} placeholder="Nom" required/>
                 <MInput label="Prénom" value={opPrenom} onChange={setOpPrenom} placeholder="Prénom" hint="optionnel"/>
-                <MInput label="Entreprise ETF" value={opEtfNom} onChange={setOpEtfNom} placeholder="Nom ETF" required/>
+                <div style={{marginBottom:14}}>
+                  <div style={{fontSize:13,fontWeight:600,color:C.tx2,marginBottom:8}}>Entreprise ETF *</div>
+                  {entreprises.length>0 ? (
+                    <select value={opEtfId} onChange={e=>setOpEtfId(e.target.value)}
+                      style={{width:"100%",height:INPUT_H,padding:"0 14px",borderRadius:12,
+                        border:`1.5px solid ${C.bd}`,fontSize:FONT_INPUT,fontFamily:"inherit",
+                        background:"#fff",color:C.tx,outline:"none"}}>
+                      <option value="">— Sélectionner dans le répertoire —</option>
+                      {entreprises.map(e=>(
+                        <option key={e.id} value={e.id}>
+                          {e.nom}{e.typesProposes?.length?` · ${e.typesProposes.map(t=>TYPES_TRAVAUX_DELEGATION.find(([v])=>v===t)?.[2]||t).join(", ")}`:""}
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    <div style={{background:C.amberL,borderRadius:12,padding:12,
+                      border:`1px solid ${C.amber}`,fontSize:12,color:C.amberD}}>
+                      ⚠ Aucune entreprise référencée.
+                    </div>
+                  )}
+                  <div onClick={onGoDelegations} style={{marginTop:8,fontSize:12,color:C.green,
+                    fontWeight:600,cursor:"pointer",WebkitTapHighlightColor:"transparent"}}>
+                    + Créer une nouvelle fiche entreprise
+                  </div>
+                </div>
                 <MInput label="Code PIN" value={opPin} onChange={setOpPin} placeholder="4 chiffres" type="number" required/>
                 <div style={{fontSize:13,fontWeight:600,color:C.tx2,marginBottom:8}}>
                   Rôles et accès <span style={{fontWeight:400,color:C.tx3}}>(plusieurs possibles)</span>
@@ -9102,7 +9131,8 @@ export default function App() {
         )}
         {screen==="alertes"&&(
           <EcranReleves entrepriseId={entrepriseId} user={user} toast={toast}
-            notifications={notifications} setNotifications={setNotifications}/>
+            notifications={notifications} setNotifications={setNotifications}
+            onGoDelegations={()=>setScreen("delegations")}/>
         )}
         {screen==="saisies"&&(
           <EcranSaisiesAdmin
