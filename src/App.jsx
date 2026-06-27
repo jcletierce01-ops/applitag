@@ -1008,6 +1008,23 @@ const formatPhone = (v) => {
   return digits.replace(/(\d{2})(?=\d)/g,"$1 ");
 };
 
+// Formate un numéro CMR (lettre de voiture) selon le gabarit interne CMR-AAAA-NNNN
+const formatCMR = (v) => {
+  const digits = v.replace(/\D/g,"").slice(0,8);
+  if (digits.length<=4) return digits ? `CMR-${digits}` : "";
+  return `CMR-${digits.slice(0,4)}-${digits.slice(4)}`;
+};
+const validateCMR = (v) => /^CMR-\d{4}-\d{4}$/.test(v) ? null : "Format attendu : CMR-AAAA-NNNN";
+
+// Formate une immatriculation au format SIV français (ex: AB-123-CD)
+const formatImmat = (v) => {
+  const clean = v.toUpperCase().replace(/[^A-Z0-9]/g,"").slice(0,7);
+  if (clean.length<=2) return clean;
+  if (clean.length<=5) return `${clean.slice(0,2)}-${clean.slice(2)}`;
+  return `${clean.slice(0,2)}-${clean.slice(2,5)}-${clean.slice(5)}`;
+};
+const validateImmat = (v) => /^[A-Z]{2}-\d{3}-[A-Z]{2}$/.test(v) ? null : "Format attendu : AB-123-CD";
+
 const Fiche0 = ({onBack, onSaved, toast, contactCount, entrepriseId}) => {
   const [origine,       setOrigine]  = useState("");
   const [nomApporteur,  setApporteur]= useState("");
@@ -8318,8 +8335,8 @@ const EcranDechiquetage = ({lot, onBack, onSaved, toast, entrepriseId}) => {
     setMissionId(id);
     const m = missionsTransport.find(x=>x.id===id);
     if (m) {
-      setImmatTract(m.immatTracteur||"");
-      setImmatRemor(m.immatRemorque||"");
+      setImmatTract(formatImmat(m.immatTracteur||""));
+      setImmatRemor(formatImmat(m.immatRemorque||""));
     }
   };
 
@@ -8356,10 +8373,14 @@ const EcranDechiquetage = ({lot, onBack, onSaved, toast, entrepriseId}) => {
 
   const toggleEv = v => setEvenements(prev=>prev.includes(v)?prev.filter(x=>x!==v):[...prev,v]);
 
-  const canValidate = numeroCMR && immatTracteur && heureDebut && heureFin && photoCMR && !erreurTonnage;
+  const erreurCMR = numeroCMR ? validateCMR(numeroCMR) : null;
+  const erreurImmatTract = immatTracteur ? validateImmat(immatTracteur) : null;
+  const erreurImmatRemor = immatRemorque ? validateImmat(immatRemorque) : null;
+  const canValidate = numeroCMR && !erreurCMR && immatTracteur && !erreurImmatTract
+    && !erreurImmatRemor && heureDebut && heureFin && photoCMR && !erreurTonnage;
 
   const handleSave = async () => {
-    if (!canValidate) { toast("CMR, immatriculation tracteur, horaires complets et photo CMR obligatoires","warn"); return; }
+    if (!canValidate) { toast("CMR, immatriculation tracteur, horaires complets et photo CMR obligatoires (formats valides)","warn"); return; }
     setSaving(true);
     try {
       await fetch(`${API}/dechiquetage`, {
@@ -8446,8 +8467,8 @@ const EcranDechiquetage = ({lot, onBack, onSaved, toast, entrepriseId}) => {
         )}
 
         <SectionTitle icon="📄" label="CMR"/>
-        <MInput label="Numéro CMR" value={numeroCMR} onChange={setNumeroCMR}
-          placeholder="N° lettre de voiture" required/>
+        <MInput label="Numéro CMR" value={numeroCMR} onChange={v=>setNumeroCMR(formatCMR(v))}
+          placeholder="CMR-2026-0001" hint="Format : CMR-AAAA-NNNN" required error={erreurCMR}/>
 
         <div onClick={handlePhotoCMR} style={{
           display:"flex",alignItems:"center",justifyContent:"space-between",
@@ -8486,10 +8507,10 @@ const EcranDechiquetage = ({lot, onBack, onSaved, toast, entrepriseId}) => {
           </div>
         )}
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
-          <MInput label="Immat. tracteur" value={immatTracteur} onChange={setImmatTract}
-            placeholder="AB-123-CD" required/>
-          <MInput label="Immat. remorque" value={immatRemorque} onChange={setImmatRemor}
-            placeholder="AB-456-CD" hint="optionnel"/>
+          <MInput label="Immat. tracteur" value={immatTracteur} onChange={v=>setImmatTract(formatImmat(v))}
+            placeholder="AB-123-CD" required error={erreurImmatTract}/>
+          <MInput label="Immat. remorque" value={immatRemorque} onChange={v=>setImmatRemor(formatImmat(v))}
+            placeholder="AB-456-CD" hint="optionnel" error={erreurImmatRemor}/>
         </div>
 
         <SectionTitle icon="⏱️" label="Horaires"/>
@@ -8526,8 +8547,11 @@ const EcranDechiquetage = ({lot, onBack, onSaved, toast, entrepriseId}) => {
             <div style={{fontSize:12,color:C.amberD,lineHeight:1.8}}>
               <div style={{fontWeight:700,marginBottom:6}}>Obligatoires avant départ :</div>
               {!numeroCMR&&<div>❌ Numéro CMR</div>}
+              {numeroCMR&&erreurCMR&&<div>❌ N° CMR : {erreurCMR}</div>}
               {!photoCMR&&<div>❌ Photo CMR</div>}
               {!immatTracteur&&<div>❌ Immatriculation tracteur</div>}
+              {immatTracteur&&erreurImmatTract&&<div>❌ Immat. tracteur : {erreurImmatTract}</div>}
+              {immatRemorque&&erreurImmatRemor&&<div>❌ Immat. remorque : {erreurImmatRemor}</div>}
               {!heureDebut&&<div>❌ Heure de début</div>}
               {!heureFin&&<div>❌ Heure de fin</div>}
               {erreurTonnage&&<div>❌ {erreurTonnage}</div>}
