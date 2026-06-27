@@ -2320,6 +2320,7 @@ const EcranReleves = ({entrepriseId, user, toast, notifications=[], setNotificat
   const [opPrenom, setOpPrenom] = useState("");
   const [opEtfNom, setOpEtfNom] = useState("");
   const [opPin, setOpPin] = useState("");
+  const [opRoles, setOpRoles] = useState([]);
   const [opSaving, setOpSaving] = useState(false);
   const [selOp, setSelOp] = useState(null);
   const [assignLotId, setAssignLotId] = useState("");
@@ -2353,13 +2354,13 @@ const EcranReleves = ({entrepriseId, user, toast, notifications=[], setNotificat
     try {
       const res = await fetch(`${API}/operateurs`,{
         method:"POST",headers:authHeaders(),
-        body:JSON.stringify({nom:opNom,prenom:opPrenom,etfNom:opEtfNom,pin:opPin,entrepriseId}),
+        body:JSON.stringify({nom:opNom,prenom:opPrenom,etfNom:opEtfNom,pin:opPin,roles:opRoles,entrepriseId}),
       });
       if (!res.ok) throw new Error();
       const saved = await res.json();
-      setOperateurs(prev=>[{...saved,assignations:[]},...prev]);
+      setOperateurs(prev=>[{...saved,roles:opRoles,assignations:[]},...prev]);
       setShowNew(false);
-      setOpNom(""); setOpPrenom(""); setOpEtfNom(""); setOpPin("");
+      setOpNom(""); setOpPrenom(""); setOpEtfNom(""); setOpPin(""); setOpRoles([]);
       toast(`Opérateur ${saved.nom} créé ✓`);
     } catch { toast("Erreur API","warn"); }
     setOpSaving(false);
@@ -2410,7 +2411,8 @@ const EcranReleves = ({entrepriseId, user, toast, notifications=[], setNotificat
     } catch { toast("Erreur","warn"); }
   };
 
-  const typeLabel = t=>({"abattage":"🪓 Abattage","debardage":"🚜 Débardage","broyage":"🌿 Broyage"}[t]||t);
+  const typeLabel = t=>({"mandataire":"🔭 Visite terrain","abattage":"🪓 Abattage","debardage":"🚜 Débardage","broyage":"🌿 Broyage"}[t]||t);
+  const toggleOpRole = v => setOpRoles(prev=>prev.includes(v)?prev.filter(x=>x!==v):[...prev,v]);
 
   return (
     <div style={{display:"flex",flexDirection:"column",height:"100%"}}>
@@ -2455,8 +2457,11 @@ const EcranReleves = ({entrepriseId, user, toast, notifications=[], setNotificat
                 </div>
                 <div style={{marginBottom:14}}>
                   <div style={{fontSize:13,fontWeight:600,color:C.tx2,marginBottom:8}}>Type</div>
-                  <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8}}>
-                    {[["abattage","🪓","Abattage"],["debardage","🚜","Débardage"],["broyage","🌿","Broyage"]].map(([v,e,l])=>(
+                  <div style={{display:"grid",gridTemplateColumns:"repeat(2,1fr)",gap:8}}>
+                    {[["mandataire","🔭","Visite terrain"],["abattage","🪓","Abattage"],
+                      ["debardage","🚜","Débardage"],["broyage","🌿","Broyage"]]
+                      .filter(([v])=>!selOp.roles?.length||selOp.roles.includes(v))
+                      .map(([v,e,l])=>(
                       <button key={v} onClick={()=>setAssignType(v)} style={{
                         padding:"12px 6px",borderRadius:12,
                         border:`1.5px solid ${assignType===v?C.green:C.bd}`,
@@ -2469,6 +2474,11 @@ const EcranReleves = ({entrepriseId, user, toast, notifications=[], setNotificat
                       </button>
                     ))}
                   </div>
+                  {selOp.roles?.length>0&&(
+                    <div style={{fontSize:11,color:C.tx3,marginTop:6}}>
+                      Options limitées aux rôles de {selOp.nom} — modifiable dans sa fiche.
+                    </div>
+                  )}
                 </div>
                 <div style={{display:"flex",gap:10}}>
                   <button onClick={()=>setSelOp(null)} style={{flex:1,height:BTN_H,borderRadius:14,
@@ -2487,6 +2497,26 @@ const EcranReleves = ({entrepriseId, user, toast, notifications=[], setNotificat
                 <MInput label="Prénom" value={opPrenom} onChange={setOpPrenom} placeholder="Prénom" hint="optionnel"/>
                 <MInput label="Entreprise ETF" value={opEtfNom} onChange={setOpEtfNom} placeholder="Nom ETF" required/>
                 <MInput label="Code PIN" value={opPin} onChange={setOpPin} placeholder="4 chiffres" type="number" required/>
+                <div style={{fontSize:13,fontWeight:600,color:C.tx2,marginBottom:8}}>
+                  Rôles et accès <span style={{fontWeight:400,color:C.tx3}}>(plusieurs possibles)</span>
+                </div>
+                <div style={{display:"grid",gridTemplateColumns:"repeat(2,1fr)",gap:8,marginBottom:14}}>
+                  {[["mandataire","🔭","Mandataire — visite terrain"],["abattage","🪓","Abattage"],
+                    ["debardage","🚜","Débardage"],["broyage","🌿","Broyage"]].map(([v,e,l])=>(
+                    <div key={v} onClick={()=>toggleOpRole(v)} style={{
+                      padding:"10px 12px",borderRadius:10,cursor:"pointer",display:"flex",
+                      alignItems:"center",gap:8,
+                      border:`1.5px solid ${opRoles.includes(v)?C.green:C.bd}`,
+                      background:opRoles.includes(v)?C.greenL:"#fff",
+                      WebkitTapHighlightColor:"transparent"}}>
+                      <span style={{fontSize:16,width:18,textAlign:"center"}}>
+                        {opRoles.includes(v)?"☑️":"⬜"}
+                      </span>
+                      <span style={{fontSize:12,fontWeight:opRoles.includes(v)?600:400,
+                        color:opRoles.includes(v)?C.greenD:C.tx2}}>{e} {l}</span>
+                    </div>
+                  ))}
+                </div>
                 <div style={{background:C.amberL,borderRadius:12,padding:12,marginBottom:14,
                   fontSize:12,color:C.amberD}}>
                   ⚠ Communiquez ce PIN directement à l'opérateur.
@@ -2523,6 +2553,14 @@ const EcranReleves = ({entrepriseId, user, toast, notifications=[], setNotificat
                         {op.actif?"✅ Actif":"❌ Inactif"}
                       </span>
                     </div>
+                    {op.roles&&op.roles.length>0&&(
+                      <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:10}}>
+                        {op.roles.map(r=>(
+                          <span key={r} style={{fontSize:10,padding:"3px 8px",borderRadius:6,
+                            background:C.bg2,color:C.tx2,fontWeight:500}}>{typeLabel(r)}</span>
+                        ))}
+                      </div>
+                    )}
                     {op.assignations&&op.assignations.length>0&&(
                       <div style={{marginBottom:10}}>
                         {op.assignations.map(a=>(
@@ -2534,7 +2572,7 @@ const EcranReleves = ({entrepriseId, user, toast, notifications=[], setNotificat
                         ))}
                       </div>
                     )}
-                    <button onClick={()=>setSelOp(op)} style={{width:"100%",height:38,borderRadius:10,
+                    <button onClick={()=>{ setSelOp(op); setAssignType(op.roles?.[0]||"abattage"); }} style={{width:"100%",height:38,borderRadius:10,
                       background:C.blueL,color:C.blueD,border:`1px solid ${C.blue}`,
                       fontFamily:"inherit",fontSize:13,fontWeight:600,cursor:"pointer",
                       WebkitTapHighlightColor:"transparent"}}>+ Assigner un lot</button>
@@ -2966,6 +3004,7 @@ const EcranOperateur = ({operateur, onLogout, toast}) => {
   const [saving, setSaving] = useState(false);
   const [lotsStatus, setLotsStatus] = useState({}); // {lotId: statutLot} — rafraîchi depuis le serveur
   const [visites, setVisites] = useState([]);
+  const [contactsFull, setContactsFull] = useState([]); // lots complets — requis pour la visite terrain (mandataire)
 
   // Rafraîchit le statut réel des lots assignés, pour ne jamais bloquer
   // l'accès à la saisie tant que la clôture n'a pas eu lieu (et le couper après).
@@ -2977,6 +3016,7 @@ const EcranOperateur = ({operateur, onLogout, toast}) => {
         const map = {};
         d.forEach(c=>{ map[c.id]=c.statutLot; });
         setLotsStatus(map);
+        setContactsFull(d);
       })
       .catch(()=>{}); // échec réseau → on n'affiche aucun statut, l'accès reste ouvert
     fetch(`${API}/visites`)
@@ -3132,6 +3172,28 @@ const EcranOperateur = ({operateur, onLogout, toast}) => {
 
   const assignations = operateur.assignations||[];
 
+  // Mandataire — visite terrain : écran plein avec le formulaire de visite habituel
+  if (screen==="visite" && activeLot) {
+    const lotComplet = contactsFull.find(c=>c.id===activeLot.lotId) || {
+      id:activeLot.lotId, lotNumero:activeLot.lotNumero,
+    };
+    return (
+      <FormulaireVisite lot={lotComplet} entrepriseId={operateur.entrepriseId}
+        onBack={()=>{ setActiveLot(null); setScreen("lots"); }}
+        onSaved={v=>{
+          setVisites(prev=>[v,...prev]);
+          setActiveLot(null);
+          setScreen("lots");
+          toast("Visite enregistrée ✓");
+          fetch(`${API}/contacts/${lotComplet.id}`,{
+            method:"PATCH",headers:{"Content-Type":"application/json"},
+            body:JSON.stringify({statutLot:"VISITE_REALISEE"}),
+          }).catch(()=>{});
+        }}
+        toast={toast}/>
+    );
+  }
+
   return (
     <div style={{display:"flex",flexDirection:"column",height:"100%",background:C.bg}}>
       {/* Header */}
@@ -3174,15 +3236,33 @@ const EcranOperateur = ({operateur, onLogout, toast}) => {
             ) : assignations.map(a=>{
               const statut = lotsStatus[a.lotId]||lotsStatus[a.id];
               const cloture = statut && STATUTS_CLOTURES.includes(statut);
+              const estMandataire = a.typeOperation==="mandataire";
+              const visiteFaite = estMandataire && visites.some(v=>v.lotId===a.lotId||v.lotNumero===a.lotNumero);
               return (
               <div key={a.id} style={{background:"#fff",border:`1px solid ${C.bd}`,
                 borderRadius:14,padding:16,marginBottom:10}}>
                 <div style={{fontFamily:"monospace",fontSize:13,fontWeight:700,
                   color:C.greenD,marginBottom:8}}>🏷 {a.lotNumero}</div>
                 <div style={{fontSize:12,color:C.tx3,marginBottom:12}}>
-                  {{"abattage":"🪓 Abattage","debardage":"🚜 Débardage","broyage":"🌿 Broyage"}[a.typeOperation]||a.typeOperation}
+                  {{"mandataire":"🔭 Visite terrain","abattage":"🪓 Abattage","debardage":"🚜 Débardage","broyage":"🌿 Broyage"}[a.typeOperation]||a.typeOperation}
                 </div>
-                {cloture ? (
+                {estMandataire ? (
+                  visiteFaite ? (
+                    <div style={{width:"100%",height:44,borderRadius:10,
+                      background:C.bg2,color:C.tx3,display:"flex",alignItems:"center",
+                      justifyContent:"center",fontSize:13,fontWeight:600}}>
+                      ✅ Visite terrain déjà réalisée
+                    </div>
+                  ) : (
+                    <button onClick={()=>{ setActiveLot(a); setScreen("visite"); }}
+                      style={{width:"100%",height:44,borderRadius:10,
+                        background:C.green,color:"#fff",border:"none",
+                        fontFamily:"inherit",fontSize:14,fontWeight:600,cursor:"pointer",
+                        WebkitTapHighlightColor:"transparent"}}>
+                      📝 Réaliser la visite terrain
+                    </button>
+                  )
+                ) : cloture ? (
                   <div style={{width:"100%",height:44,borderRadius:10,
                     background:C.bg2,color:C.tx3,display:"flex",alignItems:"center",
                     justifyContent:"center",fontSize:13,fontWeight:600}}>
@@ -6653,7 +6733,7 @@ const PIPELINE = [
 ];
 
 const FicheLotCentrale = ({
-  lot, visites=[], onBack, onEdit, onBonCommande,
+  lot, visites=[], operateurs=[], onBack, onEdit, onBonCommande,
   onLaunchVisite, onLaunchValidation, onLaunchCloture,
   onLaunchDechiquetage, onLaunchTransporteur, onLaunchLivraison, onLaunchFinChantier,
   onRedDeclaration, onDeleguerVisite,
@@ -6669,6 +6749,8 @@ const FicheLotCentrale = ({
   const pipelineIdx = PIPELINE.findIndex(p=>p.id===(lot.statutLot||"NOUVEAU"));
   const visitesLot = visites.filter(v=>v.lotId===lot.id||v.lotNumero===lot.lotNumero);
   const derniereVisite = visitesLot[0]||null;
+  const mandataireAssigne = operateurs.find(op=>(op.assignations||[])
+    .some(a=>(a.lotId===lot.id||a.lotNumero===lot.lotNumero)&&a.typeOperation==="mandataire"));
 
   useEffect(()=>{
     setLoading(true);
@@ -6702,7 +6784,10 @@ const FicheLotCentrale = ({
   const s = lot.statutLot||"NOUVEAU";
   const actions = [
     (["NOUVEAU","VISITE_PREVUE"].includes(s)||!s) &&
-      {icon:"🔭",label:"Visite",bg:C.greenL,bd:C.green,color:C.greenD,fn:onLaunchVisite},
+      (mandataireAssigne
+        ? {icon:"🔒",label:"Visite",bg:C.bg2,bd:C.bd,color:C.tx3,
+           fn:()=>toast(`Visite réservée au mandataire désigné : ${mandataireAssigne.nom}${mandataireAssigne.prenom?" "+mandataireAssigne.prenom:""}`,"warn")}
+        : {icon:"🔭",label:"Visite",bg:C.greenL,bd:C.green,color:C.greenD,fn:onLaunchVisite}),
     (["NOUVEAU","VISITE_PREVUE"].includes(s)||!s) &&
       {icon:"🔑",label:"Déléguer",bg:C.blueL,bd:C.blue,color:C.blueD,fn:onDeleguerVisite},
     ["VISITE_REALISEE","VALIDE_EXPLOITATION"].includes(s) &&
@@ -6864,6 +6949,15 @@ const FicheLotCentrale = ({
                 </div>
               ))}
             </div>
+
+            {/* Mandataire désigné — tant que la visite n'a pas été réalisée */}
+            {!derniereVisite&&mandataireAssigne&&(
+              <div style={{background:C.blueL,borderRadius:12,padding:14,marginBottom:14,
+                border:`1px solid ${C.blue}`,fontSize:12,color:C.blueD}}>
+                🔭 <strong>Mandataire désigné</strong> : {mandataireAssigne.nom}{mandataireAssigne.prenom?` ${mandataireAssigne.prenom}`:""}
+                <br/>Seule cette personne peut réaliser la visite terrain de ce lot.
+              </div>
+            )}
 
             {/* Dernière visite */}
             {derniereVisite&&(
@@ -9055,6 +9149,7 @@ export default function App() {
           <FicheLotCentrale
             lot={activeContact}
             visites={visites}
+            operateurs={operateurs}
             onBack={()=>setScreen("lots")}
             onEdit={()=>setScreen("edit-contact")}
             onBonCommande={()=>setScreen("bon-commande")}
