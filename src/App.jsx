@@ -33,6 +33,13 @@ const PADDING = 16;
 const uid = () => Math.random().toString(36).slice(2,9);
 const nowISO = () => new Date().toISOString();
 const todayS = () => new Date().toISOString().slice(0,10);
+const genCode = () => Math.random().toString(36).slice(2,8).toUpperCase();
+
+// Stockage de repli pour les ordres d'exploitation, tant que l'API /ordres-exploitation
+// n'est pas garantie disponible — permet la validation par code sans dépendre du backend.
+const ORDRES_EXPL_KEY = "applitag_ordres_exploitation";
+const ordresExplLocalGet = () => { try { return JSON.parse(localStorage.getItem(ORDRES_EXPL_KEY)||"[]"); } catch { return []; } };
+const ordresExplLocalSave = (arr) => { try { localStorage.setItem(ORDRES_EXPL_KEY, JSON.stringify(arr)); } catch {} };
 // Formate un nombre avec séparateur de milliers (espace) et virgule décimale
 const fmtNum = (n, decimals=0) => {
   const num = parseFloat(n);
@@ -424,7 +431,7 @@ const DEMO_DECHIQUETAGES = [
 
 // ── LOGIN SCREEN COMPONENT ────────────────────────────────────
 const LoginScreen = ({onLogin, onLoginOperateur, onLoginDemo}) => {
-  const [step, setStep] = useState("home"); // home | scan | pin | operateur | demo
+  const [step, setStep] = useState("home"); // home | scan | pin | operateur | demo | ordre
   const [entrepriseId, setEntrepriseId] = useState("");
   const [entrepriseNom, setEntrepriseNom] = useState("");
   const [pin, setPin] = useState("");
@@ -432,6 +439,40 @@ const LoginScreen = ({onLogin, onLoginOperateur, onLoginDemo}) => {
   const [loading, setLoading] = useState(false);
   const [opNom, setOpNom] = useState("");
   const [opPin, setOpPin] = useState("");
+  const [ordreCode, setOrdreCode] = useState("");
+  const [ordreTrouve, setOrdreTrouve] = useState(null);
+  const [ordreErreur, setOrdreErreur] = useState("");
+  const [ordreLoading, setOrdreLoading] = useState(false);
+
+  const handleRechercherOrdre = async () => {
+    const code = ordreCode.trim().toUpperCase();
+    if (!code) return;
+    setOrdreLoading(true); setOrdreErreur(""); setOrdreTrouve(null);
+    let found = null;
+    try {
+      const res = await fetch(`${API}/ordres-exploitation/code/${code}`);
+      if (res.ok) found = await res.json();
+    } catch {}
+    if (!found) found = ordresExplLocalGet().find(o=>o.code===code)||null;
+    if (!found) setOrdreErreur("Code introuvable — vérifiez la saisie");
+    else setOrdreTrouve(found);
+    setOrdreLoading(false);
+  };
+
+  const handleValiderOrdre = async (statut) => {
+    if (!ordreTrouve) return;
+    setOrdreLoading(true);
+    const updated = {...ordreTrouve, statut, dateValidation: nowISO()};
+    try {
+      await fetch(`${API}/ordres-exploitation/${ordreTrouve.id}`, {
+        method:"PATCH", headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({statut, dateValidation: updated.dateValidation}),
+      });
+    } catch {}
+    ordresExplLocalSave(ordresExplLocalGet().map(o=>o.code===updated.code?updated:o));
+    setOrdreTrouve(updated);
+    setOrdreLoading(false);
+  };
   const qrRef = useRef(null);
   const scannerRef = useRef(null);
 
@@ -582,6 +623,20 @@ const LoginScreen = ({onLogin, onLoginOperateur, onLoginDemo}) => {
                   </div>
                 </div>
               </button>
+              <button onClick={()=>{ setOrdreCode(""); setOrdreTrouve(null); setOrdreErreur(""); setStep("ordre"); }} style={{
+                width:"100%",padding:18,borderRadius:14,
+                background:"rgba(166,106,46,.15)",border:"1px solid rgba(166,106,46,.4)",
+                color:"rgba(255,255,255,.8)",fontFamily:"inherit",fontSize:15,fontWeight:500,
+                cursor:"pointer",WebkitTapHighlightColor:"transparent",
+                display:"flex",alignItems:"center",gap:14,textAlign:"left"}}>
+                <span style={{fontSize:28}}>📄</span>
+                <div>
+                  <div>Valider un ordre d'exploitation</div>
+                  <div style={{fontSize:11,opacity:.6,fontWeight:400,marginTop:2}}>
+                    Sous-traitant — code reçu de l'administrateur
+                  </div>
+                </div>
+              </button>
               <button onClick={()=>setStep("demo")} style={{
                 width:"100%",padding:18,borderRadius:14,
                 background:"rgba(255,200,0,.1)",border:"1px solid rgba(255,200,0,.25)",
@@ -597,6 +652,89 @@ const LoginScreen = ({onLogin, onLoginOperateur, onLoginDemo}) => {
                 </div>
               </button>
             </div>
+          </div>
+        )}
+
+        {step==="ordre"&&(
+          <div>
+            <div style={{textAlign:"center",marginBottom:20}}>
+              <div style={{fontSize:28,marginBottom:8}}>📄</div>
+              <div style={{fontSize:16,fontWeight:700}}>Ordre d'exploitation</div>
+              <div style={{fontSize:12,color:"rgba(255,255,255,.5)",marginTop:6,lineHeight:1.5}}>
+                Saisissez le code transmis par l'administrateur
+              </div>
+            </div>
+            {!ordreTrouve ? (
+              <>
+                <input value={ordreCode} onChange={e=>setOrdreCode(e.target.value.toUpperCase())}
+                  placeholder="Ex: A1B2C3" maxLength={6}
+                  style={{width:"100%",height:54,padding:"0 16px",borderRadius:12,
+                    border:"1.5px solid rgba(255,255,255,.25)",background:"rgba(255,255,255,.08)",
+                    color:"#fff",fontFamily:"monospace",fontSize:22,fontWeight:700,
+                    letterSpacing:4,textAlign:"center",outline:"none",marginBottom:14}}/>
+                {ordreErreur&&(
+                  <div style={{color:C.amber,fontSize:13,textAlign:"center",marginBottom:12}}>
+                    ⚠ {ordreErreur}
+                  </div>
+                )}
+                <button onClick={handleRechercherOrdre} disabled={ordreLoading||!ordreCode.trim()}
+                  style={{width:"100%",height:50,borderRadius:12,
+                    background:"rgba(76,175,80,.3)",border:"1px solid rgba(76,175,80,.6)",
+                    color:"#fff",fontFamily:"inherit",fontSize:14,fontWeight:600,cursor:"pointer",
+                    WebkitTapHighlightColor:"transparent",marginBottom:14}}>
+                  {ordreLoading?"Recherche…":"🔍 Rechercher"}
+                </button>
+              </>
+            ) : (
+              <div>
+                <div style={{background:"rgba(255,255,255,.08)",borderRadius:14,padding:16,
+                  marginBottom:14,border:"1px solid rgba(255,255,255,.15)"}}>
+                  <div style={{fontFamily:"monospace",fontSize:14,fontWeight:700,
+                    color:"#4CAF50",marginBottom:8}}>{ordreTrouve.lotNumero}</div>
+                  <div style={{fontSize:12,color:"rgba(255,255,255,.7)",lineHeight:1.9}}>
+                    📍 {ordreTrouve.lotCommune||"—"}{ordreTrouve.lotAdresse?` · ${ordreTrouve.lotAdresse}`:""}<br/>
+                    🛠️ {ordreTrouve.missionLabel}<br/>
+                    📅 Délai : {ordreTrouve.delaiExecution
+                      ? new Date(ordreTrouve.delaiExecution).toLocaleDateString("fr-FR",{day:"2-digit",month:"long",year:"numeric"})
+                      : "—"}<br/>
+                    🏢 Pour : {ordreTrouve.entrepriseNom}
+                  </div>
+                </div>
+                {ordreTrouve.statut==="en_attente" ? (
+                  <div style={{display:"flex",gap:10}}>
+                    <button onClick={()=>handleValiderOrdre("refuse")} disabled={ordreLoading}
+                      style={{flex:1,height:50,borderRadius:12,
+                        background:"rgba(226,75,74,.2)",border:"1px solid rgba(226,75,74,.5)",
+                        color:"#fff",fontFamily:"inherit",fontSize:13,fontWeight:600,cursor:"pointer",
+                        WebkitTapHighlightColor:"transparent"}}>
+                      ❌ Refuser
+                    </button>
+                    <button onClick={()=>handleValiderOrdre("accepte")} disabled={ordreLoading}
+                      style={{flex:2,height:50,borderRadius:12,
+                        background:"rgba(76,175,80,.4)",border:"1px solid rgba(76,175,80,.7)",
+                        color:"#fff",fontFamily:"inherit",fontSize:13,fontWeight:600,cursor:"pointer",
+                        WebkitTapHighlightColor:"transparent"}}>
+                      ✅ J'accepte ce chantier
+                    </button>
+                  </div>
+                ) : (
+                  <div style={{background:ordreTrouve.statut==="accepte"?"rgba(76,175,80,.2)":"rgba(226,75,74,.2)",
+                    borderRadius:12,padding:14,textAlign:"center",
+                    border:`1px solid ${ordreTrouve.statut==="accepte"?"rgba(76,175,80,.5)":"rgba(226,75,74,.5)"}`}}>
+                    <div style={{fontSize:13,fontWeight:600,color:"#fff"}}>
+                      {ordreTrouve.statut==="accepte"?"✅ Chantier accepté":"❌ Chantier refusé"}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+            <button onClick={()=>{ setStep("home"); setOrdreTrouve(null); setOrdreCode(""); setOrdreErreur(""); }}
+              style={{width:"100%",padding:14,borderRadius:12,marginTop:14,
+              background:"rgba(255,255,255,.1)",border:"1px solid rgba(255,255,255,.2)",
+              color:"rgba(255,255,255,.7)",fontFamily:"inherit",fontSize:13,
+              cursor:"pointer",WebkitTapHighlightColor:"transparent"}}>
+              {"<"} Retour à l'accueil
+            </button>
           </div>
         )}
 
@@ -3831,7 +3969,11 @@ const EcranDelegations = ({entrepriseId, toast, onBack}) => {
   const [selEntId,      setSelEntId]     = useState("");
   const [missionLotId,  setMissionLotId] = useState("");
   const [missionType,   setMissionType]  = useState("abattage");
+  const [delaiExecution,setDelaiExecution]= useState(()=>{
+    const d=new Date(); d.setDate(d.getDate()+14); return d.toISOString().slice(0,10);
+  });
   const [missionSaving, setMissionSaving]= useState(false);
+  const [ordreGenere,   setOrdreGenere]  = useState(null);
 
   // Répertoire — filtres
   const [filtreDept,       setFiltreDept]       = useState("");
@@ -3881,15 +4023,38 @@ const EcranDelegations = ({entrepriseId, toast, onBack}) => {
 
   const handleMissionner = async () => {
     const ent = entreprises.find(e=>e.id===selEntId);
-    if (!ent||!missionLotId) { toast("Sélectionner une entreprise et un lot","warn"); return; }
+    const lot = contacts.find(c=>c.id===missionLotId);
+    if (!ent||!lot) { toast("Sélectionner une entreprise et un lot","warn"); return; }
+    if (!delaiExecution) { toast("Préciser un délai d'exécution","warn"); return; }
     setMissionSaving(true);
+    const missionLabel = TYPES_TRAVAUX_DELEGATION.find(([v])=>v===missionType)?.[2]||missionType;
+    const ordre = {
+      id: uid(), code: genCode(), statut:"en_attente", entrepriseId,
+      lotId: lot.id, lotNumero: lot.lotNumero, lotCommune: lot.commune,
+      lotAdresse: lot.adresseParcelle, lotRefCadastrale: lot.refCadastrale,
+      lotSurfaceHa: lot.surfaceHa,
+      entrepriseDestId: ent.id, entrepriseNom: ent.nom,
+      entrepriseAdresse: ent.adressePostale, entrepriseComplement: ent.complementAdresse,
+      entrepriseCP: ent.codePostal, entrepriseCommune: ent.commune, entrepriseSiret: ent.siret,
+      missionType, missionLabel, delaiExecution,
+      dateEmission: nowISO(),
+    };
     try {
       await fetch(`${API}/contacts/${missionLotId}`, {
         method:"PATCH", headers:authHeaders(),
         body:JSON.stringify({etfNom:ent.nom, etfId:ent.id, typeMission:missionType}),
       });
       setContacts(prev=>prev.map(c=>c.id===missionLotId?{...c,etfNom:ent.nom}:c));
-      toast(`${ent.nom} missionnée (${TYPES_TRAVAUX_DELEGATION.find(([v])=>v===missionType)?.[2]}) ✓`);
+      try {
+        await fetch(`${API}/ordres-exploitation`, {
+          method:"POST", headers:authHeaders(), body:JSON.stringify(ordre),
+        });
+      } catch {}
+      ordresExplLocalSave([ordre, ...ordresExplLocalGet()]);
+      setOrdreGenere(ordre);
+      const html = buildOrdreExploitationHTML(ordre);
+      generatePdfFromHtml(html, `OrdreExploitation_${lot.lotNumero||"APPLITAG"}.pdf`, toast);
+      toast(`${ent.nom} missionnée (${missionLabel}) ✓`);
       setMissionLotId("");
     } catch { toast("Erreur API","warn"); }
     setMissionSaving(false);
@@ -4043,6 +4208,30 @@ const EcranDelegations = ({entrepriseId, toast, onBack}) => {
           <div style={{background:C.bg2,borderRadius:12,padding:14,fontSize:12,color:C.tx3,textAlign:"center"}}>
             Créez d'abord une entreprise pour pouvoir la missionner
           </div>
+        ) : ordreGenere ? (
+          <div style={{background:"#fff",border:`1.5px solid ${C.green}`,borderRadius:14,padding:16}}>
+            <div style={{background:C.greenL,borderRadius:12,padding:16,marginBottom:14,textAlign:"center"}}>
+              <div style={{fontSize:11,color:C.greenD,fontWeight:600,marginBottom:8}}>
+                ✅ Ordre d'exploitation généré
+              </div>
+              <div style={{fontFamily:"monospace",fontSize:32,fontWeight:800,
+                color:C.greenD,letterSpacing:6}}>{ordreGenere.code}</div>
+            </div>
+            <div style={{background:C.bg,borderRadius:12,padding:14,marginBottom:14,
+              fontSize:12,color:C.tx3,lineHeight:1.8}}>
+              <strong>À transmettre à {ordreGenere.entrepriseNom} :</strong><br/>
+              1. Ouvrir APPLITAG<br/>
+              2. "Valider un ordre d'exploitation"<br/>
+              3. Entrer le code : <strong style={{color:C.greenD}}>{ordreGenere.code}</strong><br/>
+              4. Accepter ou refuser le chantier {ordreGenere.lotNumero}
+            </div>
+            <button onClick={()=>setOrdreGenere(null)} style={{width:"100%",height:BTN_H,
+              borderRadius:14,background:C.green,border:"none",color:"#fff",
+              fontFamily:"inherit",fontSize:14,fontWeight:600,cursor:"pointer",
+              WebkitTapHighlightColor:"transparent"}}>
+              ✓ TERMINÉ
+            </button>
+          </div>
         ) : (
           <div style={{background:"#fff",border:`1px solid ${C.bd}`,borderRadius:14,padding:16}}>
             <div style={{marginBottom:14}}>
@@ -4085,11 +4274,12 @@ const EcranDelegations = ({entrepriseId, toast, onBack}) => {
                 ))}
               </div>
             </div>
+            <MInput label="Délai d'exécution" value={delaiExecution} onChange={setDelaiExecution} type="date" required/>
             <button onClick={handleMissionner} disabled={missionSaving} style={{width:"100%",height:BTN_H,
               borderRadius:14,background:C.purple,border:"none",color:"#fff",
               fontFamily:"inherit",fontSize:14,fontWeight:600,cursor:"pointer",
               WebkitTapHighlightColor:"transparent"}}>
-              {missionSaving?"Mission en cours…":"🎯 Missionner sur ce lot"}
+              {missionSaving?"Génération…":"📄 Générer l'ordre d'exploitation"}
             </button>
           </div>
         )}
@@ -5443,6 +5633,114 @@ ${visite?.replantation==="oui"?`
 <!-- FOOTER -->
 <div class="footer">
   APPLITAG — Gestion forestière terrain · Référence ${lot.lotNumero||"—"} ·
+  Document généré le ${new Date().toLocaleDateString("fr-FR")} à ${new Date().toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"})}
+</div>
+
+</div></body></html>`;
+};
+
+// ── ORDRE D'EXPLOITATION ───────────────────────────────────────
+const buildOrdreExploitationHTML = (ordre) => {
+  const delaiFmt = ordre.delaiExecution
+    ? new Date(ordre.delaiExecution).toLocaleDateString("fr-FR",{day:"2-digit",month:"long",year:"numeric"})
+    : "À préciser";
+  return `<!DOCTYPE html><html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Ordre d'exploitation ${ordre.lotNumero||""}</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:Arial,Helvetica,sans-serif;font-size:11px;color:#1A1A18;background:#fff}
+.page{width:210mm;min-height:297mm;padding:14mm 16mm;margin:0 auto}
+.header{display:flex;justify-content:space-between;align-items:flex-start;
+  border-bottom:2.5px solid #4CAF50;padding-bottom:14px;margin-bottom:18px}
+.logo h1{font-size:22px;font-weight:700;color:#1E5B3A;letter-spacing:-0.5px}
+.logo p{font-size:9px;color:#9A9892;margin-top:3px}
+.doc-ref{text-align:right}
+.doc-ref h2{font-size:17px;font-weight:700;color:#1A1A18;text-transform:uppercase}
+.doc-ref .num{font-family:monospace;font-size:14px;color:#1E5B3A;margin-top:4px}
+.doc-ref .dt{font-size:9px;color:#9A9892;margin-top:3px}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px}
+.card{border:1px solid #DDDBD5;border-radius:6px;padding:11px}
+.card h3{font-size:10px;font-weight:700;color:#1E5B3A;text-transform:uppercase;
+  letter-spacing:.5px;border-bottom:1px solid #ECEAE6;padding-bottom:5px;margin-bottom:8px}
+.card p{font-size:10.5px;color:#1A1A18;line-height:1.85}
+.card .sub{font-size:9.5px;color:#5A5955}
+.note{background:#FAEEDA;border:1px solid #BA7517;border-radius:5px;padding:9px 12px;
+  font-size:9.5px;color:#412402;line-height:1.7;margin-bottom:14px}
+.code-box{background:#E8F5E9;border:2px solid #4CAF50;border-radius:8px;padding:16px;
+  text-align:center;margin-bottom:16px}
+.code-box .lbl{font-size:10px;color:#1E5B3A;font-weight:600;text-transform:uppercase;letter-spacing:.5px}
+.code-box .code{font-family:monospace;font-size:28px;font-weight:800;color:#1E5B3A;letter-spacing:6px;margin-top:6px}
+.footer{margin-top:auto;padding-top:12px;border-top:1px solid #DDDBD5;
+  font-size:8.5px;color:#9A9892;text-align:center;line-height:1.6}
+@media print{
+  body{print-color-adjust:exact;-webkit-print-color-adjust:exact}
+  @page{size:A4;margin:0}
+  .page{padding:12mm 14mm}
+}
+</style>
+</head>
+<body><div class="page">
+
+<div class="header">
+  <div class="logo">
+    <h1>🌲 APPLITAG SAS</h1>
+    <p>Gestion des flux bois énergie</p>
+  </div>
+  <div class="doc-ref">
+    <h2>Ordre d'exploitation</h2>
+    <div class="num">${ordre.lotNumero||"BROUILLON"}</div>
+    <div class="dt">Émis le ${new Date().toLocaleDateString("fr-FR",{day:"2-digit",month:"long",year:"numeric"})}</div>
+  </div>
+</div>
+
+<div class="two">
+  <div class="card">
+    <h3>🏢 Destinataire</h3>
+    <p>
+      <strong>${ordre.entrepriseNom||""}</strong><br/>
+      ${ordre.entrepriseAdresse?ordre.entrepriseAdresse+"<br/>":""}
+      ${ordre.entrepriseComplement?ordre.entrepriseComplement+"<br/>":""}
+      ${[ordre.entrepriseCP,ordre.entrepriseCommune].filter(Boolean).join(" ")}
+      ${ordre.entrepriseSiret?`<br/><span class="sub">SIRET ${ordre.entrepriseSiret}</span>`:""}
+    </p>
+  </div>
+  <div class="card">
+    <h3>📍 Adresse du lot</h3>
+    <p>
+      <strong>${ordre.lotNumero||""}</strong><br/>
+      ${ordre.lotCommune||"—"}${ordre.lotRefCadastrale?` · ${ordre.lotRefCadastrale}`:""}<br/>
+      ${ordre.lotAdresse?ordre.lotAdresse+"<br/>":""}
+      ${ordre.lotSurfaceHa?`🌲 ${ordre.lotSurfaceHa} ha`:""}
+    </p>
+  </div>
+</div>
+
+<div class="card" style="margin-bottom:16px">
+  <h3>🛠️ Travail à effectuer</h3>
+  <p><strong>${ordre.missionLabel||"—"}</strong></p>
+</div>
+
+<div class="card" style="margin-bottom:16px">
+  <h3>📅 Délai d'exécution</h3>
+  <p>Travaux à réaliser avant le <strong>${delaiFmt}</strong></p>
+</div>
+
+<div class="code-box">
+  <div class="lbl">Code de validation du chantier</div>
+  <div class="code">${ordre.code||"------"}</div>
+</div>
+
+<div class="note">
+  ⚠ Ce document constitue un ordre d'exploitation adressé par l'administrateur au sous-traitant désigné.
+  L'entreprise destinataire doit valider son acceptation du chantier dans APPLITAG via "Valider un ordre
+  d'exploitation" en saisissant le code ci-dessus.
+</div>
+
+<!-- FOOTER -->
+<div class="footer">
+  APPLITAG — Gestion des flux bois énergie · Référence ${ordre.lotNumero||"—"} ·
   Document généré le ${new Date().toLocaleDateString("fr-FR")} à ${new Date().toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"})}
 </div>
 
