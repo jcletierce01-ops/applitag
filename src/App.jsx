@@ -8854,7 +8854,7 @@ const EcranDechiquetage = ({lot, operateurs=[], onBack, onSaved, toast, entrepri
             placeholder="AB-456-CD" hint="optionnel" error={erreurImmatRemor}/>
         </div>
 
-        <SectionTitle icon="⏱️" label="Horaires"/>
+        <SectionTitle icon="⏱️" label="Horaires de chargement"/>
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
           <MInput label="Heure début" value={heureDebut} onChange={setHeureDebut}
             type="time" required/>
