@@ -216,19 +216,22 @@ const SectionTitle = ({icon,label}) => (
   </div>
 );
 
-// Petit graphique en barres (jour par jour sur le mois) affiché sous un chiffre clé de KPI
+// Petit graphique linéaire (jour par jour sur le mois) affiché sous un chiffre clé de KPI
 const MiniBarChart = ({data, color=C.green, height=40}) => {
   const max = Math.max(1, ...data.map(d=>d||0));
-  const w = 100/data.length;
+  const n = data.length;
+  const x = i => n>1 ? (i/(n-1))*100 : 50;
+  const y = v => height - (v/max)*(height-4) - 2;
+  const points = data.map((v,i)=>`${x(i)},${y(v||0)}`).join(" ");
+  const areaPoints = `0,${height} ${points} 100,${height}`;
   return (
     <svg viewBox={`0 0 100 ${height}`} preserveAspectRatio="none" style={{width:"100%",height,display:"block"}}>
-      {data.map((v,i)=>{
-        const h = v ? Math.max(2,(v/max)*height) : 0;
-        return (
-          <rect key={i} x={i*w+w*0.15} y={height-h} width={w*0.7} height={h}
-            rx={0.6} fill={color} opacity={v?0.85:0.15}/>
-        );
-      })}
+      <polygon points={areaPoints} fill={color} opacity={0.12}/>
+      <polyline points={points} fill="none" stroke={color} strokeWidth={1.6}
+        strokeLinejoin="round" strokeLinecap="round" vectorEffect="non-scaling-stroke"/>
+      {data.map((v,i)=>v?(
+        <circle key={i} cx={x(i)} cy={y(v)} r={1.4} fill={color}/>
+      ):null)}
     </svg>
   );
 };
