@@ -216,6 +216,23 @@ const SectionTitle = ({icon,label}) => (
   </div>
 );
 
+// Petit graphique en barres (jour par jour sur le mois) affiché sous un chiffre clé de KPI
+const MiniBarChart = ({data, color=C.green, height=40}) => {
+  const max = Math.max(1, ...data.map(d=>d||0));
+  const w = 100/data.length;
+  return (
+    <svg viewBox={`0 0 100 ${height}`} preserveAspectRatio="none" style={{width:"100%",height,display:"block"}}>
+      {data.map((v,i)=>{
+        const h = v ? Math.max(2,(v/max)*height) : 0;
+        return (
+          <rect key={i} x={i*w+w*0.15} y={height-h} width={w*0.7} height={h}
+            rx={0.6} fill={color} opacity={v?0.85:0.15}/>
+        );
+      })}
+    </svg>
+  );
+};
+
 // ── SIGNATURE CANVAS ──────────────────────────────────────────
 const SignatureCanvas = ({label, nomSignataire="", onSigned, onClear, signed=false}) => {
   const canvasRef = useRef(null);
@@ -9328,6 +9345,21 @@ const EcranDashboardPC = ({user, contacts, visites, notifications, transports=[]
   const tonnesLivreesMois = livraisonsDuMois.reduce((s,l)=>s+(parseFloat(l.pesee)||0),0);
   const humidites = livraisons.map(l=>parseFloat(l.humiditeReception)).filter(n=>!isNaN(n));
   const humiditeMoyenne = humidites.length ? humidites.reduce((s,n)=>s+n,0)/humidites.length : null;
+
+  // Séries journalières du mois en cours (tonnage livré et humidité moyenne par jour)
+  const nbJoursMois = new Date(new Date().getFullYear(), new Date().getMonth()+1, 0).getDate();
+  const tonnageParJour = Array.from({length:nbJoursMois},()=>0);
+  const humiditeParJour = Array.from({length:nbJoursMois},()=>[]);
+  livraisonsDuMois.forEach(l=>{
+    const dateStr = l.dateHeureLivraison||l.dateLivraison||l.createdAt||"";
+    const jour = parseInt(dateStr.slice(8,10),10);
+    if (jour>=1 && jour<=nbJoursMois) {
+      tonnageParJour[jour-1] += parseFloat(l.pesee)||0;
+      const h = parseFloat(l.humiditeReception);
+      if (!isNaN(h)) humiditeParJour[jour-1].push(h);
+    }
+  });
+  const humiditeMoyenneParJour = humiditeParJour.map(arr=>arr.length?arr.reduce((s,n)=>s+n,0)/arr.length:0);
   const transportsEnCours = lots.filter(c=>c.statutLot==="EN_LIVRAISON").length;
   const alertesActives = notifications.filter(n=>!n.lu);
   const stockPlateformes = lots.filter(c=>["BORD_ROUTE","A_DECHIQUETER","EN_STOCK_PLATEFORME"].includes(c.statutLot))
@@ -9339,9 +9371,9 @@ const EcranDashboardPC = ({user, contacts, visites, notifications, transports=[]
   const tauxConformite = cmrTotal ? Math.round((cmrConformes/cmrTotal)*100) : null;
 
   const KPI_CARDS = [
-    {icon:"⚖️",label:"Tonnage livré (mois)",val:fmtNum(tonnesLivreesMois)+" t",color:C.brown},
+    {icon:"⚖️",label:"Tonnage livré (mois)",val:fmtNum(tonnesLivreesMois)+" t",color:C.brown,chart:tonnageParJour},
     {icon:"📦",label:"Livraisons (mois)",val:livraisonsDuMois.length,color:C.blue},
-    {icon:"💧",label:"Humidité moyenne",val:humiditeMoyenne!=null?fmtNum(humiditeMoyenne,1)+" %":"—",color:C.blueD},
+    {icon:"💧",label:"Humidité moyenne",val:humiditeMoyenne!=null?fmtNum(humiditeMoyenne,1)+" %":"—",color:C.blueD,chart:humiditeMoyenneParJour},
     {icon:"🚛",label:"Transports en cours",val:transportsEnCours,color:C.purple},
     {icon:"⚠️",label:"Alertes actives",val:alertesActives.length,color:C.red,danger:alertesActives.length>0},
   ];
@@ -9437,7 +9469,8 @@ const EcranDashboardPC = ({user, contacts, visites, notifications, transports=[]
                   border:`1px solid ${C.bd}`,borderLeft:k.danger?`4px solid ${C.red}`:`1px solid ${C.bd}`}}>
                   <div style={{fontSize:20,marginBottom:6}}>{k.icon}</div>
                   <div style={{fontSize:24,fontWeight:700,color:k.color,fontFamily:FONT_TITLE}}>{k.val}</div>
-                  <div style={{fontSize:12,color:C.tx3,marginTop:2}}>{k.label}</div>
+                  <div style={{fontSize:12,color:C.tx3,marginTop:2,marginBottom:k.chart?8:0}}>{k.label}</div>
+                  {k.chart&&<MiniBarChart data={k.chart} color={k.color}/>}
                 </div>
               ))}
             </div>
