@@ -51,6 +51,15 @@ const ANNONCES_KEY = "applitag_annonces";
 const annoncesLocalGet = () => { try { return JSON.parse(localStorage.getItem(ANNONCES_KEY)||"[]"); } catch { return []; } };
 const annoncesLocalSave = (arr) => { try { localStorage.setItem(ANNONCES_KEY, JSON.stringify(arr)); } catch {} };
 
+// Comptes contact APPLITAG Connect — accès gratuit, sans aucune fonction sensible
+// (prix, marges, contrats, clients, données internes, documents confidentiels, suivi
+// opérationnel avancé). Stockage de repli tant que l'API /comptes-contact n'est pas
+// garantie disponible.
+const COMPTES_KEY = "applitag_comptes_contact";
+const comptesLocalGet = () => { try { return JSON.parse(localStorage.getItem(COMPTES_KEY)||"[]"); } catch { return []; } };
+const comptesLocalSave = (arr) => { try { localStorage.setItem(COMPTES_KEY, JSON.stringify(arr)); } catch {} };
+const COMPTE_SESSION_KEY = "applitag_compte_contact_session";
+
 const TYPES_PRESTATION_ANNONCE = [
   ["abattage","🪓","Abattage"],
   ["debardage","🚜","Débardage"],
@@ -568,6 +577,7 @@ const LoginScreen = ({onLogin, onLoginOperateur, onLoginDemo}) => {
     setError(""); setAnnonceSaving(true);
     const annonce = {
       id: uid(), type: annonceType, statut:"recu", entrepriseId: DEFAULT_ENTREPRISE_ID,
+      compteId: compteSession?.id||null,
       nom: annonceNom, telephone: annonceTel, email: annonceEmail, commune: annonceCommune,
       typeBois: annonceTypeBois, volumeEstime: annonceVolume, etatBois: annonceEtatBois,
       photos: annoncePhotos,
@@ -584,6 +594,105 @@ const LoginScreen = ({onLogin, onLoginOperateur, onLoginDemo}) => {
     setAnnonceEnvoyee(true);
     setAnnonceSaving(false);
   };
+
+  // ── APPLITAG Connect - Compte contact (accès gratuit, sans fonction sensible) ──
+  const [compteVue,     setCompteVue]    = useState("choix"); // choix | inscription | connexion | espace
+  const [compteSession, setCompteSession]= useState(()=>{
+    try { return JSON.parse(localStorage.getItem(COMPTE_SESSION_KEY)||"null"); } catch { return null; }
+  });
+  const [compteNom,      setCompteNom]     = useState("");
+  const [compteTel,      setCompteTel]     = useState("");
+  const [compteEmail,    setCompteEmail]   = useState("");
+  const [comptePin,      setComptePin]     = useState("");
+  const [comptePinConf,  setComptePinConf] = useState("");
+  const [compteIdentifiant, setCompteIdentifiant] = useState("");
+  const [compteLoginPin, setCompteLoginPin]= useState("");
+  const [compteErreur,   setCompteErreur]  = useState("");
+  const [compteSaving,   setCompteSaving]  = useState(false);
+  const [comptePrefActus,setComptePrefActus]    = useState(compteSession?.consentActus||false);
+  const [comptePrefNetwork,setComptePrefNetwork]= useState(compteSession?.consentNetwork||false);
+
+  const resetCompteForm = () => {
+    setCompteNom(""); setCompteTel(""); setCompteEmail(""); setComptePin(""); setComptePinConf("");
+    setCompteIdentifiant(""); setCompteLoginPin(""); setCompteErreur("");
+  };
+
+  const handleCreerCompte = async () => {
+    if (!compteNom.trim()||!compteTel.trim()) { setCompteErreur("Indiquez votre nom/société et votre téléphone"); return; }
+    if (comptePin.length!==4) { setCompteErreur("Le code doit comporter 4 chiffres"); return; }
+    if (comptePin!==comptePinConf) { setCompteErreur("Les deux codes ne correspondent pas"); return; }
+    const existants = comptesLocalGet();
+    if (existants.some(c=>c.telephone===compteTel||(compteEmail&&c.email===compteEmail))) {
+      setCompteErreur("Un compte existe déjà avec ce téléphone ou cet email — connectez-vous"); return;
+    }
+    setCompteErreur(""); setCompteSaving(true);
+    const compte = {
+      id: uid(), nom: compteNom, telephone: compteTel, email: compteEmail, pin: comptePin,
+      entrepriseId: DEFAULT_ENTREPRISE_ID, consentActus:false, consentNetwork:false,
+      dateCreation: nowISO(),
+    };
+    try {
+      await fetch(`${API}/comptes-contact`, {
+        method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(compte),
+      });
+    } catch {}
+    comptesLocalSave([compte, ...existants]);
+    const session = {id:compte.id, nom:compte.nom, telephone:compte.telephone, email:compte.email,
+      consentActus:compte.consentActus, consentNetwork:compte.consentNetwork};
+    localStorage.setItem(COMPTE_SESSION_KEY, JSON.stringify(session));
+    setCompteSession(session);
+    setComptePrefActus(false); setComptePrefNetwork(false);
+    resetCompteForm();
+    setCompteVue("espace");
+    setCompteSaving(false);
+  };
+
+  const handleConnexionCompte = async () => {
+    if (!compteIdentifiant.trim()||compteLoginPin.length!==4) {
+      setCompteErreur("Indiquez votre téléphone/email et votre code à 4 chiffres"); return;
+    }
+    setCompteErreur(""); setCompteSaving(true);
+    const compte = comptesLocalGet().find(c=>
+      (c.telephone===compteIdentifiant||c.email===compteIdentifiant)&&c.pin===compteLoginPin);
+    if (!compte) {
+      setCompteErreur("Identifiant ou code incorrect");
+      setCompteSaving(false); return;
+    }
+    const session = {id:compte.id, nom:compte.nom, telephone:compte.telephone, email:compte.email,
+      consentActus:compte.consentActus, consentNetwork:compte.consentNetwork};
+    localStorage.setItem(COMPTE_SESSION_KEY, JSON.stringify(session));
+    setCompteSession(session);
+    setComptePrefActus(compte.consentActus||false); setComptePrefNetwork(compte.consentNetwork||false);
+    resetCompteForm();
+    setCompteVue("espace");
+    setCompteSaving(false);
+  };
+
+  const handleDeconnexionCompte = () => {
+    localStorage.removeItem(COMPTE_SESSION_KEY);
+    setCompteSession(null);
+    setCompteVue("choix");
+  };
+
+  const handleMajPrefsCompte = (champ, valeur) => {
+    if (champ==="actus") setComptePrefActus(valeur); else setComptePrefNetwork(valeur);
+    const comptes = comptesLocalGet().map(c=>c.id===compteSession.id
+      ? {...c, consentActus:champ==="actus"?valeur:c.consentActus, consentNetwork:champ==="network"?valeur:c.consentNetwork}
+      : c);
+    comptesLocalSave(comptes);
+    const session = {...compteSession, consentActus:champ==="actus"?valeur:compteSession.consentActus,
+      consentNetwork:champ==="network"?valeur:compteSession.consentNetwork};
+    localStorage.setItem(COMPTE_SESSION_KEY, JSON.stringify(session));
+    setCompteSession(session);
+    fetch(`${API}/comptes-contact/${compteSession.id}`,{method:"PATCH",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({consentActus:champ==="actus"?valeur:compteSession.consentActus,
+        consentNetwork:champ==="network"?valeur:compteSession.consentNetwork})}).catch(()=>{});
+  };
+
+  const mesAnnonces = compteSession
+    ? annoncesLocalGet().filter(a=>a.telephone===compteSession.telephone||(compteSession.email&&a.email===compteSession.email))
+    : [];
 
   const qrRef = useRef(null);
   const scannerRef = useRef(null);
@@ -760,6 +869,20 @@ const LoginScreen = ({onLogin, onLoginOperateur, onLoginDemo}) => {
                   <div>Signaler / Proposer une annonce</div>
                   <div style={{fontSize:11,opacity:.6,fontWeight:400,marginTop:2}}>
                     Gisement, prestation ou demande de plaquettes
+                  </div>
+                </div>
+              </button>
+              <button onClick={()=>{ setCompteErreur(""); setCompteVue(compteSession?"espace":"choix"); setStep("compte"); }} style={{
+                width:"100%",padding:18,borderRadius:14,
+                background:"rgba(76,175,80,.15)",border:"1px solid rgba(76,175,80,.4)",
+                color:"rgba(255,255,255,.8)",fontFamily:"inherit",fontSize:15,fontWeight:500,
+                cursor:"pointer",WebkitTapHighlightColor:"transparent",
+                display:"flex",alignItems:"center",gap:14,textAlign:"left"}}>
+                <span style={{fontSize:28}}>👤</span>
+                <div>
+                  <div>{compteSession?`Mon compte (${compteSession.nom})`:"Mon compte APPLITAG Connect"}</div>
+                  <div style={{fontSize:11,opacity:.6,fontWeight:400,marginTop:2}}>
+                    Accès gratuit — suivez vos propositions
                   </div>
                 </div>
               </button>
@@ -1059,6 +1182,209 @@ const LoginScreen = ({onLogin, onLoginOperateur, onLoginDemo}) => {
                   color:"rgba(255,255,255,.7)",fontFamily:"inherit",fontSize:13,
                   cursor:"pointer",WebkitTapHighlightColor:"transparent"}}>
                   {"<"} Changer de type d'annonce
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+
+        {step==="compte"&&(
+          <div>
+            <div style={{textAlign:"center",marginBottom:20}}>
+              <div style={{fontSize:28,marginBottom:8}}>👤</div>
+              <div style={{fontSize:16,fontWeight:700}}>APPLITAG Connect</div>
+              <div style={{fontSize:12,color:"rgba(255,255,255,.5)",marginTop:6,lineHeight:1.5}}>
+                Accès gratuit — aucune fonction sensible (prix, contrats, clients…)
+              </div>
+            </div>
+
+            {compteVue==="choix"&&(
+              <div style={{display:"flex",flexDirection:"column",gap:10}}>
+                <button onClick={()=>{ resetCompteForm(); setCompteVue("connexion"); }} style={{
+                  width:"100%",padding:16,borderRadius:14,textAlign:"left",
+                  background:"rgba(255,255,255,.08)",border:"1px solid rgba(255,255,255,.18)",
+                  color:"#fff",fontFamily:"inherit",cursor:"pointer",
+                  display:"flex",alignItems:"center",gap:14,WebkitTapHighlightColor:"transparent"}}>
+                  <span style={{fontSize:24}}>🔑</span>
+                  <div style={{fontSize:14,fontWeight:600}}>Se connecter</div>
+                </button>
+                <button onClick={()=>{ resetCompteForm(); setCompteVue("inscription"); }} style={{
+                  width:"100%",padding:16,borderRadius:14,textAlign:"left",
+                  background:"rgba(76,175,80,.2)",border:"1px solid rgba(76,175,80,.5)",
+                  color:"#fff",fontFamily:"inherit",cursor:"pointer",
+                  display:"flex",alignItems:"center",gap:14,WebkitTapHighlightColor:"transparent"}}>
+                  <span style={{fontSize:24}}>➕</span>
+                  <div style={{fontSize:14,fontWeight:600}}>Créer un compte gratuit</div>
+                </button>
+                <button onClick={()=>setStep("home")}
+                  style={{width:"100%",padding:14,borderRadius:12,marginTop:6,
+                  background:"rgba(255,255,255,.1)",border:"1px solid rgba(255,255,255,.2)",
+                  color:"rgba(255,255,255,.7)",fontFamily:"inherit",fontSize:13,
+                  cursor:"pointer",WebkitTapHighlightColor:"transparent"}}>
+                  {"<"} Retour à l'accueil
+                </button>
+              </div>
+            )}
+
+            {compteVue==="inscription"&&(
+              <div>
+                <input value={compteNom} onChange={e=>setCompteNom(e.target.value)}
+                  placeholder="Nom / société *"
+                  style={{width:"100%",height:48,padding:"0 14px",borderRadius:10,
+                    border:"1.5px solid rgba(255,255,255,.25)",background:"rgba(255,255,255,.08)",
+                    color:"#fff",fontFamily:"inherit",fontSize:15,outline:"none",marginBottom:10}}/>
+                <input value={compteTel} onChange={e=>setCompteTel(formatPhone(e.target.value))}
+                  placeholder="Téléphone *" type="tel"
+                  style={{width:"100%",height:48,padding:"0 14px",borderRadius:10,
+                    border:"1.5px solid rgba(255,255,255,.25)",background:"rgba(255,255,255,.08)",
+                    color:"#fff",fontFamily:"inherit",fontSize:15,outline:"none",marginBottom:10}}/>
+                <input value={compteEmail} onChange={e=>setCompteEmail(e.target.value)}
+                  placeholder="Email — optionnel" type="email"
+                  style={{width:"100%",height:48,padding:"0 14px",borderRadius:10,
+                    border:"1.5px solid rgba(255,255,255,.25)",background:"rgba(255,255,255,.08)",
+                    color:"#fff",fontFamily:"inherit",fontSize:15,outline:"none",marginBottom:10}}/>
+                <input value={comptePin} onChange={e=>setComptePin(e.target.value.replace(/\D/g,"").slice(0,4))}
+                  placeholder="Créez un code à 4 chiffres *" type="tel" maxLength={4}
+                  style={{width:"100%",height:48,padding:"0 14px",borderRadius:10,
+                    border:"1.5px solid rgba(255,255,255,.25)",background:"rgba(255,255,255,.08)",
+                    color:"#fff",fontFamily:"monospace",fontSize:18,letterSpacing:6,outline:"none",marginBottom:10}}/>
+                <input value={comptePinConf} onChange={e=>setComptePinConf(e.target.value.replace(/\D/g,"").slice(0,4))}
+                  placeholder="Confirmez le code *" type="tel" maxLength={4}
+                  style={{width:"100%",height:48,padding:"0 14px",borderRadius:10,
+                    border:"1.5px solid rgba(255,255,255,.25)",background:"rgba(255,255,255,.08)",
+                    color:"#fff",fontFamily:"monospace",fontSize:18,letterSpacing:6,outline:"none",marginBottom:14}}/>
+                {compteErreur&&(
+                  <div style={{color:C.amber,fontSize:13,textAlign:"center",marginBottom:12}}>⚠ {compteErreur}</div>
+                )}
+                <button onClick={handleCreerCompte} disabled={compteSaving}
+                  style={{width:"100%",height:50,borderRadius:12,
+                    background:"rgba(76,175,80,.4)",border:"1px solid rgba(76,175,80,.7)",
+                    color:"#fff",fontFamily:"inherit",fontSize:14,fontWeight:600,cursor:"pointer",
+                    WebkitTapHighlightColor:"transparent",marginBottom:10}}>
+                  {compteSaving?"Création…":"✅ Créer mon compte"}
+                </button>
+                <button onClick={()=>setCompteVue("choix")}
+                  style={{width:"100%",padding:14,borderRadius:12,
+                  background:"rgba(255,255,255,.1)",border:"1px solid rgba(255,255,255,.2)",
+                  color:"rgba(255,255,255,.7)",fontFamily:"inherit",fontSize:13,
+                  cursor:"pointer",WebkitTapHighlightColor:"transparent"}}>
+                  {"<"} Retour
+                </button>
+              </div>
+            )}
+
+            {compteVue==="connexion"&&(
+              <div>
+                <input value={compteIdentifiant} onChange={e=>setCompteIdentifiant(e.target.value)}
+                  placeholder="Téléphone ou email *"
+                  style={{width:"100%",height:48,padding:"0 14px",borderRadius:10,
+                    border:"1.5px solid rgba(255,255,255,.25)",background:"rgba(255,255,255,.08)",
+                    color:"#fff",fontFamily:"inherit",fontSize:15,outline:"none",marginBottom:10}}/>
+                <input value={compteLoginPin} onChange={e=>setCompteLoginPin(e.target.value.replace(/\D/g,"").slice(0,4))}
+                  placeholder="Code à 4 chiffres *" type="tel" maxLength={4}
+                  style={{width:"100%",height:48,padding:"0 14px",borderRadius:10,
+                    border:"1.5px solid rgba(255,255,255,.25)",background:"rgba(255,255,255,.08)",
+                    color:"#fff",fontFamily:"monospace",fontSize:18,letterSpacing:6,outline:"none",marginBottom:14}}/>
+                {compteErreur&&(
+                  <div style={{color:C.amber,fontSize:13,textAlign:"center",marginBottom:12}}>⚠ {compteErreur}</div>
+                )}
+                <button onClick={handleConnexionCompte} disabled={compteSaving}
+                  style={{width:"100%",height:50,borderRadius:12,
+                    background:"rgba(76,175,80,.4)",border:"1px solid rgba(76,175,80,.7)",
+                    color:"#fff",fontFamily:"inherit",fontSize:14,fontWeight:600,cursor:"pointer",
+                    WebkitTapHighlightColor:"transparent",marginBottom:10}}>
+                  {compteSaving?"Connexion…":"🔑 Se connecter"}
+                </button>
+                <button onClick={()=>setCompteVue("choix")}
+                  style={{width:"100%",padding:14,borderRadius:12,
+                  background:"rgba(255,255,255,.1)",border:"1px solid rgba(255,255,255,.2)",
+                  color:"rgba(255,255,255,.7)",fontFamily:"inherit",fontSize:13,
+                  cursor:"pointer",WebkitTapHighlightColor:"transparent"}}>
+                  {"<"} Retour
+                </button>
+              </div>
+            )}
+
+            {compteVue==="espace"&&compteSession&&(
+              <div>
+                <div style={{background:"rgba(255,255,255,.08)",borderRadius:14,padding:16,
+                  marginBottom:16,border:"1px solid rgba(255,255,255,.15)"}}>
+                  <div style={{fontSize:15,fontWeight:700,color:"#fff"}}>{compteSession.nom}</div>
+                  <div style={{fontSize:12,color:"rgba(255,255,255,.6)",marginTop:4}}>
+                    📞 {compteSession.telephone}{compteSession.email&&<> · 📧 {compteSession.email}</>}
+                  </div>
+                </div>
+
+                <div style={{fontSize:13,fontWeight:600,color:"rgba(255,255,255,.8)",marginBottom:10}}>
+                  📋 Mes propositions ({mesAnnonces.length})
+                </div>
+                {mesAnnonces.length===0 ? (
+                  <div style={{fontSize:12,color:"rgba(255,255,255,.5)",marginBottom:16}}>
+                    Aucune proposition envoyée pour le moment.
+                  </div>
+                ) : (
+                  <div style={{marginBottom:16}}>
+                    {mesAnnonces.map(a=>{
+                      const statutInfo = STATUTS_ANNONCE[a.statut]||STATUTS_ANNONCE.recu;
+                      return (
+                        <div key={a.id} style={{background:"rgba(255,255,255,.06)",borderRadius:10,
+                          padding:12,marginBottom:8,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                          <div>
+                            <div style={{fontSize:12,color:"#fff",fontWeight:600}}>
+                              {{"gisement":"🌲 Bois proposé","service":"🛠️ Service proposé",
+                                "demande":"🪵 Demande plaquettes"}[a.type]||a.type}
+                            </div>
+                            <div style={{fontSize:10,color:"rgba(255,255,255,.5)",marginTop:2}}>
+                              {new Date(a.dateEnvoi).toLocaleDateString("fr-FR")}
+                            </div>
+                          </div>
+                          <span style={{fontSize:10,padding:"3px 8px",borderRadius:6,fontWeight:600,
+                            background:statutInfo.bg,color:statutInfo.color}}>{statutInfo.label}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+
+                <button onClick={()=>{ resetAnnonce(); setAnnonceNom(compteSession.nom);
+                  setAnnonceTel(compteSession.telephone); setAnnonceEmail(compteSession.email||"");
+                  setConsentRecontact(true); setError(""); setStep("annonce"); }}
+                  style={{width:"100%",height:48,borderRadius:12,marginBottom:16,
+                    background:"rgba(76,175,80,.3)",border:"1px solid rgba(76,175,80,.6)",
+                    color:"#fff",fontFamily:"inherit",fontSize:13,fontWeight:600,cursor:"pointer",
+                    WebkitTapHighlightColor:"transparent"}}>
+                  ➕ Nouvelle proposition
+                </button>
+
+                <div style={{fontSize:13,fontWeight:600,color:"rgba(255,255,255,.8)",marginBottom:10}}>
+                  📰 Mes préférences
+                </div>
+                <div style={{display:"flex",flexDirection:"column",gap:10,marginBottom:16}}>
+                  <div onClick={()=>handleMajPrefsCompte("actus",!comptePrefActus)} style={{display:"flex",
+                    alignItems:"center",gap:10,cursor:"pointer",WebkitTapHighlightColor:"transparent"}}>
+                    <span style={{fontSize:16}}>{comptePrefActus?"☑️":"☐"}</span>
+                    <span style={{fontSize:12,color:"rgba(255,255,255,.8)"}}>Recevoir les actualités APPLITAG</span>
+                  </div>
+                  <div onClick={()=>handleMajPrefsCompte("network",!comptePrefNetwork)} style={{display:"flex",
+                    alignItems:"center",gap:10,cursor:"pointer",WebkitTapHighlightColor:"transparent"}}>
+                    <span style={{fontSize:16}}>{comptePrefNetwork?"☑️":"☐"}</span>
+                    <span style={{fontSize:12,color:"rgba(255,255,255,.8)"}}>Infos APPLITAG Radio / TV / Network</span>
+                  </div>
+                </div>
+
+                <button onClick={()=>setStep("home")}
+                  style={{width:"100%",padding:14,borderRadius:12,marginBottom:10,
+                  background:"rgba(255,255,255,.1)",border:"1px solid rgba(255,255,255,.2)",
+                  color:"rgba(255,255,255,.7)",fontFamily:"inherit",fontSize:13,
+                  cursor:"pointer",WebkitTapHighlightColor:"transparent"}}>
+                  {"<"} Retour à l'accueil
+                </button>
+                <button onClick={handleDeconnexionCompte}
+                  style={{width:"100%",padding:14,borderRadius:12,
+                  background:"rgba(226,75,74,.15)",border:"1px solid rgba(226,75,74,.4)",
+                  color:"rgba(255,255,255,.8)",fontFamily:"inherit",fontSize:13,
+                  cursor:"pointer",WebkitTapHighlightColor:"transparent"}}>
+                  Se déconnecter
                 </button>
               </div>
             )}
