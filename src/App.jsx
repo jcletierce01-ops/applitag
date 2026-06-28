@@ -9306,33 +9306,60 @@ const EcranLivraison = ({lot, onBack, onSaved, toast, entrepriseId}) => {
 const DASHBOARD_NAV = [
   {id:"dashboard",   icon:"📊", label:"Tableau de bord"},
   {id:"lots",        icon:"🌲", label:"Lots"},
-  {id:"carte",       icon:"🗺️", label:"Carte"},
+  {id:"chantiers",   icon:"🪓", label:"Chantiers"},
   {id:"transports",  icon:"🚛", label:"Transports"},
   {id:"livraisons",  icon:"📦", label:"Livraisons"},
   {id:"chaufferies", icon:"🔥", label:"Chaufferies"},
   {id:"alertes",     icon:"🔔", label:"Alertes"},
-  {id:"rapports",    icon:"📈", label:"Rapports"},
+  {id:"analyses",    icon:"📈", label:"Analyses"},
+  {id:"documents",   icon:"📄", label:"Documents"},
+  {id:"rapports",    icon:"📋", label:"Rapports"},
   {id:"parametres",  icon:"⚙️", label:"Paramètres"},
 ];
 
-const EcranDashboardPC = ({user, contacts, visites, notifications, transports=[], onLogout}) => {
+const EcranDashboardPC = ({user, contacts, visites, notifications, transports=[], livraisons=[], dechiquetages=[], onLogout}) => {
   const [section, setSection] = useState("dashboard");
   const [lotDetail, setLotDetail] = useState(null);
 
   const lots = contacts.filter(c=>c.lotNumero);
   const enExploitation = lots.filter(c=>["VALIDE_EXPLOITATION","EN_COURS_EXPLOITATION"].includes(c.statutLot));
-  const tonnesLivrees = lots.filter(c=>c.statutLot==="LIVRE_CHAUFFERIE")
-    .reduce((s,c)=>s+(parseFloat(c.tonnageCumul)||0),0);
+  const moisCourant = new Date().toISOString().slice(0,7);
+  const livraisonsDuMois = livraisons.filter(l=>(l.dateHeureLivraison||l.dateLivraison||l.createdAt||"").slice(0,7)===moisCourant);
+  const tonnesLivreesMois = livraisonsDuMois.reduce((s,l)=>s+(parseFloat(l.pesee)||0),0);
+  const humidites = livraisons.map(l=>parseFloat(l.humiditeReception)).filter(n=>!isNaN(n));
+  const humiditeMoyenne = humidites.length ? humidites.reduce((s,n)=>s+n,0)/humidites.length : null;
   const transportsEnCours = lots.filter(c=>c.statutLot==="EN_LIVRAISON").length;
-  const alertesCritiques = notifications.filter(n=>!n.lu);
-  const volumeEstimeTotal = lots.reduce((s,c)=>s+(parseFloat(c.tonnageCumul)||0),0);
+  const alertesActives = notifications.filter(n=>!n.lu);
+  const stockPlateformes = lots.filter(c=>["BORD_ROUTE","A_DECHIQUETER","EN_STOCK_PLATEFORME"].includes(c.statutLot))
+    .reduce((s,c)=>s+(parseFloat(c.tonnageCumul)||0),0);
+  const stockChaufferies = livraisons.filter(l=>l.typeDest==="chaufferie")
+    .reduce((s,l)=>s+(parseFloat(l.pesee)||0),0);
+  const cmrTotal = dechiquetages.length;
+  const cmrConformes = dechiquetages.filter(d=>d.numeroCMR&&d.photoCMR).length;
+  const tauxConformite = cmrTotal ? Math.round((cmrConformes/cmrTotal)*100) : null;
 
   const KPI_CARDS = [
-    {icon:"🌲",label:"Lots en exploitation",val:enExploitation.length,color:C.greenD},
-    {icon:"⚖️",label:"Tonnes livrées",val:fmtNum(tonnesLivrees)+" t",color:C.brown},
-    {icon:"🌲",label:"Volume estimé total",val:fmtNum(volumeEstimeTotal)+" t",color:C.blue},
+    {icon:"⚖️",label:"Tonnage livré (mois)",val:fmtNum(tonnesLivreesMois)+" t",color:C.brown},
+    {icon:"📦",label:"Livraisons (mois)",val:livraisonsDuMois.length,color:C.blue},
+    {icon:"💧",label:"Humidité moyenne",val:humiditeMoyenne!=null?fmtNum(humiditeMoyenne,1)+" %":"—",color:C.blueD},
     {icon:"🚛",label:"Transports en cours",val:transportsEnCours,color:C.purple},
-    {icon:"⚠️",label:"Alertes critiques",val:alertesCritiques.length,color:C.red,danger:true},
+    {icon:"⚠️",label:"Alertes actives",val:alertesActives.length,color:C.red,danger:alertesActives.length>0},
+  ];
+
+  const KPI_CARDS_2 = [
+    {icon:"📥",label:"Stock plateformes",val:fmtNum(stockPlateformes)+" t",color:C.greenD},
+    {icon:"🔥",label:"Stock chaufferies",val:fmtNum(stockChaufferies)+" t",color:C.brown},
+    {icon:"⚡",label:"Consommation (MWh)",val:"—",color:C.tx3,note:"Donnée non disponible"},
+    {icon:"💶",label:"Coût transport / t",val:"—",color:C.tx3,note:"Donnée non disponible"},
+    {icon:"✅",label:"Taux de conformité CMR",val:tauxConformite!=null?tauxConformite+" %":"—",color:C.green},
+  ];
+
+  const MAP_LEGEND = [
+    ["🌲",C.green,"Lots forestiers"],
+    ["📦",C.amber,"Plateformes"],
+    ["🔥",C.green,"Chaufferies"],
+    ["🚛",C.purple,"Transports"],
+    ["⚠️",C.red,"Alertes"],
   ];
 
   return (
@@ -9353,13 +9380,29 @@ const EcranDashboardPC = ({user, contacts, visites, notifications, transports=[]
             background:section===item.id?"rgba(255,255,255,.12)":"transparent",
             borderLeft:`3px solid ${section===item.id?C.greenPale:"transparent"}`,
             fontSize:14,fontWeight:section===item.id?600:400}}>
-            <span style={{fontSize:16}}>{item.icon}</span>{item.label}
+            <span style={{fontSize:16}}>{item.icon}</span>
+            <span style={{flex:1}}>{item.label}</span>
+            {item.id==="alertes"&&alertesActives.length>0&&(
+              <span style={{background:C.red,color:"#fff",fontSize:10,fontWeight:700,
+                borderRadius:10,padding:"2px 7px"}}>{alertesActives.length}</span>
+            )}
           </div>
         ))}
         <div style={{flex:1}}/>
         <div onClick={onLogout} style={{display:"flex",alignItems:"center",gap:10,
-          padding:"11px 20px",cursor:"pointer",fontSize:13,opacity:.7}}>
-          <span style={{fontSize:16}}>⎋</span>Déconnexion
+          padding:"12px 20px",cursor:"pointer",borderTop:"1px solid rgba(255,255,255,.12)"}}>
+          <div style={{width:32,height:32,borderRadius:"50%",background:C.greenL,
+            color:C.greenD,display:"flex",alignItems:"center",justifyContent:"center",
+            fontWeight:700,fontSize:13,flexShrink:0}}>
+            {(user?.prenom||user?.nom||"?")[0]}
+          </div>
+          <div style={{flex:1}}>
+            <div style={{fontSize:13,fontWeight:600}}>
+              {user?.prenom ? `${user.prenom[0]}.` : ""} {user?.nom}
+            </div>
+            <div style={{fontSize:11,opacity:.6}}>Exploitant</div>
+          </div>
+          <span style={{fontSize:14,opacity:.6}}>›</span>
         </div>
       </div>
 
@@ -9370,9 +9413,9 @@ const EcranDashboardPC = ({user, contacts, visites, notifications, transports=[]
             {DASHBOARD_NAV.find(n=>n.id===section)?.label||"Tableau de bord"}
           </div>
           <div style={{display:"flex",alignItems:"center",gap:10}}>
-            {alertesCritiques.length>0&&(
+            {alertesActives.length>0&&(
               <div style={{background:C.redL,color:C.red,fontSize:12,fontWeight:600,
-                padding:"6px 12px",borderRadius:20}}>🔔 {alertesCritiques.length}</div>
+                padding:"6px 12px",borderRadius:20}}>🔔 {alertesActives.length}</div>
             )}
             <div style={{width:34,height:34,borderRadius:"50%",background:C.greenL,
               color:C.greenD,display:"flex",alignItems:"center",justifyContent:"center",
@@ -9399,37 +9442,95 @@ const EcranDashboardPC = ({user, contacts, visites, notifications, transports=[]
               ))}
             </div>
 
-            <div style={{display:"grid",gridTemplateColumns:"2fr 1fr",gap:16,alignItems:"start"}}>
+            <div style={{display:"grid",gridTemplateColumns:"2fr 1fr",gap:16,alignItems:"start",marginBottom:20}}>
               <div style={{background:"#fff",borderRadius:14,border:`1px solid ${C.bd}`,
-                padding:16,height:480,display:"flex",flexDirection:"column"}}>
+                padding:16,height:480,display:"flex",flexDirection:"column",position:"relative"}}>
                 <div style={{fontSize:14,fontWeight:700,marginBottom:10,fontFamily:FONT_TITLE}}>
-                  Carte des lots et transports
+                  Suivi des activités en temps réel
                 </div>
-                <div style={{flex:1,borderRadius:10,overflow:"hidden"}}>
+                <div style={{flex:1,borderRadius:10,overflow:"hidden",position:"relative"}}>
                   <EcranCarte contacts={contacts} visites={visites}
                     onOpenLot={lot=>setLotDetail(lot)}/>
+                  <div style={{position:"absolute",bottom:10,left:10,background:"rgba(255,255,255,.95)",
+                    borderRadius:10,padding:"8px 12px",boxShadow:"0 2px 8px rgba(0,0,0,.12)",
+                    display:"flex",flexDirection:"column",gap:5,zIndex:5}}>
+                    {MAP_LEGEND.map(([icon,color,label],i)=>(
+                      <div key={i} style={{display:"flex",alignItems:"center",gap:6,fontSize:11,color:C.tx2}}>
+                        <span style={{fontSize:12}}>{icon}</span>{label}
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
 
-              <div style={{background:"#fff",borderRadius:14,border:`1px solid ${C.bd}`,padding:16}}>
-                <div style={{fontSize:14,fontWeight:700,marginBottom:12,fontFamily:FONT_TITLE}}>
-                  Activité récente
+              <div style={{display:"flex",flexDirection:"column",gap:16}}>
+                <div style={{background:"#fff",borderRadius:14,border:`1px solid ${C.bd}`,padding:16}}>
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
+                    <div style={{fontSize:14,fontWeight:700,fontFamily:FONT_TITLE}}>🚛 Transports en cours</div>
+                    {transports.length>3&&(
+                      <span onClick={()=>setSection("transports")} style={{fontSize:11,color:C.green,
+                        fontWeight:600,cursor:"pointer"}}>Voir tout</span>
+                    )}
+                  </div>
+                  {transports.filter(t=>!["LIVRE","LIVRE_CHAUFFERIE"].includes(t.statut)).length===0 ? (
+                    <div style={{fontSize:13,color:C.tx3}}>Aucun transport en cours.</div>
+                  ) : transports.filter(t=>!["LIVRE","LIVRE_CHAUFFERIE"].includes(t.statut)).slice(0,3).map((t,i)=>(
+                    <div key={t.id||i} style={{marginBottom:12,paddingBottom:12,
+                      borderBottom:i<2?`1px solid ${C.bd}`:"none"}}>
+                      <div style={{fontFamily:"monospace",fontSize:12,fontWeight:700,color:C.tx}}>
+                        {t.lotNumero||"—"}
+                      </div>
+                      <div style={{fontSize:11,color:C.tx3,marginTop:2}}>
+                        {t.societeTransp||t.immatTracteur||"Transporteur"}
+                      </div>
+                      <span style={{fontSize:10,color:C.green,fontWeight:600}}>● En route</span>
+                    </div>
+                  ))}
+                  {transports.filter(t=>!["LIVRE","LIVRE_CHAUFFERIE"].includes(t.statut)).length>3&&(
+                    <div style={{fontSize:11,color:C.tx3}}>
+                      + {transports.filter(t=>!["LIVRE","LIVRE_CHAUFFERIE"].includes(t.statut)).length-3} autres transports
+                    </div>
+                  )}
                 </div>
-                {notifications.length===0 && (
-                  <div style={{fontSize:13,color:C.tx3}}>Aucune activité récente.</div>
-                )}
-                {notifications.slice(0,8).map((n,i)=>(
-                  <div key={n.id||i} style={{display:"flex",gap:10,marginBottom:14}}>
-                    <span style={{fontSize:16}}>{n.lu?"✅":"🔔"}</span>
-                    <div style={{flex:1}}>
-                      <div style={{fontSize:12,color:C.tx,lineHeight:1.4}}>{n.message||n.titre||"—"}</div>
-                      <div style={{fontSize:10,color:C.tx3,marginTop:2}}>
-                        {n.date?new Date(n.date).toLocaleString("fr-FR"):""}
+
+                <div style={{background:"#fff",borderRadius:14,border:`1px solid ${C.bd}`,padding:16}}>
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
+                    <div style={{fontSize:14,fontWeight:700,fontFamily:FONT_TITLE}}>🔔 Alertes récentes</div>
+                    {notifications.length>3&&(
+                      <span onClick={()=>setSection("alertes")} style={{fontSize:11,color:C.green,
+                        fontWeight:600,cursor:"pointer"}}>Voir tout</span>
+                    )}
+                  </div>
+                  {notifications.length===0 ? (
+                    <div style={{fontSize:13,color:C.tx3}}>Aucune alerte récente.</div>
+                  ) : notifications.slice(0,3).map((n,i)=>(
+                    <div key={n.id||i} style={{display:"flex",gap:10,marginBottom:12}}>
+                      <span style={{fontSize:14}}>{n.lu?"✅":"⚠️"}</span>
+                      <div style={{flex:1}}>
+                        <div style={{fontSize:12,color:C.tx,lineHeight:1.4}}>{n.message||n.titre||"—"}</div>
+                        <div style={{fontSize:10,color:C.tx3,marginTop:2}}>
+                          {n.date?new Date(n.date).toLocaleString("fr-FR"):""}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  ))}
+                  {notifications.length>3&&(
+                    <div style={{fontSize:11,color:C.tx3}}>+ {notifications.length-3} autres alertes</div>
+                  )}
+                </div>
               </div>
+            </div>
+
+            <div style={{display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:14,marginBottom:20}}>
+              {KPI_CARDS_2.map((k,i)=>(
+                <div key={i} style={{background:"#fff",borderRadius:14,padding:16,
+                  border:`1px solid ${C.bd}`}}>
+                  <div style={{fontSize:20,marginBottom:6}}>{k.icon}</div>
+                  <div style={{fontSize:22,fontWeight:700,color:k.color,fontFamily:FONT_TITLE}}>{k.val}</div>
+                  <div style={{fontSize:12,color:C.tx3,marginTop:2}}>{k.label}</div>
+                  {k.note&&<div style={{fontSize:10,color:C.tx3,marginTop:2,fontStyle:"italic"}}>{k.note}</div>}
+                </div>
+              ))}
             </div>
 
             {lotDetail && (
@@ -9470,7 +9571,7 @@ const EcranDashboardPC = ({user, contacts, visites, notifications, transports=[]
           </div>
         )}
 
-        {["transports","livraisons","chaufferies","rapports","parametres"].includes(section) && (
+        {["chantiers","transports","livraisons","chaufferies","analyses","documents","rapports","parametres"].includes(section) && (
           <div style={{background:"#fff",borderRadius:14,border:`1px solid ${C.bd}`,
             padding:40,textAlign:"center",color:C.tx3}}>
             <div style={{fontSize:32,marginBottom:10}}>🚧</div>
@@ -9751,7 +9852,8 @@ export default function App() {
 
   if (user?.role==="admin" && isWideScreen) return (
     <EcranDashboardPC user={user} contacts={contacts} visites={visites}
-      notifications={notifications} transports={transports} toasts={toasts}
+      notifications={notifications} transports={transports} livraisons={livraisons}
+      dechiquetages={dechiquetages} toasts={toasts}
       onLogout={handleLogout}/>
   );
 
