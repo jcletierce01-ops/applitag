@@ -60,6 +60,36 @@ const comptesLocalGet = () => { try { return JSON.parse(localStorage.getItem(COM
 const comptesLocalSave = (arr) => { try { localStorage.setItem(COMPTES_KEY, JSON.stringify(arr)); } catch {} };
 const COMPTE_SESSION_KEY = "applitag_compte_contact_session";
 
+// Sources locales à resynchroniser tant que les routes API correspondantes ne sont pas
+// garanties disponibles (notamment important sur iOS Safari, où le localStorage d'un
+// site non ajouté à l'écran d'accueil peut être purgé après une longue inactivité).
+const SYNC_SOURCES = [
+  {get:ordresExplLocalGet, save:ordresExplLocalSave, url:`${API}/ordres-exploitation`},
+  {get:annoncesLocalGet,   save:annoncesLocalSave,   url:`${API}/annonces`},
+  {get:comptesLocalGet,    save:comptesLocalSave,    url:`${API}/comptes-contact`},
+];
+
+const countPendingSync = () => SYNC_SOURCES.reduce((s,src)=>s+src.get().filter(r=>!r.synced).length,0);
+
+// Retente l'envoi de chaque enregistrement local non synchronisé. Appelé au chargement
+// de l'app admin — silencieux, ne bloque jamais l'utilisateur si l'API reste indisponible.
+const resyncPendingRecords = async () => {
+  for (const src of SYNC_SOURCES) {
+    const records = src.get();
+    let changed = false;
+    for (const r of records) {
+      if (r.synced) continue;
+      try {
+        const res = await fetch(src.url, {
+          method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(r),
+        });
+        if (res.ok) { r.synced = true; changed = true; }
+      } catch {}
+    }
+    if (changed) src.save(records);
+  }
+};
+
 const TYPES_PRESTATION_ANNONCE = [
   ["abattage","🪓","Abattage"],
   ["debardage","🚜","Débardage"],
@@ -583,12 +613,13 @@ const LoginScreen = ({onLogin, onLoginOperateur, onLoginDemo}) => {
       photos: annoncePhotos,
       prestations: annoncePrestations, commentaire: annonceCommentaire,
       consentRecontact, consentActus, consentNetwork,
-      dateEnvoi: nowISO(),
+      dateEnvoi: nowISO(), synced:false,
     };
     try {
-      await fetch(`${API}/annonces`, {
+      const res = await fetch(`${API}/annonces`, {
         method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(annonce),
       });
+      if (res.ok) annonce.synced = true;
     } catch {}
     annoncesLocalSave([annonce, ...annoncesLocalGet()]);
     setAnnonceEnvoyee(true);
@@ -629,12 +660,13 @@ const LoginScreen = ({onLogin, onLoginOperateur, onLoginDemo}) => {
     const compte = {
       id: uid(), nom: compteNom, telephone: compteTel, email: compteEmail, pin: comptePin,
       entrepriseId: DEFAULT_ENTREPRISE_ID, consentActus:false, consentNetwork:false,
-      dateCreation: nowISO(),
+      dateCreation: nowISO(), synced:false,
     };
     try {
-      await fetch(`${API}/comptes-contact`, {
+      const res = await fetch(`${API}/comptes-contact`, {
         method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(compte),
       });
+      if (res.ok) compte.synced = true;
     } catch {}
     comptesLocalSave([compte, ...existants]);
     const session = {id:compte.id, nom:compte.nom, telephone:compte.telephone, email:compte.email,
@@ -4830,7 +4862,7 @@ const EcranDelegations = ({entrepriseId, toast, onBack}) => {
       entrepriseAdresse: ent.adressePostale, entrepriseComplement: ent.complementAdresse,
       entrepriseCP: ent.codePostal, entrepriseCommune: ent.commune, entrepriseSiret: ent.siret,
       missionType, missionLabel, delaiExecution,
-      dateEmission: nowISO(),
+      dateEmission: nowISO(), synced:false,
     };
     try {
       await fetch(`${API}/contacts/${missionLotId}`, {
@@ -4839,9 +4871,10 @@ const EcranDelegations = ({entrepriseId, toast, onBack}) => {
       });
       setContacts(prev=>prev.map(c=>c.id===missionLotId?{...c,etfNom:ent.nom}:c));
       try {
-        await fetch(`${API}/ordres-exploitation`, {
+        const res = await fetch(`${API}/ordres-exploitation`, {
           method:"POST", headers:authHeaders(), body:JSON.stringify(ordre),
         });
+        if (res.ok) ordre.synced = true;
       } catch {}
       ordresExplLocalSave([ordre, ...ordresExplLocalGet()]);
       setOrdreGenere(ordre);
@@ -9769,7 +9802,7 @@ const DASHBOARD_NAV = [
   {id:"parametres",  icon:"⚙️", label:"Paramètres"},
 ];
 
-const EcranDashboardPC = ({user, contacts, visites, notifications, transports=[], livraisons=[], dechiquetages=[], onLogout}) => {
+const EcranDashboardPC = ({user, contacts, visites, notifications, transports=[], livraisons=[], dechiquetages=[], pendingSyncCount=0, onLogout}) => {
   const [section, setSection] = useState("dashboard");
   const [lotDetail, setLotDetail] = useState(null);
 
@@ -9880,6 +9913,11 @@ const EcranDashboardPC = ({user, contacts, visites, notifications, transports=[]
             {DASHBOARD_NAV.find(n=>n.id===section)?.label||"Tableau de bord"}
           </div>
           <div style={{display:"flex",alignItems:"center",gap:10}}>
+            {pendingSyncCount>0&&(
+              <div title="Enregistrements en attente de synchronisation avec le serveur"
+                style={{background:C.amberL,color:C.amberD,fontSize:12,fontWeight:600,
+                padding:"6px 12px",borderRadius:20}}>📡 {pendingSyncCount}</div>
+            )}
             {alertesActives.length>0&&(
               <div style={{background:C.redL,color:C.red,fontSize:12,fontWeight:600,
                 padding:"6px 12px",borderRadius:20}}>🔔 {alertesActives.length}</div>
@@ -10097,6 +10135,15 @@ export default function App() {
     window.addEventListener("resize", onResize);
     return ()=>window.removeEventListener("resize", onResize);
   },[]);
+
+  // Resynchronisation des enregistrements restés en local (ordres, annonces, comptes)
+  // dès que l'API correspondante répond — réduit la dépendance au localStorage seul,
+  // notamment sensible sur iOS Safari hors écran d'accueil.
+  const [pendingSyncCount, setPendingSyncCount] = useState(()=>countPendingSync());
+  useEffect(()=>{
+    if (!user || isDemoMode) return;
+    resyncPendingRecords().finally(()=>setPendingSyncCount(countPendingSync()));
+  },[user, isDemoMode]);
 
   const toast = useCallback((msg,type="success")=>{
     const id=uid();
@@ -10321,7 +10368,7 @@ export default function App() {
   if (user?.role==="admin" && isWideScreen) return (
     <EcranDashboardPC user={user} contacts={contacts} visites={visites}
       notifications={notifications} transports={transports} livraisons={livraisons}
-      dechiquetages={dechiquetages} toasts={toasts}
+      dechiquetages={dechiquetages} toasts={toasts} pendingSyncCount={pendingSyncCount}
       onLogout={handleLogout}/>
   );
 
@@ -10353,6 +10400,11 @@ export default function App() {
               <div style={{fontSize:16,fontWeight:600,fontFamily:FONT_TITLE}}>{SCREEN_TITLES[screen]||"APPLITAG"}</div>
               <div style={{fontSize:11,opacity:.6}}>{user.prenom||user.nom} · {user.role}</div>
             </div>
+            {user.role==="admin"&&pendingSyncCount>0&&(
+              <div title="Enregistrements en attente de synchronisation avec le serveur" style={{
+                background:C.amberL,color:C.amberD,padding:"6px 10px",borderRadius:8,
+                fontSize:11,fontWeight:600}}>📡 {pendingSyncCount}</div>
+            )}
             {user.role==="admin"&&(
               <button onClick={()=>setShowQr(true)} style={{
                 background:"rgba(255,255,255,.1)",border:"none",color:"#fff",
