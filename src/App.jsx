@@ -566,6 +566,7 @@ const LoginScreen = ({onLogin, onLoginOperateur, onLoginDemo}) => {
   const [annonceTel,      setAnnonceTel]      = useState("");
   const [annonceEmail,    setAnnonceEmail]    = useState("");
   const [annonceCommune,  setAnnonceCommune]  = useState("");
+  const [annonceCP,       setAnnonceCP]       = useState("");
   const [annonceTypeBois, setAnnonceTypeBois] = useState("");
   const [annonceVolume,   setAnnonceVolume]   = useState("");
   const [annonceEtatBois, setAnnonceEtatBois] = useState("sur_pied"); // sur_pied | bord_route
@@ -595,7 +596,7 @@ const LoginScreen = ({onLogin, onLoginOperateur, onLoginDemo}) => {
 
   const resetAnnonce = () => {
     setAnnonceType(null); setAnnonceNom(""); setAnnonceTel(""); setAnnonceEmail("");
-    setAnnonceCommune(""); setAnnonceTypeBois(""); setAnnonceVolume(""); setAnnonceEtatBois("sur_pied");
+    setAnnonceCommune(""); setAnnonceCP(""); setAnnonceTypeBois(""); setAnnonceVolume(""); setAnnonceEtatBois("sur_pied");
     setAnnoncePhotos([]); setAnnoncePrest([]); setAnnonceComment("");
     setConsentRecontact(false); setConsentActus(false); setConsentNetwork(false);
     setAnnonceEnvoyee(false);
@@ -603,12 +604,13 @@ const LoginScreen = ({onLogin, onLoginOperateur, onLoginDemo}) => {
 
   const handleEnvoyerAnnonce = async () => {
     if (!annonceNom.trim()||!annonceTel.trim()) { setError("Indiquez votre nom/société et votre téléphone"); return; }
+    if (!annonceCP.trim()) { setError("Indiquez votre code postal"); return; }
     if (!consentRecontact) { setError("Merci de cocher la case « J'accepte d'être recontacté »"); return; }
     setError(""); setAnnonceSaving(true);
     const annonce = {
       id: uid(), type: annonceType, statut:"recu", entrepriseId: DEFAULT_ENTREPRISE_ID,
       compteId: compteSession?.id||null,
-      nom: annonceNom, telephone: annonceTel, email: annonceEmail, commune: annonceCommune,
+      nom: annonceNom, telephone: annonceTel, email: annonceEmail, commune: annonceCommune, codePostal: annonceCP,
       typeBois: annonceTypeBois, volumeEstime: annonceVolume, etatBois: annonceEtatBois,
       photos: annoncePhotos,
       prestations: annoncePrestations, commentaire: annonceCommentaire,
@@ -1088,6 +1090,11 @@ const LoginScreen = ({onLogin, onLoginOperateur, onLoginDemo}) => {
                     color:"#fff",fontFamily:"inherit",fontSize:15,outline:"none",marginBottom:10}}/>
                 <input value={annonceCommune} onChange={e=>setAnnonceCommune(e.target.value)}
                   placeholder="Commune"
+                  style={{width:"100%",height:48,padding:"0 14px",borderRadius:10,
+                    border:"1.5px solid rgba(255,255,255,.25)",background:"rgba(255,255,255,.08)",
+                    color:"#fff",fontFamily:"inherit",fontSize:15,outline:"none",marginBottom:10}}/>
+                <input value={annonceCP} onChange={e=>setAnnonceCP(e.target.value.replace(/\D/g,"").slice(0,5))}
+                  placeholder="Code postal *" type="tel" maxLength={5}
                   style={{width:"100%",height:48,padding:"0 14px",borderRadius:10,
                     border:"1.5px solid rgba(255,255,255,.25)",background:"rgba(255,255,255,.08)",
                     color:"#fff",fontFamily:"inherit",fontSize:15,outline:"none",marginBottom:10}}/>
@@ -3226,7 +3233,7 @@ const EcranReleves = ({entrepriseId, user, toast, notifications=[], setNotificat
 
   const handleCreerLotDepuisAnnonce = async (annonce) => {
     const contact = {
-      nom: annonce.nom, telephone: annonce.telephone, commune: annonce.commune,
+      nom: annonce.nom, telephone: annonce.telephone, commune: annonce.commune, codePostal: annonce.codePostal||"",
       potentiel: annonce.typeBois||annonce.essence||"", commentaire: annonce.commentaire||"",
       surfaceHa: annonce.surfaceHa?parseFloat(annonce.surfaceHa):null,
       typeContact:"proprietaire_forestier", origine:"annonce", statut:"nouveau",
@@ -3637,7 +3644,7 @@ const EcranReleves = ({entrepriseId, user, toast, notifications=[], setNotificat
                   </div>
                   <div style={{fontSize:15,fontWeight:700,color:C.tx,marginBottom:2}}>{a.nom}</div>
                   <div style={{fontSize:12,color:C.tx3,lineHeight:1.8,marginBottom:10}}>
-                    📞 {a.telephone}{a.email&&<> · 📧 {a.email}</>}{a.commune&&<> · 📍 {a.commune}</>}
+                    📞 {a.telephone}{a.email&&<> · 📧 {a.email}</>}{a.commune&&<> · 📍 {a.commune}{a.codePostal?` (${a.codePostal})`:""}</>}
                     {a.typeBois&&<><br/>🪵 {a.typeBois}</>}
                     {a.volumeEstime&&<><br/>📦 {a.volumeEstime}</>}
                     {a.etatBois&&<><br/>🌲 {a.etatBois==="sur_pied"?"Bois sur pied":"Bord de route"}</>}
