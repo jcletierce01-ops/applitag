@@ -7258,13 +7258,13 @@ const EcranRoleChauffeur = ({user, transports=[]}) => {
                   color:confirmed[t.id+"arrivePlace"]?C.greenD:C.tx,
                   fontFamily:"inherit",fontSize:14,fontWeight:600,cursor:"pointer",
                   WebkitTapHighlightColor:"transparent"}}>
-                {confirmed[t.id+"arrivePlace"]?"✅ Arrivé sur place":"📍 Confirmer être arrivé sur place"}
+                {confirmed[t.id+"arrivePlace"]?"✅ Arrivé sur site de chargement":"📍 Arrivé sur site de chargement"}
               </button>
             )}
 
             {[
               {label:"Départ confirmé",key:"depart"},
-              {label:"Arrivée sur site",key:"arrivee"},
+              {label:"Arrivé sur site déchargement",key:"arrivee"},
             ].map(btn=>(
               <button key={btn.key} onClick={()=>setConfirmed(p=>({...p,[t.id+btn.key]:true}))}
                 disabled={confirmed[t.id+btn.key]}
