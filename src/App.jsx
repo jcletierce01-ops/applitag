@@ -33,8 +33,15 @@ const PADDING = 16;
 const uid = () => Math.random().toString(36).slice(2,9);
 const nowISO = () => new Date().toISOString();
 const todayS = () => new Date().toISOString().slice(0,10);
-const genCode = () => Math.random().toString(36).slice(2,8).toUpperCase();
-const genPin4 = () => String(Math.floor(1000 + Math.random()*9000));
+// Code à usage unique (ordre d'exploitation) — 8 caractères, alphabet sans caractères ambigus (0/O, 1/I/L).
+const genCode = () => {
+  const alphabet = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
+  let out = "";
+  for (let i=0; i<8; i++) out += alphabet[Math.floor(Math.random()*alphabet.length)];
+  return out;
+};
+// PIN opérateur — 6 chiffres (au lieu de 4) pour plus de robustesse.
+const genPin4 = () => String(Math.floor(100000 + Math.random()*900000));
 
 // Stockage de repli pour les ordres d'exploitation, tant que l'API /ordres-exploitation
 // n'est pas garantie disponible — permet la validation par code sans dépendre du backend.
@@ -951,7 +958,7 @@ const LoginScreen = ({onLogin, onLoginOperateur, onLoginDemo}) => {
             {!ordreTrouve ? (
               <>
                 <input value={ordreCode} onChange={e=>setOrdreCode(e.target.value.toUpperCase())}
-                  placeholder="Ex: A1B2C3" maxLength={6}
+                  placeholder="Ex: A7K9P2QX" maxLength={8}
                   style={{width:"100%",height:54,padding:"0 16px",borderRadius:12,
                     border:"1.5px solid rgba(255,255,255,.25)",background:"rgba(255,255,255,.08)",
                     color:"#fff",fontFamily:"monospace",fontSize:22,fontWeight:700,
@@ -4101,7 +4108,7 @@ const EcranOperateur = ({operateur, onLogout, toast, onUpdateOperateur}) => {
   const handleChangerPin = async () => {
     setPinErreur("");
     if (operateur.pin && pinActuel!==operateur.pin) { setPinErreur("PIN actuel incorrect"); return; }
-    if (!/^\d{4}$/.test(pinNouveau)) { setPinErreur("Le nouveau PIN doit comporter 4 chiffres"); return; }
+    if (!/^\d{6}$/.test(pinNouveau)) { setPinErreur("Le nouveau PIN doit comporter 6 chiffres"); return; }
     if (pinNouveau!==pinNouveauConf) { setPinErreur("Les deux PIN ne correspondent pas"); return; }
     setPinSaving(true);
     try {
@@ -4346,14 +4353,14 @@ const EcranOperateur = ({operateur, onLogout, toast, onUpdateOperateur}) => {
             <SectionTitle icon="🔑" label="Changer mon code PIN"/>
             {operateur.pin&&(
               <MInput label="PIN actuel" value={pinActuel} onChange={setPinActuel}
-                placeholder="4 chiffres" type="password"/>
+                placeholder="6 chiffres" type="password"/>
             )}
             <MInput label="Nouveau PIN" value={pinNouveau}
-              onChange={v=>setPinNouveau(v.replace(/\D/g,"").slice(0,4))}
-              placeholder="4 chiffres" type="password"/>
+              onChange={v=>setPinNouveau(v.replace(/\D/g,"").slice(0,6))}
+              placeholder="6 chiffres" type="password"/>
             <MInput label="Confirmer le nouveau PIN" value={pinNouveauConf}
-              onChange={v=>setPinNouveauConf(v.replace(/\D/g,"").slice(0,4))}
-              placeholder="4 chiffres" type="password"/>
+              onChange={v=>setPinNouveauConf(v.replace(/\D/g,"").slice(0,6))}
+              placeholder="6 chiffres" type="password"/>
             {pinErreur&&(
               <div style={{color:C.amberD,fontSize:13,marginBottom:12}}>⚠ {pinErreur}</div>
             )}
