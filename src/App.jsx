@@ -4053,7 +4053,6 @@ const EcranOperateur = ({operateur, onLogout, toast}) => {
   const [longueurDeb,   setLongDeb]    = useState(0);
   const [largeurDeb,    setLargDeb]    = useState(0);
   const [hauteurDeb,    setHautDeb]    = useState(0);
-  const [tasDetailsDeb, setTasDetailsDeb] = useState([]); // [{longueur,largeur,hauteur}] — utilisé si nbVoyages>1
   const [foisDeb,       setFoisDeb]    = useState(0.55);
   const [distTransport, setDistTransp] = useState("");
   const [machineDeb,    setMachineDeb] = useState("");
@@ -4064,19 +4063,8 @@ const EcranOperateur = ({operateur, onLogout, toast}) => {
   const volApparent = nbTas * longueur * largeur * hauteur;
   const volReel = volApparent * foisonnement;
 
-  // Synchronise les fiches de mesure par tas avec le nombre de tas (débardage)
-  useEffect(()=>{
-    setTasDetailsDeb(prev=>{
-      const next = [...prev];
-      while (next.length < nbVoyages) next.push({longueur:longueurDeb, largeur:largeurDeb, hauteur:hauteurDeb});
-      return next.slice(0, nbVoyages);
-    });
-  },[nbVoyages]);
-
-  // Calcul automatique débardeur (volume approximatif × nb tas)
-  const volApparentDeb = nbVoyages>1
-    ? tasDetailsDeb.reduce((s,t)=>s+(parseFloat(t.longueur)||0)*(parseFloat(t.largeur)||0)*(parseFloat(t.hauteur)||0),0)
-    : nbVoyages * longueurDeb * largeurDeb * hauteurDeb;
+  // Calcul automatique débardeur (dimension moyenne × nombre de rotations)
+  const volApparentDeb = nbVoyages * longueurDeb * largeurDeb * hauteurDeb;
   const volReelDeb = volApparentDeb * foisDeb;
 
   // Composition essences de la visite (pondérée, source ITEBE) — sinon mélange par défaut
@@ -4104,7 +4092,6 @@ const EcranOperateur = ({operateur, onLogout, toast}) => {
       date: dateHeure,
       nbVoyages,
       longueur:longueurDeb, largeur:largeurDeb, hauteur:hauteurDeb,
-      tasDetails: nbVoyages>1 ? tasDetailsDeb : undefined,
       foisonnement:foisDeb,
       volTotal: Math.round(volReelDeb*100)/100,
       poidsTotal: poidsTotalDeb,
@@ -4304,44 +4291,18 @@ const EcranOperateur = ({operateur, onLogout, toast}) => {
             {typeOp==="debardage"&&(
               <>
                 <SectionTitle icon="📦" label="Mesures approximatives des bois débardés"/>
-                <MInput label="Nombre de tas" value={String(nbVoyages||"")}
+                <MInput label="Nombre de rotations" value={String(nbVoyages||"")}
                   onChange={v=>setNbVoyages(parseInt(v)||0)} type="number"
-                  placeholder="ex: 6" hint="tas déposés bord de route / plateforme"/>
+                  placeholder="ex: 6" hint="une seule dimension moyenne sera utilisée pour toutes les rotations"/>
 
-                {nbVoyages<=1 ? (
-                  <>
-                    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:14}}>
-                      <MInput label="Longueur approx. (m)" value={String(longueurDeb||"")}
-                        onChange={v=>setLongDeb(parseFloat(v)||0)} type="number" placeholder="ex: 4"/>
-                      <MInput label="Largeur approx. (m)" value={String(largeurDeb||"")}
-                        onChange={v=>setLargDeb(parseFloat(v)||0)} type="number" placeholder="ex: 1.2"/>
-                    </div>
-                    <MInput label="Hauteur approx. (m)" value={String(hauteurDeb||"")}
-                      onChange={v=>setHautDeb(parseFloat(v)||0)} type="number" placeholder="ex: 1.5"/>
-                  </>
-                ) : (
-                  <div style={{marginBottom:14}}>
-                    <div style={{fontSize:12,color:C.tx3,marginBottom:10,lineHeight:1.6}}>
-                      {nbVoyages} tas déclarés — saisissez les dimensions de chacun.
-                    </div>
-                    {tasDetailsDeb.map((t,i)=>(
-                      <div key={i} style={{background:"#fff",border:`1px solid ${C.bd}`,
-                        borderRadius:12,padding:14,marginBottom:10}}>
-                        <div style={{fontSize:13,fontWeight:700,color:C.purpleD,marginBottom:10}}>
-                          📦 Tas {i+1}
-                        </div>
-                        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8}}>
-                          <MInput label="Long. (m)" value={String(t.longueur)} type="number"
-                            onChange={v=>setTasDetailsDeb(prev=>prev.map((x,j)=>j===i?{...x,longueur:parseFloat(v)||0}:x))}/>
-                          <MInput label="Larg. (m)" value={String(t.largeur)} type="number"
-                            onChange={v=>setTasDetailsDeb(prev=>prev.map((x,j)=>j===i?{...x,largeur:parseFloat(v)||0}:x))}/>
-                          <MInput label="Haut. (m)" value={String(t.hauteur)} type="number"
-                            onChange={v=>setTasDetailsDeb(prev=>prev.map((x,j)=>j===i?{...x,hauteur:parseFloat(v)||0}:x))}/>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
+                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:14}}>
+                  <MInput label="Longueur moyenne (m)" value={String(longueurDeb||"")}
+                    onChange={v=>setLongDeb(parseFloat(v)||0)} type="number" placeholder="ex: 4"/>
+                  <MInput label="Largeur moyenne (m)" value={String(largeurDeb||"")}
+                    onChange={v=>setLargDeb(parseFloat(v)||0)} type="number" placeholder="ex: 1.2"/>
+                </div>
+                <MInput label="Hauteur moyenne (m)" value={String(hauteurDeb||"")}
+                  onChange={v=>setHautDeb(parseFloat(v)||0)} type="number" placeholder="ex: 1.5"/>
 
                 <SectionTitle icon="🌬️" label="Foisonnement"/>
                 <div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:14}}>
