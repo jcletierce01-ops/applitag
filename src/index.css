@@ -62,3 +62,10 @@ body {
 * {
   -webkit-overflow-scrolling: touch;
 }
+
+/* Placeholders lisibles sur fond sombre (ex: APPLITAG Connect) */
+input::placeholder,
+textarea::placeholder {
+  color: rgba(255, 255, 255, 0.55);
+  opacity: 1;
+}
