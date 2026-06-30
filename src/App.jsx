@@ -1100,7 +1100,7 @@ const LoginScreen = ({onLogin, onLoginOperateur, onLoginDemo}) => {
                         border:"1.5px solid rgba(255,255,255,.25)",background:"rgba(255,255,255,.08)",
                         color:"#fff",fontFamily:"inherit",fontSize:15,outline:"none",marginBottom:10}}/>
                     <input value={annonceVolume} onChange={e=>setAnnonceVolume(e.target.value)}
-                      placeholder="Volume estimé (m³, t…) — optionnel"
+                      placeholder="Volume ou surface estimée (t, m³, ha…) — optionnel"
                       style={{width:"100%",height:48,padding:"0 14px",borderRadius:10,
                         border:"1.5px solid rgba(255,255,255,.25)",background:"rgba(255,255,255,.08)",
                         color:"#fff",fontFamily:"inherit",fontSize:15,outline:"none",marginBottom:10}}/>
