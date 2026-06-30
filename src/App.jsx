@@ -660,7 +660,7 @@ const LoginScreen = ({onLogin, onLoginOperateur, onLoginDemo}) => {
 
   const handleCreerCompte = async () => {
     if (!compteNom.trim()||!compteTel.trim()) { setCompteErreur("Indiquez votre nom/société et votre téléphone"); return; }
-    if (comptePin.length!==4) { setCompteErreur("Le code doit comporter 4 chiffres"); return; }
+    if (comptePin.length!==6) { setCompteErreur("Le code doit comporter 6 chiffres"); return; }
     if (comptePin!==comptePinConf) { setCompteErreur("Les deux codes ne correspondent pas"); return; }
     const existants = comptesLocalGet();
     if (existants.some(c=>c.telephone===compteTel||(compteEmail&&c.email===compteEmail))) {
@@ -691,7 +691,7 @@ const LoginScreen = ({onLogin, onLoginOperateur, onLoginDemo}) => {
 
   const handleConnexionCompte = async () => {
     if (!compteIdentifiant.trim()||compteLoginPin.length!==4) {
-      setCompteErreur("Indiquez votre téléphone/email et votre code à 4 chiffres"); return;
+      setCompteErreur("Indiquez votre téléphone/email et votre code à 6 chiffres"); return;
     }
     setCompteErreur(""); setCompteSaving(true);
     const compte = comptesLocalGet().find(c=>
@@ -1290,13 +1290,13 @@ const LoginScreen = ({onLogin, onLoginOperateur, onLoginDemo}) => {
                   style={{width:"100%",height:48,padding:"0 14px",borderRadius:10,
                     border:"1.5px solid rgba(255,255,255,.25)",background:"rgba(255,255,255,.08)",
                     color:"#fff",fontFamily:"inherit",fontSize:15,outline:"none",marginBottom:10}}/>
-                <input value={comptePin} onChange={e=>setComptePin(e.target.value.replace(/\D/g,"").slice(0,4))}
-                  placeholder="Créez un code à 4 chiffres *" type="tel" maxLength={4}
+                <input value={comptePin} onChange={e=>setComptePin(e.target.value.replace(/\D/g,"").slice(0,6))}
+                  placeholder="Créez un code à 6 chiffres *" type="tel" maxLength={6}
                   style={{width:"100%",height:48,padding:"0 14px",borderRadius:10,
                     border:"1.5px solid rgba(255,255,255,.25)",background:"rgba(255,255,255,.08)",
                     color:"#fff",fontFamily:"monospace",fontSize:18,letterSpacing:6,outline:"none",marginBottom:10}}/>
-                <input value={comptePinConf} onChange={e=>setComptePinConf(e.target.value.replace(/\D/g,"").slice(0,4))}
-                  placeholder="Confirmez le code *" type="tel" maxLength={4}
+                <input value={comptePinConf} onChange={e=>setComptePinConf(e.target.value.replace(/\D/g,"").slice(0,6))}
+                  placeholder="Confirmez le code *" type="tel" maxLength={6}
                   style={{width:"100%",height:48,padding:"0 14px",borderRadius:10,
                     border:"1.5px solid rgba(255,255,255,.25)",background:"rgba(255,255,255,.08)",
                     color:"#fff",fontFamily:"monospace",fontSize:18,letterSpacing:6,outline:"none",marginBottom:14}}/>
@@ -1327,8 +1327,8 @@ const LoginScreen = ({onLogin, onLoginOperateur, onLoginDemo}) => {
                   style={{width:"100%",height:48,padding:"0 14px",borderRadius:10,
                     border:"1.5px solid rgba(255,255,255,.25)",background:"rgba(255,255,255,.08)",
                     color:"#fff",fontFamily:"inherit",fontSize:15,outline:"none",marginBottom:10}}/>
-                <input value={compteLoginPin} onChange={e=>setCompteLoginPin(e.target.value.replace(/\D/g,"").slice(0,4))}
-                  placeholder="Code à 4 chiffres *" type="tel" maxLength={4}
+                <input value={compteLoginPin} onChange={e=>setCompteLoginPin(e.target.value.replace(/\D/g,"").slice(0,6))}
+                  placeholder="Code à 6 chiffres *" type="tel" maxLength={6}
                   style={{width:"100%",height:48,padding:"0 14px",borderRadius:10,
                     border:"1.5px solid rgba(255,255,255,.25)",background:"rgba(255,255,255,.08)",
                     color:"#fff",fontFamily:"monospace",fontSize:18,letterSpacing:6,outline:"none",marginBottom:14}}/>
