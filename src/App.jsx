@@ -7195,6 +7195,7 @@ const EcranRoleProprietaire = ({user, contacts, visites, reportings=[], livraiso
 const EcranRoleChauffeur = ({user, transports=[]}) => {
   const mesTransports = transports.filter(t=>t.nomChauffeur?.toLowerCase().includes(user.nom.toLowerCase()));
   const [confirmed, setConfirmed] = useState({});
+  const [heuresArriveeEst, setHeuresArriveeEst] = useState({});
   return (
     <div data-scrollable="1" style={{flex:1,overflowY:"auto",padding:PADDING,background:C.bg}}>
       <div style={{textAlign:"center",padding:"24px 0 16px"}}>
@@ -7223,8 +7224,45 @@ const EcranRoleChauffeur = ({user, transports=[]}) => {
               🚛 {t.immatTracteur} · {t.immatRemorque}<br/>
               🏢 {t.societeTransp}
             </div>
+            <button onClick={()=>setConfirmed(p=>({...p,[t.id+"reception"]:true}))}
+              disabled={confirmed[t.id+"reception"]}
+              style={{width:"100%",padding:14,borderRadius:12,marginBottom:8,
+                background:confirmed[t.id+"reception"]?C.greenL:"#fff",
+                border:`2px solid ${confirmed[t.id+"reception"]?C.green:C.bd}`,
+                color:confirmed[t.id+"reception"]?C.greenD:C.tx,
+                fontFamily:"inherit",fontSize:14,fontWeight:600,cursor:"pointer",
+                WebkitTapHighlightColor:"transparent"}}>
+              {confirmed[t.id+"reception"]?"✅ Réception mission":"Réception mission"}
+            </button>
+
+            {confirmed[t.id+"reception"]&&(
+              <div style={{marginBottom:8}}>
+                <div style={{fontSize:12,fontWeight:600,color:C.tx2,marginBottom:6}}>
+                  🕐 Heure d'arrivée estimée
+                </div>
+                <input type="time" value={heuresArriveeEst[t.id]||""}
+                  onChange={e=>setHeuresArriveeEst(p=>({...p,[t.id]:e.target.value}))}
+                  disabled={confirmed[t.id+"arrivePlace"]}
+                  style={{width:"100%",height:46,padding:"0 14px",borderRadius:10,
+                    border:`1.5px solid ${C.bd}`,background:"#fff",
+                    color:C.tx,fontFamily:"inherit",fontSize:15,outline:"none"}}/>
+              </div>
+            )}
+
+            {confirmed[t.id+"reception"]&&(
+              <button onClick={()=>setConfirmed(p=>({...p,[t.id+"arrivePlace"]:true}))}
+                disabled={confirmed[t.id+"arrivePlace"]}
+                style={{width:"100%",padding:14,borderRadius:12,marginBottom:8,
+                  background:confirmed[t.id+"arrivePlace"]?C.greenL:"#fff",
+                  border:`2px solid ${confirmed[t.id+"arrivePlace"]?C.green:C.bd}`,
+                  color:confirmed[t.id+"arrivePlace"]?C.greenD:C.tx,
+                  fontFamily:"inherit",fontSize:14,fontWeight:600,cursor:"pointer",
+                  WebkitTapHighlightColor:"transparent"}}>
+                {confirmed[t.id+"arrivePlace"]?"✅ Arrivé sur place":"📍 Confirmer être arrivé sur place"}
+              </button>
+            )}
+
             {[
-              {label:"Réception mission",key:"reception"},
               {label:"Départ confirmé",key:"depart"},
               {label:"Arrivée sur site",key:"arrivee"},
             ].map(btn=>(
