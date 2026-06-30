@@ -3178,7 +3178,7 @@ const EcranReleves = ({entrepriseId, user, toast, notifications=[], setNotificat
   const [opPrenom, setOpPrenom] = useState("");
   const [opEtfId, setOpEtfId] = useState("");
   const [opPin, setOpPin] = useState("");
-  const [opRoles, setOpRoles] = useState([]);
+  const [opRoles, setOpRoles] = useState(["abattage","debardage"]);
   const [opSaving, setOpSaving] = useState(false);
   const [selOp, setSelOp] = useState(null);
   const [assignLotId, setAssignLotId] = useState("");
@@ -3258,13 +3258,13 @@ const EcranReleves = ({entrepriseId, user, toast, notifications=[], setNotificat
     try {
       const res = await fetch(`${API}/operateurs`,{
         method:"POST",headers:authHeaders(),
-        body:JSON.stringify({nom:opNom,prenom:opPrenom,etfNom:entrepriseSel.nom,etfId:entrepriseSel.id,pin:opPin,roles:opRoles,entrepriseId}),
+        body:JSON.stringify({nom:opNom,prenom:opPrenom,etfNom:entrepriseSel.nom,etfId:entrepriseSel.id,pin:opPin,roles:opRoles,profil:opProfil,entrepriseId}),
       });
       if (!res.ok) throw new Error();
       const saved = await res.json();
-      setOperateurs(prev=>[{...saved,etfNom:entrepriseSel.nom,etfId:entrepriseSel.id,roles:opRoles,assignations:[]},...prev]);
+      setOperateurs(prev=>[{...saved,etfNom:entrepriseSel.nom,etfId:entrepriseSel.id,roles:opRoles,profil:opProfil,assignations:[]},...prev]);
       setShowNew(false);
-      setOpNom(""); setOpPrenom(""); setOpEtfId(""); setOpPin(""); setOpRoles([]);
+      setOpNom(""); setOpPrenom(""); setOpEtfId(""); setOpPin(""); setOpRoles(["abattage","debardage"]); setOpProfil("terrain");
       toast(`Opérateur ${saved.nom} créé ✓`);
     } catch { toast("Erreur API","warn"); }
     setOpSaving(false);
@@ -3316,7 +3316,12 @@ const EcranReleves = ({entrepriseId, user, toast, notifications=[], setNotificat
   };
 
   const typeLabel = t=>({"mandataire":"🔭 Visite terrain","abattage":"🪓 Abattage","debardage":"🚜 Débardage","dechiquetage":"🪚 Déchiquetage"}[t]||t);
-  const toggleOpRole = v => setOpRoles(prev=>prev.includes(v)?prev.filter(x=>x!==v):[...prev,v]);
+  const PROFILS_OPERATEUR = {
+    terrain:        {label:"Opérateur terrain",  icon:"👷", desc:"Saisie abattage et débardage uniquement", roles:["abattage","debardage"]},
+    charge_mission: {label:"Chargé de mission",  icon:"🔭", desc:"Visite terrain uniquement",               roles:["mandataire"]},
+  };
+  const [opProfil, setOpProfil] = useState("terrain");
+  const choisirProfilOp = p => { setOpProfil(p); setOpRoles(PROFILS_OPERATEUR[p].roles); };
 
   return (
     <div style={{display:"flex",flexDirection:"column",height:"100%"}}>
@@ -3428,22 +3433,18 @@ const EcranReleves = ({entrepriseId, user, toast, notifications=[], setNotificat
                 </div>
                 <MInput label="Code PIN" value={opPin} onChange={setOpPin} placeholder="4 chiffres" type="number" required/>
                 <div style={{fontSize:13,fontWeight:600,color:C.tx2,marginBottom:8}}>
-                  Rôles et accès <span style={{fontWeight:400,color:C.tx3}}>(plusieurs possibles)</span>
+                  Profil <span style={{fontWeight:400,color:C.tx3}}>(détermine les saisies autorisées)</span>
                 </div>
-                <div style={{display:"grid",gridTemplateColumns:"repeat(2,1fr)",gap:8,marginBottom:14}}>
-                  {[["mandataire","🔭","Mandataire — visite terrain"],["abattage","🪓","Abattage"],
-                    ["debardage","🚜","Débardage"],["dechiquetage","🪚","Déchiquetage"]].map(([v,e,l])=>(
-                    <div key={v} onClick={()=>toggleOpRole(v)} style={{
-                      padding:"10px 12px",borderRadius:10,cursor:"pointer",display:"flex",
-                      alignItems:"center",gap:8,
-                      border:`1.5px solid ${opRoles.includes(v)?C.green:C.bd}`,
-                      background:opRoles.includes(v)?C.greenL:"#fff",
+                <div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:14}}>
+                  {Object.entries(PROFILS_OPERATEUR).map(([v,p])=>(
+                    <div key={v} onClick={()=>choisirProfilOp(v)} style={{
+                      padding:"12px 14px",borderRadius:12,cursor:"pointer",
+                      border:`2px solid ${opProfil===v?C.green:C.bd}`,
+                      background:opProfil===v?C.greenL:"#fff",
                       WebkitTapHighlightColor:"transparent"}}>
-                      <span style={{fontSize:16,width:18,textAlign:"center"}}>
-                        {opRoles.includes(v)?"☑️":"⬜"}
-                      </span>
-                      <span style={{fontSize:12,fontWeight:opRoles.includes(v)?600:400,
-                        color:opRoles.includes(v)?C.greenD:C.tx2}}>{e} {l}</span>
+                      <div style={{fontSize:14,fontWeight:600,
+                        color:opProfil===v?C.greenD:C.tx}}>{p.icon} {p.label}</div>
+                      <div style={{fontSize:11,color:C.tx3,marginTop:2}}>{p.desc}</div>
                     </div>
                   ))}
                 </div>
@@ -3477,6 +3478,10 @@ const EcranReleves = ({entrepriseId, user, toast, notifications=[], setNotificat
                       <div>
                         <div style={{fontSize:15,fontWeight:700}}>{op.nom}{op.prenom?` ${op.prenom}`:""}</div>
                         <div style={{fontSize:12,color:C.tx3,marginTop:2}}>{op.etfNom}</div>
+                        <div style={{fontSize:11,color:C.green,fontWeight:600,marginTop:2}}>
+                          {PROFILS_OPERATEUR[op.profil||(op.roles?.includes("mandataire")?"charge_mission":"terrain")]?.icon}{" "}
+                          {PROFILS_OPERATEUR[op.profil||(op.roles?.includes("mandataire")?"charge_mission":"terrain")]?.label}
+                        </div>
                       </div>
                       <span style={{fontSize:10,padding:"3px 8px",borderRadius:6,
                         background:op.actif?C.greenL:C.bg2,color:op.actif?C.greenD:C.tx3,fontWeight:600}}>
@@ -4167,7 +4172,11 @@ const EcranOperateur = ({operateur, onLogout, toast}) => {
     setSaving(false);
   };
 
-  const assignations = operateur.assignations||[];
+  // Profil de l'opérateur : "terrain" (abattage/débardage uniquement) ou "charge_mission" (visite uniquement).
+  // Filtre défensif au cas où des assignations historiques ne correspondraient plus au profil.
+  const estChargeMission = operateur.profil==="charge_mission" || (!operateur.profil && operateur.roles?.includes("mandataire") && !operateur.roles?.some(r=>["abattage","debardage"].includes(r)));
+  const typesAutorises = estChargeMission ? ["mandataire"] : ["abattage","debardage"];
+  const assignations = (operateur.assignations||[]).filter(a=>typesAutorises.includes(a.typeOperation));
 
   // Mandataire — visite terrain : écran plein avec le formulaire de visite habituel
   if (screen==="visite" && activeLot) {
@@ -4222,7 +4231,9 @@ const EcranOperateur = ({operateur, onLogout, toast}) => {
         {screen==="lots"&&(
           <div>
             <div style={{fontSize:14,color:C.tx2,marginBottom:16,lineHeight:1.6}}>
-              Sélectionnez le lot et le type d'opération pour saisir votre relevé.
+              {estChargeMission
+                ? "Sélectionnez le lot pour réaliser la visite terrain."
+                : "Sélectionnez le lot et le type d'opération (abattage/débardage) pour saisir votre relevé."}
             </div>
             {assignations.length===0 ? (
               <div style={{textAlign:"center",padding:"48px 0",color:C.tx3}}>
