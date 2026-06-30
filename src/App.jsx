@@ -34,6 +34,7 @@ const uid = () => Math.random().toString(36).slice(2,9);
 const nowISO = () => new Date().toISOString();
 const todayS = () => new Date().toISOString().slice(0,10);
 const genCode = () => Math.random().toString(36).slice(2,8).toUpperCase();
+const genPin4 = () => String(Math.floor(1000 + Math.random()*9000));
 
 // Stockage de repli pour les ordres d'exploitation, tant que l'API /ordres-exploitation
 // n'est pas garantie disponible — permet la validation par code sans dépendre du backend.
@@ -3431,7 +3432,23 @@ const EcranReleves = ({entrepriseId, user, toast, notifications=[], setNotificat
                     + Créer une nouvelle fiche entreprise
                   </div>
                 </div>
-                <MInput label="Code PIN" value={opPin} onChange={setOpPin} placeholder="4 chiffres" type="number" required/>
+                <div style={{marginBottom:14}}>
+                  <div style={{fontSize:13,fontWeight:600,color:C.tx2,marginBottom:8}}>
+                    Code PIN <span style={{fontWeight:400,color:C.tx3}}>(généré automatiquement)</span>
+                  </div>
+                  <div style={{display:"flex",alignItems:"center",gap:10,height:INPUT_H,
+                    padding:"0 14px",borderRadius:12,border:`1.5px solid ${C.bd}`,background:C.bg2}}>
+                    <span style={{flex:1,fontFamily:"monospace",fontSize:20,fontWeight:700,
+                      letterSpacing:6,color:C.tx}}>{opPin}</span>
+                    <button onClick={()=>setOpPin(genPin4())} style={{
+                      background:C.greenL,border:`1px solid ${C.green}`,color:C.greenD,
+                      borderRadius:8,padding:"6px 10px",fontSize:12,fontWeight:600,
+                      cursor:"pointer",WebkitTapHighlightColor:"transparent"}}>🔄 Régénérer</button>
+                  </div>
+                  <div style={{fontSize:11,color:C.tx3,marginTop:6}}>
+                    L'opérateur pourra le modifier lui-même ensuite depuis son profil.
+                  </div>
+                </div>
                 <div style={{fontSize:13,fontWeight:600,color:C.tx2,marginBottom:8}}>
                   Profil <span style={{fontWeight:400,color:C.tx3}}>(détermine les saisies autorisées)</span>
                 </div>
@@ -3696,7 +3713,7 @@ const EcranReleves = ({entrepriseId, user, toast, notifications=[], setNotificat
 
       {sousOnglet==="operateurs"&&!showNew&&!selOp&&(
         <div style={{padding:"12px 16px 24px",flexShrink:0}}>
-          <BigBtn onClick={()=>setShowNew(true)} bg={C.green} icon="👷">Nouvel opérateur</BigBtn>
+          <BigBtn onClick={()=>{ setOpPin(genPin4()); setShowNew(true); }} bg={C.green} icon="👷">Nouvel opérateur</BigBtn>
         </div>
       )}
       {sousOnglet==="notifs"&&(
@@ -4012,11 +4029,38 @@ const Fiche0Edit = ({contact, onBack, onSaved, toast, user, onLaunchVisite, onLa
 // la saisie de relevé terrain n'est plus pertinente pour l'opérateur.
 const STATUTS_CLOTURES = ["BORD_ROUTE","A_DECHIQUETER","EN_COURS_DECHIQUETAGE","EN_LIVRAISON","LIVRE_CHAUFFERIE"];
 
-const EcranOperateur = ({operateur, onLogout, toast}) => {
-  const [screen, setScreen] = useState("lots"); // lots | releve
+const EcranOperateur = ({operateur, onLogout, toast, onUpdateOperateur}) => {
+  const [screen, setScreen] = useState("lots"); // lots | releve | profil
   const [activeLot, setActiveLot] = useState(null);
   const [typeOp, setTypeOp] = useState(null);
   const [saving, setSaving] = useState(false);
+
+  // Changement de PIN par l'opérateur lui-même
+  const [pinActuel, setPinActuel] = useState("");
+  const [pinNouveau, setPinNouveau] = useState("");
+  const [pinNouveauConf, setPinNouveauConf] = useState("");
+  const [pinSaving, setPinSaving] = useState(false);
+  const [pinErreur, setPinErreur] = useState("");
+
+  const handleChangerPin = async () => {
+    setPinErreur("");
+    if (operateur.pin && pinActuel!==operateur.pin) { setPinErreur("PIN actuel incorrect"); return; }
+    if (!/^\d{4}$/.test(pinNouveau)) { setPinErreur("Le nouveau PIN doit comporter 4 chiffres"); return; }
+    if (pinNouveau!==pinNouveauConf) { setPinErreur("Les deux PIN ne correspondent pas"); return; }
+    setPinSaving(true);
+    try {
+      await fetch(`${API}/operateurs/${operateur.id}`, {
+        method:"PATCH", headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({pin:pinNouveau}),
+      });
+    } catch {}
+    const opMaj = {...operateur, pin:pinNouveau};
+    onUpdateOperateur?.(opMaj);
+    setPinActuel(""); setPinNouveau(""); setPinNouveauConf("");
+    setPinSaving(false);
+    toast?.("PIN modifié ✓");
+    setScreen("lots");
+  };
   const [lotsStatus, setLotsStatus] = useState({}); // {lotId: statutLot} — rafraîchi depuis le serveur
   const [visites, setVisites] = useState([]);
   const [contactsFull, setContactsFull] = useState([]); // lots complets — requis pour la visite terrain (mandataire)
@@ -4208,26 +4252,60 @@ const EcranOperateur = ({operateur, onLogout, toast}) => {
           <img src="/logo.png" alt="APPLITAG" style={{width:32,height:32,objectFit:"contain"}}/>
           <div style={{flex:1}}>
             <div style={{fontSize:16,fontWeight:600}}>
-              {screen==="lots" ? `👷 ${operateur.nom}` : `📋 Relevé ${typeOp}`}
+              {screen==="lots" ? `👷 ${operateur.nom}` : screen==="profil" ? "👤 Mon profil" : `📋 Relevé ${typeOp}`}
             </div>
             <div style={{fontSize:11,opacity:.6}}>{operateur.etfNom}</div>
           </div>
-          {screen==="releve"&&(
+          {(screen==="releve"||screen==="profil")&&(
             <button onClick={()=>setScreen("lots")} style={{
               background:"rgba(255,255,255,.1)",border:"none",color:"#fff",
               padding:"6px 12px",borderRadius:8,fontSize:13,cursor:"pointer",
               WebkitTapHighlightColor:"transparent"}}>{"<"} Retour</button>
           )}
           {screen==="lots"&&(
-            <button onClick={onLogout} style={{
-              background:"rgba(255,255,255,.1)",border:"none",color:"rgba(255,255,255,.6)",
-              padding:"6px 10px",borderRadius:8,fontSize:12,cursor:"pointer",
-              WebkitTapHighlightColor:"transparent"}}>⎋</button>
+            <>
+              <button onClick={()=>setScreen("profil")} style={{
+                background:"rgba(255,255,255,.1)",border:"none",color:"rgba(255,255,255,.8)",
+                padding:"6px 10px",borderRadius:8,fontSize:12,cursor:"pointer",
+                WebkitTapHighlightColor:"transparent"}}>👤 Mon profil</button>
+              <button onClick={onLogout} style={{
+                background:"rgba(255,255,255,.1)",border:"none",color:"rgba(255,255,255,.6)",
+                padding:"6px 10px",borderRadius:8,fontSize:12,cursor:"pointer",
+                WebkitTapHighlightColor:"transparent"}}>⎋</button>
+            </>
           )}
         </div>
       </div>
 
       <div data-scrollable="1" style={{flex:1,overflowY:"auto",padding:PADDING,paddingBottom:90}}>
+        {screen==="profil"&&(
+          <div>
+            <div style={{background:"#fff",borderRadius:14,padding:16,marginBottom:20,
+              border:`1px solid ${C.bd}`}}>
+              <div style={{fontSize:15,fontWeight:700,color:C.tx}}>
+                {operateur.nom}{operateur.prenom?` ${operateur.prenom}`:""}
+              </div>
+              <div style={{fontSize:12,color:C.tx3,marginTop:4}}>{operateur.etfNom}</div>
+            </div>
+            <SectionTitle icon="🔑" label="Changer mon code PIN"/>
+            {operateur.pin&&(
+              <MInput label="PIN actuel" value={pinActuel} onChange={setPinActuel}
+                placeholder="4 chiffres" type="password"/>
+            )}
+            <MInput label="Nouveau PIN" value={pinNouveau}
+              onChange={v=>setPinNouveau(v.replace(/\D/g,"").slice(0,4))}
+              placeholder="4 chiffres" type="password"/>
+            <MInput label="Confirmer le nouveau PIN" value={pinNouveauConf}
+              onChange={v=>setPinNouveauConf(v.replace(/\D/g,"").slice(0,4))}
+              placeholder="4 chiffres" type="password"/>
+            {pinErreur&&(
+              <div style={{color:C.amberD,fontSize:13,marginBottom:12}}>⚠ {pinErreur}</div>
+            )}
+            <BigBtn onClick={handleChangerPin} disabled={pinSaving} bg={C.green} icon={pinSaving?"":"💾"}>
+              {pinSaving?"Enregistrement…":"ENREGISTRER LE NOUVEAU PIN"}
+            </BigBtn>
+          </div>
+        )}
         {screen==="lots"&&(
           <div>
             <div style={{fontSize:14,color:C.tx2,marginBottom:16,lineHeight:1.6}}>
@@ -10269,7 +10347,8 @@ export default function App() {
     <div style={{display:"flex",flexDirection:"column",height:"100dvh",
       fontFamily:FONT_BODY,
       maxWidth:430,margin:"0 auto",boxShadow:"0 0 40px rgba(0,0,0,.15)"}}>
-      <EcranOperateur operateur={operateur} onLogout={handleLogoutOperateur} toast={toast}/>
+      <EcranOperateur operateur={operateur} onLogout={handleLogoutOperateur} toast={toast}
+        onUpdateOperateur={op=>{ setOperateur(op); try{localStorage.setItem("applitag_operateur",JSON.stringify(op));}catch{} }}/>
     </div>
   );
 
