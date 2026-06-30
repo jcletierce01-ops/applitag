@@ -3255,17 +3255,22 @@ const EcranReleves = ({entrepriseId, user, toast, notifications=[], setNotificat
 
   const handleCreateOp = async () => {
     if (!opNom||!entrepriseSel||!opPin) { toast("Remplir nom, entreprise et PIN","warn"); return; }
+    if (opProfil==="charge_mission"&&opMandate&&!opEntrepriseMandanteId) { toast("Sélectionnez l'entreprise mandante","warn"); return; }
     setOpSaving(true);
+    const entrepriseMandante = opMandate ? entreprises.find(e=>e.id===opEntrepriseMandanteId) : null;
     try {
       const res = await fetch(`${API}/operateurs`,{
         method:"POST",headers:authHeaders(),
-        body:JSON.stringify({nom:opNom,prenom:opPrenom,etfNom:entrepriseSel.nom,etfId:entrepriseSel.id,pin:opPin,roles:opRoles,profil:opProfil,entrepriseId}),
+        body:JSON.stringify({nom:opNom,prenom:opPrenom,etfNom:entrepriseSel.nom,etfId:entrepriseSel.id,pin:opPin,roles:opRoles,profil:opProfil,
+          entrepriseMandanteId:entrepriseMandante?.id||null,entrepriseMandanteNom:entrepriseMandante?.nom||null,entrepriseId}),
       });
       if (!res.ok) throw new Error();
       const saved = await res.json();
-      setOperateurs(prev=>[{...saved,etfNom:entrepriseSel.nom,etfId:entrepriseSel.id,roles:opRoles,profil:opProfil,assignations:[]},...prev]);
+      setOperateurs(prev=>[{...saved,etfNom:entrepriseSel.nom,etfId:entrepriseSel.id,roles:opRoles,profil:opProfil,
+        entrepriseMandanteId:entrepriseMandante?.id||null,entrepriseMandanteNom:entrepriseMandante?.nom||null,assignations:[]},...prev]);
       setShowNew(false);
       setOpNom(""); setOpPrenom(""); setOpEtfId(""); setOpPin(""); setOpRoles(["abattage","debardage"]); setOpProfil("terrain");
+      setOpMandate(false); setOpEntrepriseMandanteId("");
       toast(`Opérateur ${saved.nom} créé ✓`);
     } catch { toast("Erreur API","warn"); }
     setOpSaving(false);
@@ -3322,7 +3327,9 @@ const EcranReleves = ({entrepriseId, user, toast, notifications=[], setNotificat
     charge_mission: {label:"Chargé de mission",  icon:"🔭", desc:"Visite terrain uniquement",               roles:["mandataire"]},
   };
   const [opProfil, setOpProfil] = useState("terrain");
-  const choisirProfilOp = p => { setOpProfil(p); setOpRoles(PROFILS_OPERATEUR[p].roles); };
+  const choisirProfilOp = p => { setOpProfil(p); setOpRoles(PROFILS_OPERATEUR[p].roles); if(p!=="charge_mission"){ setOpMandate(false); setOpEntrepriseMandanteId(""); } };
+  const [opMandate, setOpMandate] = useState(false); // chargé de mission nommé par une entreprise tierce
+  const [opEntrepriseMandanteId, setOpEntrepriseMandanteId] = useState("");
 
   return (
     <div style={{display:"flex",flexDirection:"column",height:"100%"}}>
@@ -3465,6 +3472,50 @@ const EcranReleves = ({entrepriseId, user, toast, notifications=[], setNotificat
                     </div>
                   ))}
                 </div>
+
+                {opProfil==="charge_mission"&&(
+                  <div style={{marginBottom:14}}>
+                    <div onClick={()=>setOpMandate(!opMandate)} style={{
+                      display:"flex",alignItems:"center",gap:8,cursor:"pointer",
+                      padding:"10px 12px",borderRadius:10,
+                      border:`1.5px solid ${opMandate?C.green:C.bd}`,
+                      background:opMandate?C.greenL:"#fff",
+                      WebkitTapHighlightColor:"transparent"}}>
+                      <span style={{fontSize:16}}>{opMandate?"☑️":"⬜"}</span>
+                      <span style={{fontSize:12,fontWeight:opMandate?600:400,
+                        color:opMandate?C.greenD:C.tx2}}>
+                        Nommé par une autre entreprise que son employeur
+                      </span>
+                    </div>
+                    {opMandate&&(
+                      <div style={{marginTop:10}}>
+                        <div style={{fontSize:13,fontWeight:600,color:C.tx2,marginBottom:8}}>
+                          Entreprise mandante *
+                        </div>
+                        {entreprises.length>0 ? (
+                          <select value={opEntrepriseMandanteId} onChange={e=>setOpEntrepriseMandanteId(e.target.value)}
+                            style={{width:"100%",height:INPUT_H,padding:"0 14px",borderRadius:12,
+                              border:`1.5px solid ${C.bd}`,fontSize:FONT_INPUT,fontFamily:"inherit",
+                              background:"#fff",color:C.tx,outline:"none"}}>
+                            <option value="">— Sélectionner dans le répertoire —</option>
+                            {entreprises.map(e=>(
+                              <option key={e.id} value={e.id}>{e.nom}</option>
+                            ))}
+                          </select>
+                        ) : (
+                          <div style={{background:C.amberL,borderRadius:12,padding:12,
+                            border:`1px solid ${C.amber}`,fontSize:12,color:C.amberD}}>
+                            ⚠ Aucune entreprise référencée.
+                          </div>
+                        )}
+                        <div style={{fontSize:11,color:C.tx3,marginTop:6}}>
+                          Entreprise pour le compte de laquelle ce chargé de mission intervient sur ce lot — distincte de son employeur ({entrepriseSel?.nom||"—"}).
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
                 <div style={{background:C.amberL,borderRadius:12,padding:12,marginBottom:14,
                   fontSize:12,color:C.amberD}}>
                   ⚠ Communiquez ce PIN directement à l'opérateur.
@@ -3499,6 +3550,11 @@ const EcranReleves = ({entrepriseId, user, toast, notifications=[], setNotificat
                           {PROFILS_OPERATEUR[op.profil||(op.roles?.includes("mandataire")?"charge_mission":"terrain")]?.icon}{" "}
                           {PROFILS_OPERATEUR[op.profil||(op.roles?.includes("mandataire")?"charge_mission":"terrain")]?.label}
                         </div>
+                        {op.entrepriseMandanteNom&&(
+                          <div style={{fontSize:11,color:C.purpleD,marginTop:2}}>
+                            🤝 Mandaté par {op.entrepriseMandanteNom}
+                          </div>
+                        )}
                       </div>
                       <span style={{fontSize:10,padding:"3px 8px",borderRadius:6,
                         background:op.actif?C.greenL:C.bg2,color:op.actif?C.greenD:C.tx3,fontWeight:600}}>
