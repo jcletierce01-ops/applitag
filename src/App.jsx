@@ -4922,8 +4922,12 @@ const EcranDelegations = ({entrepriseId, toast, onBack}) => {
   const [ordresLocaux,  setOrdresLocaux] = useState(()=>ordresExplLocalGet());
 
   // Filtrage croisé lots ↔ entreprises ↔ type
-  // Types déjà couverts par lot : {lotId: Set<missionType>}
+  const DELAI_ATTENTE_MS = 5 * 24 * 60 * 60 * 1000; // 5 jours
+  // Types bloquants par lot : ordre en_attente < 5 jours OU accepte. Exclut refuse et en_attente expiré.
   const typesCouvertsParLot = ordresLocaux.reduce((acc,o)=>{
+    const age = Date.now() - new Date(o.dateEmission).getTime();
+    const bloquant = o.statut==="accepte" || (o.statut==="en_attente" && age < DELAI_ATTENTE_MS);
+    if (!bloquant) return acc;
     if (!acc[o.lotId]) acc[o.lotId]=new Set();
     acc[o.lotId].add(o.missionType);
     return acc;
@@ -5052,6 +5056,7 @@ const EcranDelegations = ({entrepriseId, toast, onBack}) => {
       ordresExplLocalSave(newOrdres);
       setOrdresLocaux(newOrdres);
       setOrdreGenere(ordre);
+      setTimeout(()=>{ document.getElementById("delegations-scroll")?.scrollTo({top:0,behavior:"smooth"}); },50);
       const html = buildOrdreExploitationHTML(ordre);
       generatePdfFromHtml(html, `OrdreExploitation_${lot.lotNumero||"APPLITAG"}.pdf`, toast);
       toast(`${ent.nom} missionnée (${missionLabel}) ✓`);
@@ -5071,7 +5076,7 @@ const EcranDelegations = ({entrepriseId, toast, onBack}) => {
         </div>
       </div>
 
-      <div data-scrollable="1" style={{flex:1,overflowY:"auto",padding:PADDING,paddingBottom:40}}>
+      <div ref={el=>{ if(el) el._scrollTopRef=el; }} data-scrollable="1" id="delegations-scroll" style={{flex:1,overflowY:"auto",padding:PADDING,paddingBottom:40}}>
 
         <SectionTitle icon="📖" label="Répertoire des entreprises"/>
         {entreprises.length>0&&(
