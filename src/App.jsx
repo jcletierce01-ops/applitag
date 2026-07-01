@@ -7895,6 +7895,40 @@ const EcranAutoDeclarationRED = ({lot, visites, transports=[], livraisons=[], on
   );
 };
 
+// Centroïdes département (fallback carte sans GPS visite)
+const DEPT_CENTROIDS = {
+  "01":[46.20,5.23],"02":[49.55,3.63],"03":[46.34,3.08],"04":[44.09,6.24],
+  "05":[44.66,6.46],"06":[43.93,7.10],"07":[44.75,4.54],"08":[49.69,4.73],
+  "09":[42.95,1.60],"10":[48.30,4.08],"11":[43.12,2.35],"12":[44.35,2.57],
+  "13":[43.53,5.45],"14":[49.09,-0.37],"15":[45.05,2.63],"16":[45.69,0.16],
+  "17":[45.75,-0.74],"18":[47.07,2.40],"19":[45.27,1.77],"21":[47.32,5.04],
+  "22":[48.45,-2.90],"23":[46.00,2.02],"24":[45.15,0.72],"25":[47.24,6.02],
+  "26":[44.72,5.05],"27":[49.03,1.15],"28":[48.44,1.49],"29":[48.23,-4.10],
+  "2A":[41.86,9.01],"2B":[42.37,9.28],"30":[43.96,4.18],"31":[43.60,1.44],
+  "32":[43.67,0.59],"33":[44.84,-0.58],"34":[43.61,3.88],"35":[48.11,-1.68],
+  "36":[46.81,1.69],"37":[47.24,0.69],"38":[45.19,5.72],"39":[46.67,5.56],
+  "40":[44.00,-0.75],"41":[47.59,1.33],"42":[45.44,4.39],"43":[45.04,3.89],
+  "44":[47.24,-1.56],"45":[47.90,2.06],"46":[44.62,1.67],"47":[44.35,0.46],
+  "48":[44.50,3.50],"49":[47.47,-0.55],"50":[49.11,-1.31],"51":[49.04,4.36],
+  "52":[48.11,5.14],"53":[48.07,-0.77],"54":[48.69,6.18],"55":[48.99,5.38],
+  "56":[47.83,-2.75],"57":[49.04,6.46],"58":[47.07,3.66],"59":[50.52,3.08],
+  "60":[49.40,2.44],"61":[48.43,0.08],"62":[50.52,2.63],"63":[45.77,3.08],
+  "64":[43.29,-0.37],"65":[43.23,0.08],"66":[42.70,2.89],"67":[48.58,7.75],
+  "68":[47.75,7.34],"69":[45.76,4.83],"70":[47.63,6.16],"71":[46.64,4.52],
+  "72":[47.99,0.19],"73":[45.48,6.56],"74":[46.06,6.39],"75":[48.86,2.35],
+  "76":[49.44,1.09],"77":[48.62,2.99],"78":[48.80,1.98],"79":[46.65,-0.41],
+  "80":[49.92,2.30],"81":[43.93,2.15],"82":[44.01,1.35],"83":[43.47,6.15],
+  "84":[43.95,5.05],"85":[46.67,-1.43],"86":[46.58,0.34],"87":[45.83,1.26],
+  "88":[48.17,6.46],"89":[47.80,3.56],"90":[47.64,6.85],"91":[48.63,2.26],
+  "92":[48.86,2.25],"93":[48.92,2.46],"94":[48.78,2.46],"95":[49.05,2.10],
+};
+const gpsByDept = (cp) => {
+  if (!cp) return null;
+  const dept = String(cp).slice(0,2).toUpperCase();
+  const c = DEPT_CENTROIDS[dept];
+  return c ? {lat:c[0],lng:c[1]} : null;
+};
+
 // ── ÉCRAN CARTE (Leaflet / OpenStreetMap) ────────────────────
 const EcranCarte = ({contacts, visites, onOpenLot}) => {
   const mapRef     = useRef(null);
@@ -7972,9 +8006,10 @@ const EcranCarte = ({contacts, visites, onOpenLot}) => {
       if (!lot.lotNumero) return;
       if (filtre!=="TOUS" && lot.statutLot!==filtre) return;
       const v = visites.find(vi=>vi.lotId===lot.id||vi.lotNumero===lot.lotNumero);
-      // GPS depuis le lot lui-même ou depuis la visite
-      const gps = lot.gps?.lat ? lot.gps : (v?.gps?.lat ? v.gps : null);
+      const gpsExact = lot.gps?.lat ? lot.gps : (v?.gps?.lat ? v.gps : null);
+      const gps = gpsExact || gpsByDept(lot.codePostal);
       if (!gps?.lat) return;
+      const approx = !gpsExact;
 
       const st = STATUT_LOT[lot.statutLot||"NOUVEAU"]||STATUT_LOT.NOUVEAU;
 
@@ -7983,7 +8018,7 @@ const EcranCarte = ({contacts, visites, onOpenLot}) => {
         iconSize:[32,32],
         iconAnchor:[16,16],
         popupAnchor:[0,-16],
-        html:`<div style="width:32px;height:32px;border-radius:50%;background:${st.color};border:3px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.35);display:flex;align-items:center;justify-content:center;font-size:13px;cursor:pointer;">🌲</div>`,
+        html:`<div style="width:32px;height:32px;border-radius:50%;background:${st.color};border:3px solid ${approx?"rgba(255,255,255,.5)":"#fff"};opacity:${approx?0.75:1};box-shadow:0 2px 8px rgba(0,0,0,.35);display:flex;align-items:center;justify-content:center;font-size:13px;cursor:pointer;">${approx?"📍":"🌲"}</div>`,
       });
 
       const popup = `
