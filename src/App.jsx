@@ -7900,9 +7900,11 @@ const EcranCarte = ({contacts, visites, onOpenLot}) => {
   const mapRef     = useRef(null);
   const mapInst    = useRef(null);
   const markersRef = useRef([]);
+  const geocodeCache = useRef({}); // commune → {lat,lng}
   const [loaded,   setLoaded]  = useState(!!window.L);
   const [filtre,   setFiltre]  = useState("TOUS");
   const [nbLots,   setNbLots]  = useState(0);
+  const [geoReady, setGeoReady] = useState(0); // incrémenté à chaque géocodage terminé
 
   // ── Chargement Leaflet depuis CDN ──
   useEffect(()=>{
@@ -7954,6 +7956,37 @@ const EcranCarte = ({contacts, visites, onOpenLot}) => {
     return ()=>{ delete window.__aplt_open; };
   },[contacts, onOpenLot]);
 
+  // ── Géocodage Nominatim des lots sans GPS ──
+  useEffect(()=>{
+    if (!loaded) return;
+    const lotsAGeo = contacts.filter(c=>{
+      if (!c.lotNumero) return false;
+      const v = visites.find(v=>v.lotId===c.id||v.lotNumero===c.lotNumero);
+      return !c.gps?.lat && !v?.gps?.lat;
+    });
+    if (!lotsAGeo.length) return;
+    let changed = false;
+    const queue = lotsAGeo.filter(c=>{
+      const key = c.commune||c.codePostal;
+      return key && !geocodeCache.current[key];
+    });
+    if (!queue.length) return;
+    // Géocode en série pour respecter la politique Nominatim (1 req/s)
+    let i = 0;
+    const next = () => {
+      if (i >= queue.length) { if (changed) setGeoReady(n=>n+1); return; }
+      const lot = queue[i++];
+      const key = lot.commune||lot.codePostal;
+      const q = encodeURIComponent([lot.adresseParcelle, lot.commune, lot.codePostal, "France"].filter(Boolean).join(", "));
+      fetch(`https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${q}`)
+        .then(r=>r.json())
+        .then(d=>{ if (d[0]) { geocodeCache.current[key]={lat:+d[0].lat,lng:+d[0].lon,approx:true}; changed=true; } })
+        .catch(()=>{})
+        .finally(()=>setTimeout(next, 1100));
+    };
+    next();
+  },[loaded, contacts, visites]);
+
   // ── Mise à jour des markers ──
   useEffect(()=>{
     if (!loaded || !mapInst.current) return;
@@ -7971,11 +8004,18 @@ const EcranCarte = ({contacts, visites, onOpenLot}) => {
       if (!lot.lotNumero) return;
       if (filtre!=="TOUS" && lot.statutLot!==filtre) return;
       const v = visites.find(v=>v.lotId===lot.id||v.lotNumero===lot.lotNumero);
-      if (!v?.gps?.lat) return;
+
+      // Résolution coordonnées : lot.gps > visite.gps > géocodage commune
+      const geoKey = lot.commune||lot.codePostal;
+      const gpsExact = lot.gps?.lat ? lot.gps : v?.gps?.lat ? v.gps : null;
+      const gpsApprox = !gpsExact && geoKey ? geocodeCache.current[geoKey] : null;
+      const gps = gpsExact || gpsApprox;
+      if (!gps?.lat) return;
+      const approx = !gpsExact;
 
       const st = STATUT_LOT[lot.statutLot||"NOUVEAU"]||STATUT_LOT.NOUVEAU;
 
-      // Marker coloré selon statut
+      // Marker coloré selon statut (pointillé si position approx)
       const icon = L.divIcon({
         className:"",
         iconSize:[32,32],
@@ -7983,10 +8023,13 @@ const EcranCarte = ({contacts, visites, onOpenLot}) => {
         popupAnchor:[0,-16],
         html:`<div style="
           width:32px;height:32px;border-radius:50%;
-          background:${st.color};border:3px solid #fff;
+          background:${st.color};
+          border:3px solid ${approx?"rgba(255,255,255,.6)":"#fff"};
+          ${approx?`outline:2px dashed ${st.color};outline-offset:2px;`:""}
           box-shadow:0 2px 8px rgba(0,0,0,.35);
           display:flex;align-items:center;justify-content:center;
-          font-size:13px;cursor:pointer;">🌲</div>`,
+          font-size:13px;cursor:pointer;opacity:${approx?.75:1};">
+          ${approx?"📍":"🌲"}</div>`,
       });
 
       const popup = `
@@ -8006,6 +8049,7 @@ const EcranCarte = ({contacts, visites, onOpenLot}) => {
             🌲 ${lot.surfaceHa} ha${v?.volumeEstimeT?" · 📦 "+fmtNum(v.volumeEstimeT)+" t":""}</div>`:""}
           ${v?.essences?.length?`<div style="font-size:11px;color:#9A9892;margin-top:2px">
             🌿 ${v.essences.map(e=>e.label).join(", ")}</div>`:""}
+          ${approx?`<div style="font-size:10px;color:#BA7517;margin-top:4px">📍 Position approximative (commune)</div>`:""}
           <button onclick="window.__aplt_open('${lot.id}')"
             style="width:100%;margin-top:10px;padding:8px;border-radius:8px;
               background:#4CAF50;color:#fff;border:none;cursor:pointer;
@@ -8014,7 +8058,7 @@ const EcranCarte = ({contacts, visites, onOpenLot}) => {
           </button>
         </div>`;
 
-      const marker = L.marker([v.gps.lat,v.gps.lng],{icon})
+      const marker = L.marker([gps.lat,gps.lng],{icon})
         .addTo(map)
         .bindPopup(popup,{maxWidth:240,className:"aplt-popup"});
 
@@ -8027,7 +8071,7 @@ const EcranCarte = ({contacts, visites, onOpenLot}) => {
     if (bounds.length>0) {
       map.fitBounds(bounds,{padding:[40,40],maxZoom:13});
     }
-  },[loaded, contacts, visites, filtre]);
+  },[loaded, contacts, visites, filtre, geoReady]);
 
   const FILTRES = [
     ["TOUS","Tous"],
