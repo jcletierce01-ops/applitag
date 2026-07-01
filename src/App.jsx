@@ -4931,8 +4931,9 @@ const EcranDelegations = ({entrepriseId, toast, onBack}) => {
   );
 
   useEffect(()=>{
+    try { const s=localStorage.getItem(`applitag_entreprises_${entrepriseId}`); if(s){ const p=JSON.parse(s); if(Array.isArray(p)) setEntreprises(p); } } catch{}
     fetch(`${API}/entreprises/entreprise/${entrepriseId}`,{headers:authHeaders()})
-      .then(r=>r.json()).then(d=>{ if(Array.isArray(d)) setEntreprises(d); }).catch(()=>{});
+      .then(r=>r.json()).then(d=>{ if(Array.isArray(d)){ setEntreprises(d); try{localStorage.setItem(`applitag_entreprises_${entrepriseId}`,JSON.stringify(d));}catch{} } }).catch(()=>{});
     fetch(`${API}/contacts`,{headers:authHeaders()})
       .then(r=>r.json()).then(d=>{ if(Array.isArray(d)) setContacts(d); }).catch(()=>{});
   },[entrepriseId]);
@@ -4953,10 +4954,10 @@ const EcranDelegations = ({entrepriseId, toast, onBack}) => {
       });
       if (!res.ok) throw new Error();
       const saved = await res.json();
-      setEntreprises(prev=>[saved,...prev]);
+      setEntreprises(prev=>{ const next=[saved,...prev]; try{localStorage.setItem(`applitag_entreprises_${entrepriseId}`,JSON.stringify(next));}catch{} return next; });
       toast(`Entreprise ${nom} créée ✓`);
     } catch {
-      setEntreprises(prev=>[{...entreprise,id:uid()},...prev]);
+      setEntreprises(prev=>{ const next=[{...entreprise,id:uid()},...prev]; try{localStorage.setItem(`applitag_entreprises_${entrepriseId}`,JSON.stringify(next));}catch{} return next; });
       toast("Entreprise enregistrée localement ✓");
     }
     setNom(""); setSiret(""); setAdresse(""); setComplementAdresse(""); setCommune(""); setCP("");
