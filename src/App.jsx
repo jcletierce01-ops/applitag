@@ -4793,6 +4793,16 @@ const EcranAccueil = ({contacts, visites, notifications, user, onNewLot, onGoLot
   const chantiersJour = contacts.filter(c=>["EN_COURS_EXPLOITATION","VALIDE_EXPLOITATION"].includes(c.statutLot));
   const alertes = notifications.filter(n=>!n.lu);
 
+  const [comptes, setComptes] = useState(()=>comptesLocalGet());
+  const [showInscrits, setShowInscrits] = useState(false);
+
+  useEffect(()=>{
+    fetch(`${API}/comptes-contact`,{headers:authHeaders()})
+      .then(r=>r.json())
+      .then(d=>{ if(Array.isArray(d)){ setComptes(d); comptesLocalSave(d); } })
+      .catch(()=>{});
+  },[]);
+
   return (
     <div style={{display:"flex",flexDirection:"column",height:"100%",overflowY:"auto",
       padding:PADDING,paddingBottom:90}}>
@@ -4817,6 +4827,21 @@ const EcranAccueil = ({contacts, visites, notifications, user, onNewLot, onGoLot
           </div>
         </div>
       )}
+      {(user?.role==="admin"||user?.role==="manager")&&comptes.length>0&&(
+        <div onClick={()=>setShowInscrits(true)} style={{background:"#E8F5E9",borderRadius:14,padding:16,
+          marginBottom:12,border:`1.5px solid ${C.green}`,cursor:"pointer",
+          display:"flex",alignItems:"center",gap:10,
+          WebkitTapHighlightColor:"transparent"}}>
+          <span style={{fontSize:24}}>📲</span>
+          <div style={{flex:1}}>
+            <div style={{fontSize:15,fontWeight:700,color:C.greenD}}>
+              {comptes.length} inscrit{comptes.length>1?"s":""} APPLITAG Connect
+            </div>
+            <div style={{fontSize:12,color:C.greenD,opacity:.8}}>Appuyer pour voir la liste</div>
+          </div>
+          <span style={{fontSize:18,color:C.greenD}}>›</span>
+        </div>
+      )}
       {(user?.role==="admin"||user?.role==="manager")&&(
         <div onClick={onGoDelegations} style={{background:C.purpleL,borderRadius:14,padding:16,
           marginBottom:12,border:`1.5px solid ${C.purple}`,cursor:"pointer",
@@ -4828,6 +4853,38 @@ const EcranAccueil = ({contacts, visites, notifications, user, onNewLot, onGoLot
             <div style={{fontSize:12,color:C.purpleD,opacity:.8}}>Créer une entreprise et missionner sur un lot</div>
           </div>
           <span style={{fontSize:18,color:C.purpleD}}>›</span>
+        </div>
+      )}
+      {showInscrits&&(
+        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.5)",zIndex:3000,
+          display:"flex",flexDirection:"column",justifyContent:"flex-end"}}
+          onClick={e=>{ if(e.target===e.currentTarget) setShowInscrits(false); }}>
+          <div style={{background:"#fff",borderRadius:"20px 20px 0 0",maxHeight:"80vh",
+            display:"flex",flexDirection:"column",overflow:"hidden"}}>
+            <div style={{padding:"16px 20px 12px",borderBottom:`1px solid ${C.bd}`,
+              display:"flex",alignItems:"center",justifyContent:"space-between",flexShrink:0}}>
+              <div style={{fontSize:16,fontWeight:700,color:C.tx}}>
+                📲 Inscrits APPLITAG Connect
+              </div>
+              <button onClick={()=>setShowInscrits(false)} style={{background:"none",border:"none",
+                fontSize:22,cursor:"pointer",color:C.tx3,lineHeight:1}}>×</button>
+            </div>
+            <div style={{overflowY:"auto",padding:"12px 16px 24px"}}>
+              {comptes.length===0?(
+                <div style={{fontSize:13,color:C.tx3,textAlign:"center",padding:24}}>Aucun inscrit</div>
+              ):comptes.map(c=>(
+                <div key={c.id} style={{background:C.bg,borderRadius:12,padding:"12px 14px",
+                  marginBottom:8,border:`1px solid ${C.bd}`}}>
+                  <div style={{fontSize:14,fontWeight:600,color:C.tx}}>{c.nom}</div>
+                  {c.email&&<div style={{fontSize:12,color:C.tx3,marginTop:2}}>✉ {c.email}</div>}
+                  {c.telephone&&<div style={{fontSize:12,color:C.tx3,marginTop:1}}>📞 {c.telephone}</div>}
+                  <div style={{fontSize:11,color:C.tx3,marginTop:4,opacity:.7}}>
+                    Inscrit le {c.dateCreation?new Date(c.dateCreation).toLocaleDateString('fr-FR'):"—"}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       )}
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:10,marginBottom:16}}>
