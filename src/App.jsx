@@ -4919,6 +4919,44 @@ const EcranDelegations = ({entrepriseId, toast, onBack}) => {
   });
   const [missionSaving, setMissionSaving]= useState(false);
   const [ordreGenere,   setOrdreGenere]  = useState(null);
+  const [ordresLocaux,  setOrdresLocaux] = useState(()=>ordresExplLocalGet());
+
+  // Filtrage croisé lots ↔ entreprises ↔ type
+  // Types déjà couverts par lot : {lotId: Set<missionType>}
+  const typesCouvertsParLot = ordresLocaux.reduce((acc,o)=>{
+    if (!acc[o.lotId]) acc[o.lotId]=new Set();
+    acc[o.lotId].add(o.missionType);
+    return acc;
+  },{});
+  const entSelec = entreprises.find(e=>e.id===selEntId);
+  const typesEntreprise = entSelec?.typesProposes?.length ? entSelec.typesProposes : null;
+  // Lots dispo : ont un lotNumero + le type courant n'est pas déjà commandé + si entreprise sélectionnée, au moins un de ses types n'est pas couvert
+  const lotsDisponibles = contacts.filter(c=>{
+    if (!c.lotNumero) return false;
+    const couverts = typesCouvertsParLot[c.id] || new Set();
+    if (typesEntreprise) {
+      // au moins un type de l'entreprise n'est pas encore couvert sur ce lot
+      return typesEntreprise.some(t=>!couverts.has(t));
+    }
+    return true;
+  });
+  // Entreprises compatibles : si un lot est sélectionné, ne garder que celles dont au moins un typesProposes n'est pas couvert sur ce lot
+  const lotSelec = contacts.find(c=>c.id===missionLotId);
+  const entreprisesCompatibles = entreprises.filter(e=>{
+    if (!e.typesProposes?.length) return true; // sans restriction, on affiche
+    if (!lotSelec) return true;
+    const couverts = typesCouvertsParLot[lotSelec.id] || new Set();
+    return e.typesProposes.some(t=>!couverts.has(t));
+  });
+  // Types disponibles pour le panneau de mission (intersection entreprise × non couvert sur lot)
+  const typesDisponibles = TYPES_TRAVAUX_DELEGATION.filter(([v])=>{
+    if (typesEntreprise && !typesEntreprise.includes(v)) return false;
+    if (lotSelec) {
+      const couverts = typesCouvertsParLot[lotSelec.id] || new Set();
+      if (couverts.has(v)) return false;
+    }
+    return true;
+  });
 
   // Répertoire — filtres
   const [filtreDept,       setFiltreDept]       = useState("");
@@ -4967,6 +5005,14 @@ const EcranDelegations = ({entrepriseId, toast, onBack}) => {
     setSaving(false);
   };
 
+  // Recale missionType si l'entreprise change et que le type courant n'est plus disponible
+  useEffect(()=>{
+    if (typesDisponibles.length && !typesDisponibles.find(([v])=>v===missionType)) {
+      setMissionType(typesDisponibles[0][0]);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  },[selEntId, missionLotId]);
+
   const handleMissionner = async () => {
     const ent = entreprises.find(e=>e.id===selEntId);
     const lot = contacts.find(c=>c.id===missionLotId);
@@ -4997,7 +5043,9 @@ const EcranDelegations = ({entrepriseId, toast, onBack}) => {
         });
         if (res.ok) ordre.synced = true;
       } catch {}
-      ordresExplLocalSave([ordre, ...ordresExplLocalGet()]);
+      const newOrdres = [ordre, ...ordresExplLocalGet()];
+      ordresExplLocalSave(newOrdres);
+      setOrdresLocaux(newOrdres);
       setOrdreGenere(ordre);
       const html = buildOrdreExploitationHTML(ordre);
       generatePdfFromHtml(html, `OrdreExploitation_${lot.lotNumero||"APPLITAG"}.pdf`, toast);
@@ -5188,8 +5236,8 @@ const EcranDelegations = ({entrepriseId, toast, onBack}) => {
                   border:`1.5px solid ${C.bd}`,fontSize:FONT_INPUT,fontFamily:"inherit",
                   background:"#fff",color:C.tx,outline:"none"}}>
                 <option value="">— Sélectionner —</option>
-                {entreprises.map(e=>(
-                  <option key={e.id} value={e.id}>{e.nom}</option>
+                {entreprisesCompatibles.map(e=>(
+                  <option key={e.id} value={e.id}>{e.nom}{e.typesProposes?.length?` · ${e.typesProposes.map(t=>TYPES_TRAVAUX_DELEGATION.find(([v])=>v===t)?.[2]||t).join(", ")}`:"" }</option>
                 ))}
               </select>
             </div>
@@ -5200,7 +5248,7 @@ const EcranDelegations = ({entrepriseId, toast, onBack}) => {
                   border:`1.5px solid ${C.bd}`,fontSize:FONT_INPUT,fontFamily:"inherit",
                   background:"#fff",color:C.tx,outline:"none"}}>
                 <option value="">— Sélectionner un lot —</option>
-                {contacts.filter(c=>c.lotNumero).map(c=>(
+                {lotsDisponibles.map(c=>(
                   <option key={c.id} value={c.id}>{c.lotNumero} · {c.nom} · {c.commune}</option>
                 ))}
               </select>
@@ -5208,7 +5256,7 @@ const EcranDelegations = ({entrepriseId, toast, onBack}) => {
             <div style={{marginBottom:16}}>
               <div style={{fontSize:13,fontWeight:600,color:C.tx2,marginBottom:8}}>Type de mission</div>
               <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8}}>
-                {TYPES_TRAVAUX_DELEGATION.map(([v,e,l])=>(
+                {typesDisponibles.map(([v,e,l])=>(
                   <div key={v} onClick={()=>setMissionType(v)} style={{
                     padding:"10px 6px",borderRadius:10,cursor:"pointer",textAlign:"center",
                     border:`1.5px solid ${missionType===v?C.purple:C.bd}`,
