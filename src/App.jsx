@@ -5230,18 +5230,6 @@ const EcranDelegations = ({entrepriseId, toast, onBack}) => {
         ) : (
           <div style={{background:"#fff",border:`1px solid ${C.bd}`,borderRadius:14,padding:16}}>
             <div style={{marginBottom:14}}>
-              <div style={{fontSize:13,fontWeight:600,color:C.tx2,marginBottom:8}}>Entreprise</div>
-              <select value={selEntId} onChange={e=>setSelEntId(e.target.value)}
-                style={{width:"100%",height:INPUT_H,padding:"0 14px",borderRadius:12,
-                  border:`1.5px solid ${C.bd}`,fontSize:FONT_INPUT,fontFamily:"inherit",
-                  background:"#fff",color:C.tx,outline:"none"}}>
-                <option value="">— Sélectionner —</option>
-                {entreprisesCompatibles.map(e=>(
-                  <option key={e.id} value={e.id}>{e.nom}{e.typesProposes?.length?` · ${e.typesProposes.map(t=>TYPES_TRAVAUX_DELEGATION.find(([v])=>v===t)?.[2]||t).join(", ")}`:"" }</option>
-                ))}
-              </select>
-            </div>
-            <div style={{marginBottom:14}}>
               <div style={{fontSize:13,fontWeight:600,color:C.tx2,marginBottom:8}}>Lot</div>
               <select value={missionLotId} onChange={e=>setMissionLotId(e.target.value)}
                 style={{width:"100%",height:INPUT_H,padding:"0 14px",borderRadius:12,
@@ -5250,6 +5238,18 @@ const EcranDelegations = ({entrepriseId, toast, onBack}) => {
                 <option value="">— Sélectionner un lot —</option>
                 {lotsDisponibles.map(c=>(
                   <option key={c.id} value={c.id}>{c.lotNumero} · {c.nom} · {c.commune}</option>
+                ))}
+              </select>
+            </div>
+            <div style={{marginBottom:14}}>
+              <div style={{fontSize:13,fontWeight:600,color:C.tx2,marginBottom:8}}>Entreprise</div>
+              <select value={selEntId} onChange={e=>setSelEntId(e.target.value)}
+                style={{width:"100%",height:INPUT_H,padding:"0 14px",borderRadius:12,
+                  border:`1.5px solid ${C.bd}`,fontSize:FONT_INPUT,fontFamily:"inherit",
+                  background:"#fff",color:C.tx,outline:"none"}}>
+                <option value="">— Sélectionner —</option>
+                {entreprisesCompatibles.map(e=>(
+                  <option key={e.id} value={e.id}>{e.nom}{e.typesProposes?.length?` · ${e.typesProposes.map(t=>TYPES_TRAVAUX_DELEGATION.find(([v])=>v===t)?.[2]||t).join(", ")}`:"" }</option>
                 ))}
               </select>
             </div>
