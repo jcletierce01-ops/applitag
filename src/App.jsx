@@ -4943,10 +4943,15 @@ const EcranDelegations = ({entrepriseId, toast, onBack}) => {
   // Entreprises compatibles : si un lot est sélectionné, ne garder que celles dont au moins un typesProposes n'est pas couvert sur ce lot
   const lotSelec = contacts.find(c=>c.id===missionLotId);
   const entreprisesCompatibles = entreprises.filter(e=>{
-    if (!e.typesProposes?.length) return true; // sans restriction, on affiche
-    if (!lotSelec) return true;
-    const couverts = typesCouvertsParLot[lotSelec.id] || new Set();
-    return e.typesProposes.some(t=>!couverts.has(t));
+    if (!e.typesProposes?.length) return true;
+    // doit proposer le type de mission sélectionné
+    if (!e.typesProposes.includes(missionType)) return false;
+    // si un lot est sélectionné, ce type ne doit pas être déjà couvert
+    if (lotSelec) {
+      const couverts = typesCouvertsParLot[lotSelec.id] || new Set();
+      if (couverts.has(missionType)) return false;
+    }
+    return true;
   });
   // Types disponibles pour le panneau de mission (intersection entreprise × non couvert sur lot)
   const typesDisponibles = TYPES_TRAVAUX_DELEGATION.filter(([v])=>{
