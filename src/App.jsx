@@ -40,6 +40,11 @@ const genCode = () => {
   for (let i=0; i<8; i++) out += alphabet[Math.floor(Math.random()*alphabet.length)];
   return out;
 };
+const genCodeAPT = () => {
+  const alpha = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
+  const part = (n) => Array.from({length:n},()=>alpha[Math.floor(Math.random()*alpha.length)]).join("");
+  return `APT-${part(4)}-${part(4)}`;
+};
 // PIN opérateur — 6 chiffres (au lieu de 4) pour plus de robustesse.
 const genPin4 = () => String(Math.floor(100000 + Math.random()*900000));
 
@@ -67,6 +72,9 @@ const COMPTES_KEY = "applitag_comptes_contact";
 const comptesLocalGet = () => { try { return JSON.parse(localStorage.getItem(COMPTES_KEY)||"[]"); } catch { return []; } };
 const comptesLocalSave = (arr) => { try { localStorage.setItem(COMPTES_KEY, JSON.stringify(arr)); } catch {} };
 const COMPTE_SESSION_KEY = "applitag_compte_contact_session";
+const DELETED_LOTS_KEY = "applitag_deleted_lots";
+const deletedLotsGet = () => { try { return JSON.parse(localStorage.getItem(DELETED_LOTS_KEY)||"[]"); } catch { return []; } };
+const deletedLotsAdd = (id) => { try { const ids=[...new Set([...deletedLotsGet(),id])]; localStorage.setItem(DELETED_LOTS_KEY,JSON.stringify(ids)); } catch {} };
 
 // Sources locales à resynchroniser tant que les routes API correspondantes ne sont pas
 // garanties disponibles (notamment important sur iOS Safari, où le localStorage d'un
@@ -101,7 +109,7 @@ const resyncPendingRecords = async () => {
 const TYPES_PRESTATION_ANNONCE = [
   ["abattage","🪓","Abattage"],
   ["debardage","🚜","Débardage"],
-  ["dechiquetage","🪚","Déchiquetage"],
+  ["dechiquetage","🌀","Déchiquetage"],
   ["transport","🚛","Transport"],
 ];
 
@@ -151,6 +159,7 @@ const authHeaders = () => ({
 
 const ORIGINE_OPTS = [
   ["appel_entrant","📞","Appel entrant"],
+  ["appel_applitag","📲","Rappel APPLITAG Connect"],
   ["visite_terrain","🔭","Visite terrain"],
   ["recommandation","🤝","Recommandation"],
   ["salon","🎪","Salon"],
@@ -208,23 +217,26 @@ const BigBtn = ({onClick,bg=C.green,color="#fff",children,disabled,icon,style={}
   </button>
 );
 
-const MInput = ({label,value,onChange,placeholder,type="text",required,error,hint,big}) => {
+const MInput = ({label,value,onChange,placeholder,type="text",required,error,hint,big,min}) => {
   const inputMode = type==="number"||type==="numeric" ? "decimal"
     : type==="tel" ? "tel"
     : type==="email" ? "email"
     : undefined;
+  const minAttr = type==="date" ? (min ?? todayS()) : undefined;
+  const isEmpty = required && (!value || String(value).trim()==="" || parseFloat(value)===0 || value==="0");
+  const borderColor = error ? C.red : isEmpty ? "#E24B4A" : C.bd;
   return (
   <div style={{marginBottom:14}}>
-    <div style={{fontSize:13,fontWeight:600,color:error?C.red:C.tx2,marginBottom:5,
+    <div style={{fontSize:13,fontWeight:600,color:(error||isEmpty)?C.red:C.tx2,marginBottom:5,
       display:"flex",justifyContent:"space-between"}}>
-      <span>{label}{required&&<span style={{color:"#E24B4A"}}> *</span>}</span>
+      <span>{label}{required&&<span style={{color:"#E24B4A"}}> ✱</span>}</span>
       {hint&&<span style={{fontWeight:400,color:C.tx3,fontSize:12}}>{hint}</span>}
     </div>
     {big ? (
       <textarea value={value} onChange={e=>onChange(e.target.value)}
         placeholder={placeholder} rows={3}
         style={{width:"100%",padding:"14px",borderRadius:12,resize:"none",
-          border:`1.5px solid ${error?C.red:C.bd}`,
+          border:`1.5px solid ${borderColor}`,
           fontSize:FONT_INPUT,fontFamily:"inherit",lineHeight:1.5,
           background:"#fff",color:C.tx,outline:"none"}}/>
     ) : (
@@ -232,8 +244,9 @@ const MInput = ({label,value,onChange,placeholder,type="text",required,error,hin
         placeholder={placeholder}
         type={type==="number"?"text":type}
         inputMode={inputMode}
+        min={minAttr}
         style={{width:"100%",height:INPUT_H,padding:"0 14px",borderRadius:12,
-          border:`1.5px solid ${error?C.red:C.bd}`,
+          border:`1.5px solid ${borderColor}`,
           fontSize:FONT_INPUT,fontFamily:"inherit",
           background:"#fff",color:C.tx,outline:"none"}}/>
     )}
@@ -408,16 +421,19 @@ const DEMO_ENTREPRISE_ID = "demo-applitag-2026";
 const DEMO_USERS = {
   admin:       {nom:"Demo",     prenom:"Admin",    role:"admin",        id:"demo-admin",    pin:"0000"},
   operateur:   {nom:"Dupont",   prenom:"Martin",   role:"operateur",    id:"demo-op1",      pin:"1111"},
+  mandataire:  {nom:"Laurent",  prenom:"Claire",   role:"mandataire",   profil:"charge_mission", roles:["mandataire"], id:"demo-mandat", pin:"6666"},
   proprietaire:{nom:"Martin",   prenom:"Jean",     role:"proprietaire", id:"demo-prop1",    pin:"2222"},
   chauffeur:   {nom:"Robert",   prenom:"Pierre",   role:"chauffeur",    id:"demo-chauf",    pin:"3333"},
   dechiquetage:{nom:"Forestier",prenom:"François", role:"dechiquetage", id:"demo-dechiquetage", pin:"4444"},
-  chaufferie:  {nom:"Énergie",  prenom:"Sophie",   role:"chaufferie",   id:"demo-chauff",   pin:"5555"},
+  chaufferie:   {nom:"Énergie",    prenom:"Sophie",   role:"chaufferie",    id:"demo-chauff",   pin:"5555"},
+  receptionnaire:{nom:"Plateau",   prenom:"Nathalie", role:"receptionnaire",id:"demo-recep",     pin:"7777"},
+  contact:      {nom:"Dubois",    prenom:"Marie",    role:"proprietaire",  id:"demo-prop2",    pin:"8888"},
 };
 
 const DEMO_LOTS = [
   {id:"demo-lot-1",lotNumero:"LOT-2026-06-89-001",nom:"Martin",prenom:"Jean",
    telephone:"0386420123",commune:"Charny-Orée-de-Puisaye",surfaceHa:12.5,
-   potentiel:"chene",statutLot:"VISITE_REALISEE",dateContact:"2026-06-01",
+   potentiel:"chene",statutLot:"EN_LIVRAISON",dateContact:"2026-06-01",
    adresseParcelle:"Lieu-dit Les Épines",refCadastrale:"B 142",
    entrepriseId:DEMO_ENTREPRISE_ID},
   {id:"demo-lot-2",lotNumero:"LOT-2026-06-89-002",nom:"Dubois",prenom:"Marie",
@@ -429,7 +445,23 @@ const DEMO_LOTS = [
    telephone:"0386442345",commune:"Joigny",surfaceHa:22.0,
    potentiel:"melange",statutLot:"BORD_ROUTE",dateContact:"2026-04-20",
    adresseParcelle:"Bois du Moulin",refCadastrale:"A 089",
-   etfNom:"ETF Moreau",tonnageCumul:180.0,entrepriseId:DEMO_ENTREPRISE_ID},
+   etfNom:"ETF Moreau",tonnageCumul:51.4,entrepriseId:DEMO_ENTREPRISE_ID},
+  {id:"demo-lot-6",lotNumero:"LOT-2026-07-89-006",nom:"Perrot",prenom:"André",
+   telephone:"0386475678",commune:"Toucy",surfaceHa:9.5,
+   potentiel:"chene",statutLot:"NOUVEAU",dateContact:"2026-07-05",
+   adresseParcelle:"Lieu-dit La Grosse Haie",refCadastrale:"F 112",
+   mandataireId:"demo-mandat",entrepriseId:DEMO_ENTREPRISE_ID},
+  {id:"demo-lot-7",lotNumero:"LOT-2026-07-89-007",nom:"Gauthier",prenom:"Sylvie",
+   telephone:"0386486789",commune:"Saint-Fargeau",surfaceHa:15.0,
+   potentiel:"melange",statutLot:"VISITE_PREVUE",dateContact:"2026-07-03",
+   adresseParcelle:"Bois des Corbeaux",refCadastrale:"G 223",
+   dateVisite:"2026-07-10",
+   mandataireId:"demo-mandat",entrepriseId:DEMO_ENTREPRISE_ID},
+  {id:"demo-lot-8",lotNumero:"LOT-2026-07-89-008",nom:"Renard",prenom:"Michel",
+   telephone:"0386497890",commune:"Bléneau",surfaceHa:6.3,
+   potentiel:"peuplier",statutLot:"NOUVEAU",dateContact:"2026-07-07",
+   adresseParcelle:"Ripisylve du Loing",refCadastrale:"H 334",
+   mandataireId:"demo-mandat",entrepriseId:DEMO_ENTREPRISE_ID},
   {id:"demo-lot-4",lotNumero:"LOT-2026-06-89-004",nom:"Bernard",prenom:"Lucien",
    telephone:"0386453456",commune:"Auxerre",surfaceHa:6.8,
    potentiel:"peuplier",statutLot:"EN_LIVRAISON",dateContact:"2026-04-05",
@@ -437,9 +469,15 @@ const DEMO_LOTS = [
    etfNom:"ETF Gaillard",tonnageCumul:62.0,entrepriseId:DEMO_ENTREPRISE_ID},
   {id:"demo-lot-5",lotNumero:"LOT-2026-06-89-005",nom:"Rousseau",prenom:"Élise",
    telephone:"0386464567",commune:"Migennes",surfaceHa:15.3,
-   potentiel:"chene",statutLot:"LIVRE_CHAUFFERIE",dateContact:"2026-03-10",
+   potentiel:"chene",statutLot:"EN_STOCK_PLATEFORME",dateContact:"2026-03-10",
    adresseParcelle:"Grand Bois de Migennes",refCadastrale:"E 445",
-   etfNom:"ETF Moreau",tonnageCumul:142.0,entrepriseId:DEMO_ENTREPRISE_ID},
+   etfNom:"ETF Moreau",tonnageCumul:52.4,entrepriseId:DEMO_ENTREPRISE_ID},
+  {id:"demo-lot-9",lotNumero:"LOT-2026-07-89-009",nom:"Dubois",prenom:"Marie",
+   telephone:"0386491234",commune:"Joigny",surfaceHa:9.2,
+   potentiel:"chene",statutLot:"CONTRAT_EN_COURS",dateContact:"2026-07-01",
+   adresseParcelle:"Bois du Château, lieu-dit Le Fourneau",refCadastrale:"B 217",
+   proprietaireId:"demo-prop2",mandataireId:"demo-mandat",
+   etfNom:"ETF Gaillard",tonnageCumul:0,entrepriseId:DEMO_ENTREPRISE_ID},
 ];
 
 const DEMO_VISITES = [
@@ -459,6 +497,15 @@ const DEMO_VISITES = [
    volumeEstimeT:120,surfaceHa:8.2,prixTonne:"48",tauxTVA:"20",
    accesCamion:"praticable",largeurAcces:5,distancePlateforme:150,
    replantation:"non",certification:"aucune"},
+  {id:"demo-v4",lotId:"demo-lot-4",lotNumero:"LOT-2026-06-89-004",
+   date:"2026-04-18",statut:"validee",
+   gps:{lat:47.8014,lng:3.5673,accuracy:6},photos:["p1","p2"],
+   essences:[{id:"peuplier",label:"Peuplier",pct:100,emoji:"🌿"}],
+   volumeEstimeT:65,surfaceHa:6.8,prixTonne:"38",tauxTVA:"20",
+   accesCamion:"praticable",largeurAcces:5,distancePlateforme:120,
+   replantation:"non",certification:"red",
+   redCategorie:"bois_forestier",redDistance:35,redPays:"France",
+   numeroCertification:""},
 ];
 
 const DEMO_REPORTINGS = [
@@ -487,6 +534,16 @@ const DEMO_REPORTINGS = [
    typeOperationJour:"abattage_debardage",machineJour:"Ponsse Bear",
    nbTasJour:8,foisonnement:0.50,nbOperateurs:4,
    observations:"Volume supérieur aux estimations"},
+  {id:"demo-r-today-ab",lotId:"demo-lot-1",lotNumero:"LOT-2026-06-89-001",
+   dateJour:new Date().toISOString().slice(0,10),heureDebut:"07:00",heureFin:"12:30",
+   typeOperationJour:"abattage",machineJour:"Tronçonneuse Stihl 500i",
+   nbTasJour:5,foisonnement:0.55,nbOperateurs:2,volumeJour:124.5,
+   observations:"Abattage en cours — estimation journalière"},
+  {id:"demo-r-today-db",lotId:"demo-lot-1",lotNumero:"LOT-2026-06-89-001",
+   dateJour:new Date().toISOString().slice(0,10),heureDebut:"13:00",heureFin:"17:00",
+   typeOperationJour:"debardage",machineJour:"John Deere 1270G",
+   nbTasJour:4,foisonnement:0.55,nbOperateurs:2,volumeJour:98.0,
+   observations:"Débardage section principale"},
 ];
 
 const DEMO_TRANSPORTS = [
@@ -494,6 +551,7 @@ const DEMO_TRANSPORTS = [
    numeroCMR:"CMR-2026-0089",typeVehicule:"semi",
    immatTracteur:"AB-123-CD",immatRemorque:"EF-456-GH",
    nomChauffeur:"Pierre Robert",societeTransp:"Transports Moreau",
+   adresse:"Lieu-dit Le Bois Brûlé",codePostal:"89120",commune:"Charny-Orée-de-Puisaye",departement:"Yonne (89)",
    heureDebut:"08:00",heureFin:"10:30",
    departConfirme:true},
 ];
@@ -517,15 +575,59 @@ const DEMO_LIVRAISONS = [
    nomReceptionnaire:"Sophie Énergie",
    dateHeureLivraison:"2026-06-24T09:50:00",
    gpsAlerteDeclenche:false},
+  {id:"demo-lp1",lotId:"demo-lot-4",lotNumero:"LOT-2026-06-89-004",
+   typeDest:"plateforme",nomDestination:"Plateforme Auxerre Bois Énergie",
+   numeroCMR:"CMR-2026-0102",pesee:"27.4",humiditeReception:null,
+   nomReceptionnaire:"Nathalie Plateau",
+   dateHeureLivraison:new Date().toISOString().slice(0,16)+":00",
+   statut:"en_attente",gpsAlerteDeclenche:false},
+  {id:"demo-lp2",lotId:"demo-lot-3",lotNumero:"LOT-2026-06-89-003",
+   typeDest:"plateforme",nomDestination:"Plateforme Auxerre Bois Énergie",
+   numeroCMR:"CMR-2026-0089",pesee:"26.3",humiditeReception:33,
+   nomReceptionnaire:"Nathalie Plateau",
+   dateHeureLivraison:"2026-07-08T10:20:00",
+   statut:"recu",gpsAlerteDeclenche:false},
+  {id:"demo-lp2b",lotId:"demo-lot-3",lotNumero:"LOT-2026-06-89-003",
+   typeDest:"plateforme",nomDestination:"Plateforme Auxerre Bois Énergie",
+   numeroCMR:"CMR-2026-0091",pesee:"25.1",humiditeReception:30,
+   nomReceptionnaire:"Nathalie Plateau",
+   dateHeureLivraison:"2026-07-10T08:55:00",
+   statut:"recu",gpsAlerteDeclenche:false},
+  {id:"demo-lp3",lotId:"demo-lot-5",lotNumero:"LOT-2026-06-89-005",
+   typeDest:"plateforme",nomDestination:"Plateforme Auxerre Bois Énergie",
+   numeroCMR:"CMR-2026-0094",pesee:"27.8",humiditeReception:31,
+   nomReceptionnaire:"Nathalie Plateau",
+   dateHeureLivraison:"2026-07-09T14:45:00",
+   statut:"recu",gpsAlerteDeclenche:false},
+  {id:"demo-lp3b",lotId:"demo-lot-5",lotNumero:"LOT-2026-06-89-005",
+   typeDest:"plateforme",nomDestination:"Plateforme Auxerre Bois Énergie",
+   numeroCMR:"CMR-2026-0096",pesee:"24.6",humiditeReception:29,
+   nomReceptionnaire:"Nathalie Plateau",
+   dateHeureLivraison:"2026-07-11T07:30:00",
+   statut:"recu",gpsAlerteDeclenche:false},
 ];
 
 const DEMO_DECHIQUETAGES = [
   {id:"demo-d1",lotId:"demo-lot-1",lotNumero:"LOT-2026-06-89-001",dateJour:"2026-06-23"},
+  {id:"demo-d-today",lotId:"demo-lot-1",lotNumero:"LOT-2026-06-89-001",
+   dateJour:new Date().toISOString().slice(0,10),
+   createdAt:new Date().toISOString(),
+   machine:"Jenz HEM 593",typeChargement:"semi",
+   tonnageCharge:27.2,cubageCharge:81.0,
+   operateurDechiquetage:"François Forestier",
+   telOperateur:"06 12 34 56 78"},
+  {id:"demo-d2",lotId:"demo-lot-4",lotNumero:"LOT-2026-06-89-004",
+   dateJour:new Date().toISOString().slice(0,10),
+   createdAt:new Date().toISOString(),
+   machine:"Jenz HEM 593",typeChargement:"semi",
+   tonnageCharge:26.8,cubageCharge:80.0,
+   operateurDechiquetage:"François Forestier",
+   telOperateur:"06 12 34 56 78"},
 ];
 
 // ── LOGIN SCREEN COMPONENT ────────────────────────────────────
 const LoginScreen = ({onLogin, onLoginOperateur, onLoginDemo}) => {
-  const [step, setStep] = useState("home"); // home | scan | pin | operateur | demo | ordre
+  const [step, setStep] = useState("bienvenue"); // bienvenue | home | scan | pin | operateur | demo | ordre
   const [entrepriseId, setEntrepriseId] = useState("");
   const [entrepriseNom, setEntrepriseNom] = useState("");
   const [pin, setPin] = useState("");
@@ -641,11 +743,15 @@ const LoginScreen = ({onLogin, onLoginOperateur, onLoginDemo}) => {
   const [compteSession, setCompteSession]= useState(()=>{
     try { return JSON.parse(localStorage.getItem(COMPTE_SESSION_KEY)||"null"); } catch { return null; }
   });
+  const [suiviOps, setSuiviOps] = useState(null);
+  const suiviOpsIsDemo = useRef(false);
   const [compteNom,      setCompteNom]     = useState("");
   const [compteTel,      setCompteTel]     = useState("");
   const [compteEmail,    setCompteEmail]   = useState("");
-  const [comptePin,      setComptePin]     = useState("");
-  const [comptePinConf,  setComptePinConf] = useState("");
+  const [compteCodeGenere, setCompteCodeGenere] = useState("");
+  const [compteTrancheHoraire, setCompteTrancheHoraire] = useState("");
+  const [compteCodePostal,  setCompteCodePostal]  = useState("");
+  const [compteNatureDemande, setCompteNatureDemande] = useState([]);
   const [compteIdentifiant, setCompteIdentifiant] = useState("");
   const [compteLoginPin, setCompteLoginPin]= useState("");
   const [compteErreur,   setCompteErreur]  = useState("");
@@ -654,22 +760,23 @@ const LoginScreen = ({onLogin, onLoginOperateur, onLoginDemo}) => {
   const [comptePrefNetwork,setComptePrefNetwork]= useState(compteSession?.consentNetwork||false);
 
   const resetCompteForm = () => {
-    setCompteNom(""); setCompteTel(""); setCompteEmail(""); setComptePin(""); setComptePinConf("");
-    setCompteIdentifiant(""); setCompteLoginPin(""); setCompteErreur("");
+    setCompteNom(""); setCompteTel(""); setCompteEmail("");
+    setCompteTrancheHoraire(""); setCompteNatureDemande([]); setCompteCodePostal(""); setCompteIdentifiant(""); setCompteLoginPin(""); setCompteCodeGenere(""); setCompteErreur("");
   };
 
   const handleCreerCompte = async () => {
     if (!compteNom.trim()||!compteTel.trim()) { setCompteErreur("Indiquez votre nom/société et votre téléphone"); return; }
-    if (comptePin.length!==6) { setCompteErreur("Le code doit comporter 6 chiffres"); return; }
-    if (comptePin!==comptePinConf) { setCompteErreur("Les deux codes ne correspondent pas"); return; }
+    if (!compteCodePostal.trim()||compteCodePostal.length!==5) { setCompteErreur("Indiquez votre code postal (5 chiffres)"); return; }
     const existants = comptesLocalGet();
     if (existants.some(c=>c.telephone===compteTel||(compteEmail&&c.email===compteEmail))) {
       setCompteErreur("Un compte existe déjà avec ce téléphone ou cet email — connectez-vous"); return;
     }
     setCompteErreur(""); setCompteSaving(true);
+    const codeAPT = genCodeAPT();
     const compte = {
-      id: uid(), nom: compteNom, telephone: compteTel, email: compteEmail, pin: comptePin,
+      id: uid(), nom: compteNom, telephone: compteTel, email: compteEmail, pin: codeAPT,
       entrepriseId: DEFAULT_ENTREPRISE_ID, consentActus:false, consentNetwork:false,
+      trancheHoraire: compteTrancheHoraire||"", natureDemande: compteNatureDemande, codePostal: compteCodePostal||"", rapportAppel:"",
       dateCreation: nowISO(), synced:false,
     };
     try {
@@ -678,24 +785,30 @@ const LoginScreen = ({onLogin, onLoginOperateur, onLoginDemo}) => {
       });
       if (res.ok) compte.synced = true;
     } catch {}
+    try {
+      const msg = `Bonjour ${compteNom}, votre compte APPLITAG Connect a été créé. Votre code d'accès personnel est : ${codeAPT}. Conservez-le précieusement, il vous sera demandé à chaque connexion.`;
+      await fetch(`${API}/sms`, { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({to: compteTel, message: msg}) });
+    } catch {}
     comptesLocalSave([compte, ...existants]);
     const session = {id:compte.id, nom:compte.nom, telephone:compte.telephone, email:compte.email,
       consentActus:compte.consentActus, consentNetwork:compte.consentNetwork};
     localStorage.setItem(COMPTE_SESSION_KEY, JSON.stringify(session));
     setCompteSession(session);
     setComptePrefActus(false); setComptePrefNetwork(false);
+    setCompteCodeGenere(codeAPT);
     resetCompteForm();
-    setCompteVue("espace");
+    setCompteVue("code_genere");
     setCompteSaving(false);
   };
 
   const handleConnexionCompte = async () => {
-    if (!compteIdentifiant.trim()||compteLoginPin.length!==4) {
-      setCompteErreur("Indiquez votre téléphone/email et votre code à 6 chiffres"); return;
+    if (!compteIdentifiant.trim()||!compteLoginPin.trim()) {
+      setCompteErreur("Indiquez votre téléphone/email et votre code APPLITAG"); return;
     }
     setCompteErreur(""); setCompteSaving(true);
+    const saisie = compteLoginPin.trim().toUpperCase();
     const compte = comptesLocalGet().find(c=>
-      (c.telephone===compteIdentifiant||c.email===compteIdentifiant)&&c.pin===compteLoginPin);
+      (c.telephone===compteIdentifiant||c.email===compteIdentifiant)&&c.pin===saisie);
     if (!compte) {
       setCompteErreur("Identifiant ou code incorrect");
       setCompteSaving(false); return;
@@ -711,8 +824,9 @@ const LoginScreen = ({onLogin, onLoginOperateur, onLoginDemo}) => {
   };
 
   const handleDeconnexionCompte = () => {
+    suiviOpsIsDemo.current = false;
     localStorage.removeItem(COMPTE_SESSION_KEY);
-    setCompteSession(null);
+    setCompteSession(null); setSuiviOps(null);
     setCompteVue("choix");
   };
 
@@ -735,6 +849,42 @@ const LoginScreen = ({onLogin, onLoginOperateur, onLoginDemo}) => {
   const mesAnnonces = compteSession
     ? annoncesLocalGet().filter(a=>a.telephone===compteSession.telephone||(compteSession.email&&a.email===compteSession.email))
     : [];
+
+  useEffect(() => {
+    if (compteVue !== "espace" || !compteSession?.telephone) return;
+    if (suiviOpsIsDemo.current) return;
+    setSuiviOps(null);
+    const today = todayS();
+    Promise.all([
+      fetch(`${API}/contacts`).then(r=>r.json()).catch(()=>[]),
+      fetch(`${API}/dechiquetage`).then(r=>r.json()).catch(()=>[]),
+      fetch(`${API}/activites`).then(r=>r.json()).catch(()=>[]),
+    ]).then(([lots, dechiqList, activites]) => {
+      const tel = compteSession.telephone;
+      const mesLots = Array.isArray(lots) ? lots.filter(l=>l.telephone===tel) : [];
+      const lotIds = new Set(mesLots.map(l=>l.id));
+
+      const actsToday = Array.isArray(activites)
+        ? activites.filter(a=>lotIds.has(a.lotId) && (a.dateJour||"").startsWith(today))
+        : [];
+
+      const abattageM3 = actsToday
+        .filter(a=>["abattage","abattage_debardage"].includes(a.typeOperationJour))
+        .reduce((s,a)=>s+(parseFloat(a.volumeJour)||0), 0);
+
+      const debardageM3 = actsToday
+        .filter(a=>["debardage","abattage_debardage"].includes(a.typeOperationJour))
+        .reduce((s,a)=>s+(parseFloat(a.volumeJour)||0), 0);
+
+      const dechiqToday = Array.isArray(dechiqList)
+        ? dechiqList.filter(d=>lotIds.has(d.lotId) && (d.createdAt||d.dateJour||"").startsWith(today))
+        : [];
+      const dechiqT  = dechiqToday.reduce((s,d)=>s+(parseFloat(d.tonnageCharge)||0), 0);
+      const dechiqM3 = dechiqToday.reduce((s,d)=>s+(parseFloat(d.cubageCharge)||0), 0);
+
+      setSuiviOps({ abattageM3, debardageM3, dechiqT, dechiqM3, nbLots: mesLots.length, today });
+    });
+  }, [compteVue, compteSession?.telephone]);
 
   const qrRef = useRef(null);
   const scannerRef = useRef(null);
@@ -833,9 +983,64 @@ const LoginScreen = ({onLogin, onLoginOperateur, onLoginDemo}) => {
 
       <div style={{flex:1,padding:PADDING,overflowY:"auto",background:C.sb}}>
 
-        {/* ── HOME — écran d'accueil sans scanner ── */}
+        {/* ── BIENVENUE ── */}
+        {step==="bienvenue"&&(
+          <div style={{display:"flex",flexDirection:"column",alignItems:"center",paddingTop:8}}>
+            <div style={{fontSize:14,color:"rgba(255,255,255,.75)",textAlign:"center",
+              lineHeight:1.7,marginBottom:32,maxWidth:300}}>
+              Bienvenue sur <strong>APPLITAG</strong>, votre plateforme de gestion de la chaîne bois-énergie.
+              Connectez-vous ou rejoignez-nous pour déposer une annonce.
+            </div>
+            <div style={{width:"100%",display:"flex",flexDirection:"column",gap:12,marginBottom:24}}>
+              <button onClick={()=>setStep("bienvenue")}
+                style={{width:"100%",padding:20,borderRadius:16,
+                  background:"rgba(255,255,255,.12)",border:"1.5px solid rgba(255,255,255,.35)",
+                  color:"#fff",fontFamily:"inherit",fontSize:15,fontWeight:600,cursor:"pointer",
+                  WebkitTapHighlightColor:"transparent",
+                  display:"flex",alignItems:"center",gap:16,textAlign:"left"}}>
+                <span style={{fontSize:32,lineHeight:1}}>🔑</span>
+                <div>
+                  <div>Me connecter</div>
+                  <div style={{fontSize:12,opacity:.65,fontWeight:400,marginTop:3}}>
+                    Espace professionnel fourni par l'administrateur
+                  </div>
+                </div>
+              </button>
+              <button onClick={()=>{ setCompteErreur(""); setCompteVue(compteSession?"espace":"choix"); setStep("compte"); }}
+                style={{width:"100%",padding:20,borderRadius:16,
+                  background:"rgba(76,175,80,.25)",border:"1.5px solid rgba(76,175,80,.6)",
+                  color:"#fff",fontFamily:"inherit",fontSize:15,fontWeight:600,cursor:"pointer",
+                  WebkitTapHighlightColor:"transparent",
+                  display:"flex",alignItems:"center",gap:16,textAlign:"left"}}>
+                <span style={{fontSize:32,lineHeight:1}}>📲</span>
+                <div>
+                  <div>APPLITAG Connect</div>
+                  <div style={{fontSize:12,opacity:.65,fontWeight:400,marginTop:3}}>
+                    Créer un compte · Suivre mon lot · Déposer une annonce bois ou service
+                  </div>
+                </div>
+              </button>
+            </div>
+            <div style={{display:"flex",gap:20,marginBottom:12}}>
+              <button onClick={()=>setStep("demo")}
+                style={{background:"none",border:"none",color:"rgba(255,255,255,.45)",
+                  fontFamily:"inherit",fontSize:12,cursor:"pointer",textDecoration:"underline",
+                  WebkitTapHighlightColor:"transparent"}}>
+                🎭 Mode démo
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* ── HOME — menu connexion professionnelle ── */}
         {step==="home"&&(
           <div>
+            <button onClick={()=>setStep("bienvenue")}
+              style={{background:"none",border:"none",color:"rgba(255,255,255,.55)",
+                fontFamily:"inherit",fontSize:13,cursor:"pointer",marginBottom:16,
+                display:"flex",alignItems:"center",gap:6,WebkitTapHighlightColor:"transparent"}}>
+              {"< "} Retour
+            </button>
             <div style={{fontSize:14,color:"rgba(255,255,255,.7)",
               textAlign:"center",marginBottom:28,lineHeight:1.6}}>
               Choisissez votre mode de connexion
@@ -1019,7 +1224,7 @@ const LoginScreen = ({onLogin, onLoginOperateur, onLoginDemo}) => {
                 )}
               </div>
             )}
-            <button onClick={()=>{ setStep("home"); setOrdreTrouve(null); setOrdreCode(""); setOrdreErreur(""); }}
+            <button onClick={()=>{ setStep("bienvenue"); setOrdreTrouve(null); setOrdreCode(""); setOrdreErreur(""); }}
               style={{width:"100%",padding:14,borderRadius:12,marginTop:14,
               background:"rgba(255,255,255,.1)",border:"1px solid rgba(255,255,255,.2)",
               color:"rgba(255,255,255,.7)",fontFamily:"inherit",fontSize:13,
@@ -1049,7 +1254,7 @@ const LoginScreen = ({onLogin, onLoginOperateur, onLoginDemo}) => {
                     L'administrateur va l'examiner et vous recontacter au {annonceTel}.
                   </div>
                 </div>
-                <button onClick={()=>{ resetAnnonce(); setStep("home"); }}
+                <button onClick={()=>{ resetAnnonce(); setStep("bienvenue"); }}
                   style={{width:"100%",padding:14,borderRadius:12,
                   background:"rgba(255,255,255,.1)",border:"1px solid rgba(255,255,255,.2)",
                   color:"rgba(255,255,255,.7)",fontFamily:"inherit",fontSize:13,
@@ -1077,7 +1282,7 @@ const LoginScreen = ({onLogin, onLoginOperateur, onLoginDemo}) => {
                     </div>
                   </button>
                 ))}
-                <button onClick={()=>setStep("home")}
+                <button onClick={()=>setStep("bienvenue")}
                   style={{width:"100%",padding:14,borderRadius:12,marginTop:6,
                   background:"rgba(255,255,255,.1)",border:"1px solid rgba(255,255,255,.2)",
                   color:"rgba(255,255,255,.7)",fontFamily:"inherit",fontSize:13,
@@ -1263,7 +1468,7 @@ const LoginScreen = ({onLogin, onLoginOperateur, onLoginDemo}) => {
                   <span style={{fontSize:24}}>➕</span>
                   <div style={{fontSize:14,fontWeight:600}}>Créer un compte gratuit</div>
                 </button>
-                <button onClick={()=>setStep("home")}
+                <button onClick={()=>setStep("bienvenue")}
                   style={{width:"100%",padding:14,borderRadius:12,marginTop:6,
                   background:"rgba(255,255,255,.1)",border:"1px solid rgba(255,255,255,.2)",
                   color:"rgba(255,255,255,.7)",fontFamily:"inherit",fontSize:13,
@@ -1285,21 +1490,56 @@ const LoginScreen = ({onLogin, onLoginOperateur, onLoginDemo}) => {
                   style={{width:"100%",height:48,padding:"0 14px",borderRadius:10,
                     border:"1.5px solid rgba(255,255,255,.25)",background:"rgba(255,255,255,.08)",
                     color:"#fff",fontFamily:"inherit",fontSize:15,outline:"none",marginBottom:10}}/>
+                <input value={compteCodePostal} onChange={e=>setCompteCodePostal(e.target.value.replace(/\D/g,"").slice(0,5))}
+                  placeholder="Code postal *" type="tel" inputMode="numeric" maxLength={5}
+                  style={{width:"100%",height:48,padding:"0 14px",borderRadius:10,
+                    border:"1.5px solid rgba(255,255,255,.25)",background:"rgba(255,255,255,.08)",
+                    color:"#fff",fontFamily:"inherit",fontSize:15,outline:"none",marginBottom:10}}/>
                 <input value={compteEmail} onChange={e=>setCompteEmail(e.target.value)}
                   placeholder="Email — optionnel" type="email"
                   style={{width:"100%",height:48,padding:"0 14px",borderRadius:10,
                     border:"1.5px solid rgba(255,255,255,.25)",background:"rgba(255,255,255,.08)",
                     color:"#fff",fontFamily:"inherit",fontSize:15,outline:"none",marginBottom:10}}/>
-                <input value={comptePin} onChange={e=>setComptePin(e.target.value.replace(/\D/g,"").slice(0,6))}
-                  placeholder="Créez un code à 6 chiffres *" type="tel" maxLength={6}
-                  style={{width:"100%",height:48,padding:"0 14px",borderRadius:10,
-                    border:"1.5px solid rgba(255,255,255,.25)",background:"rgba(255,255,255,.08)",
-                    color:"#fff",fontFamily:"monospace",fontSize:18,letterSpacing:6,outline:"none",marginBottom:10}}/>
-                <input value={comptePinConf} onChange={e=>setComptePinConf(e.target.value.replace(/\D/g,"").slice(0,6))}
-                  placeholder="Confirmez le code *" type="tel" maxLength={6}
-                  style={{width:"100%",height:48,padding:"0 14px",borderRadius:10,
-                    border:"1.5px solid rgba(255,255,255,.25)",background:"rgba(255,255,255,.08)",
-                    color:"#fff",fontFamily:"monospace",fontSize:18,letterSpacing:6,outline:"none",marginBottom:14}}/>
+                <div style={{marginBottom:10}}>
+                  <div style={{fontSize:12,color:"rgba(255,255,255,.7)",marginBottom:6}}>Nature de la demande <span style={{opacity:.6}}>(plusieurs choix possibles)</span></div>
+                  {[
+                    "🌲 Proposer une parcelle / vendre du bois",
+                    "📋 Demande d'estimation / devis",
+                    "🤝 Rejoindre le réseau APPLITAG",
+                    "📰 Recevoir des informations / actualités",
+                    "❓ Autre demande",
+                  ].map(n=>{
+                    const sel=compteNatureDemande.includes(n);
+                    return (
+                      <button key={n} onClick={()=>setCompteNatureDemande(sel?compteNatureDemande.filter(x=>x!==n):[...compteNatureDemande,n])}
+                        style={{display:"block",width:"100%",textAlign:"left",marginBottom:6,padding:"8px 12px",
+                          borderRadius:10,border:`1.5px solid ${sel?"rgba(76,175,80,.8)":"rgba(255,255,255,.25)"}`,
+                          background:sel?"rgba(76,175,80,.3)":"rgba(255,255,255,.08)",
+                          color:"#fff",fontFamily:"inherit",fontSize:13,cursor:"pointer",
+                          WebkitTapHighlightColor:"transparent"}}>
+                        {sel?"✅ ":""}{n}
+                      </button>
+                    );
+                  })}
+                </div>
+                <div style={{marginBottom:10}}>
+                  <div style={{fontSize:12,color:"rgba(255,255,255,.7)",marginBottom:6}}>Tranche horaire de rappel souhaitée</div>
+                  {["Matin (8h–12h)","Après-midi (12h–17h)","Soirée (17h–19h)","Peu importe"].map(t=>(
+                    <button key={t} onClick={()=>setCompteTrancheHoraire(compteTrancheHoraire===t?"":t)}
+                      style={{display:"inline-block",marginRight:6,marginBottom:6,padding:"6px 12px",
+                        borderRadius:20,border:"1.5px solid rgba(255,255,255,.35)",
+                        background:compteTrancheHoraire===t?"rgba(76,175,80,.5)":"rgba(255,255,255,.1)",
+                        color:"#fff",fontFamily:"inherit",fontSize:12,cursor:"pointer",
+                        WebkitTapHighlightColor:"transparent"}}>
+                      {t}
+                    </button>
+                  ))}
+                </div>
+                <div style={{background:"rgba(255,255,255,.08)",borderRadius:10,padding:"12px 14px",
+                  marginBottom:14,border:"1px solid rgba(255,255,255,.2)",fontSize:13,
+                  color:"rgba(255,255,255,.75)",lineHeight:1.5}}>
+                  🔐 Un code d'accès personnel au format <strong style={{color:"#fff",fontFamily:"monospace"}}>APT-XXXX-XXXX</strong> vous sera généré automatiquement et envoyé par SMS.
+                </div>
                 {compteErreur&&(
                   <div style={{color:C.amber,fontSize:13,textAlign:"center",marginBottom:12}}>⚠ {compteErreur}</div>
                 )}
@@ -1320,6 +1560,35 @@ const LoginScreen = ({onLogin, onLoginOperateur, onLoginDemo}) => {
               </div>
             )}
 
+            {compteVue==="code_genere"&&(
+              <div style={{textAlign:"center"}}>
+                <div style={{fontSize:40,marginBottom:12}}>🎉</div>
+                <div style={{fontSize:17,fontWeight:700,color:"#fff",marginBottom:8}}>
+                  Bienvenue, {compteSession?.nom} !
+                </div>
+                <div style={{fontSize:13,color:"rgba(255,255,255,.7)",marginBottom:20,lineHeight:1.6}}>
+                  Votre compte APPLITAG Connect a été créé.<br/>
+                  Votre code d'accès personnel a été envoyé par SMS au <strong style={{color:"#fff"}}>{compteSession?.telephone}</strong>.
+                </div>
+                <div style={{background:"rgba(255,255,255,.12)",borderRadius:14,padding:"18px 14px",
+                  marginBottom:20,border:"2px solid rgba(255,255,255,.3)"}}>
+                  <div style={{fontSize:12,color:"rgba(255,255,255,.6)",marginBottom:6}}>Votre code d'accès</div>
+                  <div style={{fontSize:26,fontWeight:800,color:"#fff",fontFamily:"monospace",
+                    letterSpacing:3}}>{compteCodeGenere}</div>
+                  <div style={{fontSize:11,color:"rgba(255,255,255,.5)",marginTop:8}}>
+                    Conservez-le précieusement — il vous sera demandé à chaque connexion
+                  </div>
+                </div>
+                <button onClick={()=>setCompteVue("espace")}
+                  style={{width:"100%",height:50,borderRadius:12,
+                    background:"rgba(76,175,80,.4)",border:"1px solid rgba(76,175,80,.7)",
+                    color:"#fff",fontFamily:"inherit",fontSize:14,fontWeight:600,cursor:"pointer",
+                    WebkitTapHighlightColor:"transparent"}}>
+                  Accéder à mon espace →
+                </button>
+              </div>
+            )}
+
             {compteVue==="connexion"&&(
               <div>
                 <input value={compteIdentifiant} onChange={e=>setCompteIdentifiant(e.target.value)}
@@ -1327,11 +1596,11 @@ const LoginScreen = ({onLogin, onLoginOperateur, onLoginDemo}) => {
                   style={{width:"100%",height:48,padding:"0 14px",borderRadius:10,
                     border:"1.5px solid rgba(255,255,255,.25)",background:"rgba(255,255,255,.08)",
                     color:"#fff",fontFamily:"inherit",fontSize:15,outline:"none",marginBottom:10}}/>
-                <input value={compteLoginPin} onChange={e=>setCompteLoginPin(e.target.value.replace(/\D/g,"").slice(0,6))}
-                  placeholder="Code à 6 chiffres *" type="tel" maxLength={6}
+                <input value={compteLoginPin} onChange={e=>setCompteLoginPin(e.target.value.toUpperCase())}
+                  placeholder="Code APPLITAG (APT-XXXX-XXXX) *" autoCapitalize="characters"
                   style={{width:"100%",height:48,padding:"0 14px",borderRadius:10,
                     border:"1.5px solid rgba(255,255,255,.25)",background:"rgba(255,255,255,.08)",
-                    color:"#fff",fontFamily:"monospace",fontSize:18,letterSpacing:6,outline:"none",marginBottom:14}}/>
+                    color:"#fff",fontFamily:"monospace",fontSize:15,letterSpacing:2,outline:"none",marginBottom:14}}/>
                 {compteErreur&&(
                   <div style={{color:C.amber,fontSize:13,textAlign:"center",marginBottom:12}}>⚠ {compteErreur}</div>
                 )}
@@ -1361,6 +1630,46 @@ const LoginScreen = ({onLogin, onLoginOperateur, onLoginDemo}) => {
                     📞 {compteSession.telephone}{compteSession.email&&<> · 📧 {compteSession.email}</>}
                   </div>
                 </div>
+
+                <div style={{fontSize:13,fontWeight:600,color:"rgba(255,255,255,.8)",marginBottom:8}}>
+                  ⚙️ Suivi des opérations du jour
+                </div>
+                <div style={{fontSize:10,color:"rgba(255,255,255,.45)",marginBottom:10,fontStyle:"italic"}}>
+                  * Toutes les valeurs affichées sont des estimations
+                </div>
+                {!suiviOps ? (
+                  <div style={{fontSize:12,color:"rgba(255,255,255,.45)",marginBottom:16,textAlign:"center"}}>
+                    Chargement…
+                  </div>
+                ) : suiviOps.nbLots===0 ? (
+                  <div style={{fontSize:12,color:"rgba(255,255,255,.45)",marginBottom:16}}>
+                    Aucun lot associé à votre compte pour le moment.
+                  </div>
+                ) : (
+                  <div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:16}}>
+                    {[
+                      {icon:"🪓", label:"Abattage", val: suiviOps.abattageM3>0 ? `${suiviOps.abattageM3.toFixed(1)} m³ *` : "—", sub:"Volume abattu estimé"},
+                      {icon:"🚜", label:"Débardage", val: suiviOps.debardageM3>0 ? `${suiviOps.debardageM3.toFixed(1)} m³ *` : "—", sub:"Volume sorti estimé"},
+                      {icon:"⚙️", label:"Déchiquetage",
+                        val: suiviOps.dechiqT>0||suiviOps.dechiqM3>0
+                          ? [suiviOps.dechiqT>0&&`${suiviOps.dechiqT.toFixed(1)} t`, suiviOps.dechiqM3>0&&`${suiviOps.dechiqM3.toFixed(1)} m³`].filter(Boolean).join(" · ")+" *"
+                          : "—",
+                        sub:"Tonnage & cubage chargés estimés"},
+                    ].map(({icon,label,val,sub})=>(
+                      <div key={label} style={{background:"rgba(255,255,255,.07)",borderRadius:10,
+                        padding:"10px 14px",border:"1px solid rgba(255,255,255,.12)",
+                        display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                        <div>
+                          <div style={{fontSize:13,fontWeight:600,color:"#fff"}}>{icon} {label}</div>
+                          <div style={{fontSize:10,color:"rgba(255,255,255,.45)",marginTop:2}}>{sub}</div>
+                        </div>
+                        <div style={{fontSize:15,fontWeight:700,color:"rgba(255,255,255,.85)",textAlign:"right"}}>
+                          {val}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
 
                 <div style={{fontSize:13,fontWeight:600,color:"rgba(255,255,255,.8)",marginBottom:10}}>
                   📋 Mes propositions ({mesAnnonces.length})
@@ -1419,7 +1728,7 @@ const LoginScreen = ({onLogin, onLoginOperateur, onLoginDemo}) => {
                   </div>
                 </div>
 
-                <button onClick={()=>setStep("home")}
+                <button onClick={()=>setStep("bienvenue")}
                   style={{width:"100%",padding:14,borderRadius:12,marginBottom:10,
                   background:"rgba(255,255,255,.1)",border:"1px solid rgba(255,255,255,.2)",
                   color:"rgba(255,255,255,.7)",fontFamily:"inherit",fontSize:13,
@@ -1493,13 +1802,43 @@ const LoginScreen = ({onLogin, onLoginOperateur, onLoginDemo}) => {
               </div>
             </div>
             <div style={{display:"flex",flexDirection:"column",gap:10}}>
+              {/* 1 — APPLITAG Connect */}
+              <button onClick={()=>{
+                suiviOpsIsDemo.current = true;
+                setCompteSession({id:"demo-prop1", nom:"Jean Martin", telephone:"06 12 34 56 78", email:"jean.martin@exemple.fr"});
+                setSuiviOps({
+                  abattageM3: 124.5,
+                  debardageM3: 98.0,
+                  dechiqT: 28.5,
+                  dechiqM3: 85.0,
+                  nbLots: 2,
+                  today: todayS(),
+                });
+                setCompteVue("espace");
+                setStep("compte");
+              }} style={{
+                padding:"14px 16px",borderRadius:14,width:"100%",textAlign:"left",
+                background:"rgba(76,175,80,.15)",border:"1px solid rgba(76,175,80,.4)",
+                cursor:"pointer",fontFamily:"inherit",
+                WebkitTapHighlightColor:"transparent",
+                display:"flex",alignItems:"center",gap:14}}>
+                <span style={{fontSize:28,width:36,textAlign:"center"}}>📲</span>
+                <div>
+                  <div style={{fontSize:14,fontWeight:600,color:"#fff"}}>APPLITAG Connect</div>
+                  <div style={{fontSize:11,color:"rgba(255,255,255,.45)",marginTop:2}}>Jean Martin · Suivi opérations du jour</div>
+                </div>
+                <span style={{marginLeft:"auto",color:"rgba(255,255,255,.3)",fontSize:18}}>›</span>
+              </button>
+              {/* 2 à 9 — rôles démo */}
               {[
-                {role:"admin",       icon:"🔑",label:"Administrateur",   sub:"Accès complet · toutes les données"},
-                {role:"proprietaire",icon:"🏠",label:"Propriétaire",      sub:"Jean Martin · LOT-89-001"},
-                {role:"operateur",   icon:"👷",label:"Opérateur terrain", sub:"Martin Dupont · ETF Gaillard"},
-                {role:"chauffeur",   icon:"🚛",label:"Chauffeur",         sub:"Pierre Robert · Transport Moreau"},
-                {role:"dechiquetage",icon:"🪚",label:"Déchiquetage",      sub:"François Forestier · Jenz HEM 593"},
-                {role:"chaufferie",  icon:"🔥",label:"Chaufferie",        sub:"Sophie Énergie · Migennes"},
+                {role:"contact",       icon:"📋",label:"Fiche contact propriétaire",sub:"Marie Dubois · LOT-89-009 · Joigny"},
+                {role:"proprietaire",  icon:"🏠",label:"Propriétaire",              sub:"Jean Martin · LOT-89-001"},
+                {role:"mandataire",    icon:"🔭",label:"Mandataire",                sub:"Claire Laurent · Visite terrain & contrat"},
+                {role:"operateur",     icon:"👷",label:"Opérateur terrain",         sub:"Martin Dupont · ETF Gaillard"},
+                {role:"dechiquetage",  icon:"🌀",label:"Déchiquetage",              sub:"François Forestier · Jenz HEM 593"},
+                {role:"chauffeur",     icon:"🚛",label:"Chauffeur",                 sub:"Pierre Robert · Transport Moreau"},
+                {role:"chaufferie",    icon:"🔥",label:"Chaufferie",                sub:"Sophie Énergie · Migennes"},
+                {role:"receptionnaire",icon:"🏗️",label:"Réceptionnaire",            sub:"Nathalie Plateau · Plateforme Auxerre"},
               ].map(({role,icon,label,sub})=>(
                 <button key={role} onClick={()=>onLoginDemo(role)} style={{
                   padding:"14px 16px",borderRadius:14,width:"100%",textAlign:"left",
@@ -1725,17 +2064,20 @@ const formatImmat = (v) => {
 };
 const validateImmat = (v) => /^[A-Z]{2}-\d{3}-[A-Z]{2}$/.test(v) ? null : "Format attendu : AB-123-CD";
 
-const Fiche0 = ({onBack, onSaved, toast, contactCount, entrepriseId}) => {
-  const [origine,       setOrigine]  = useState("");
+const Fiche0 = ({onBack, onSaved, toast, contactCount, entrepriseId, prefill=null, comptes=[]}) => {
+  const [origine,       setOrigine]  = useState(prefill?"appel_applitag":"");
   const [nomApporteur,  setApporteur]= useState("");
   const [dateContact,   setDateC]    = useState(todayS());
   const [typeContact,   setType]     = useState("proprietaire_forestier");
-  const [nom,           setNom]      = useState("");
-  const [prenom,        setPrenom]   = useState("");
-  const [telephone,     setTel]      = useState("");
-  const [email,         setEmail]    = useState("");
+  const [nom,           setNom]      = useState(prefill?.nom||"");
+  const [prenom,        setPrenom]   = useState(prefill?.prenom||"");
+  const [telephone,     setTel]      = useState(prefill?.telephone||"");
+  const [email,         setEmail]    = useState(prefill?.email||"");
+  const [compteSelec,   setCompteSelec] = useState(prefill?.id||"");
   const [adressePostale,setAdresse]  = useState("");
   const [complementAdresse,setComplementAdresse] = useState("");
+  const [cpProprietaire, setCpProprietaire] = useState("");
+  const [villeProprietaire, setVilleProprietaire] = useState("");
   const [commune,       setCommune]  = useState("");
   const [codePostal,    setCP]       = useState("");
   const [adresseParcelle,setParc]    = useState("");
@@ -1768,7 +2110,7 @@ const Fiche0 = ({onBack, onSaved, toast, contactCount, entrepriseId}) => {
     const lotNumero = genLotNumero(codePostal, seq);
     const contact = {
       nom, prenom, telephone, email,
-      adressePostale, complementAdresse, commune, adresseParcelle,
+      adressePostale, complementAdresse, cpProprietaire, villeProprietaire, commune, adresseParcelle,
       surfaceHa: surfaceHa ? parseFloat(surfaceHa) : null,
       refCadastrale, typeContact, origine, nomApporteur, dateContact,
       statut, potentiel: typeRessource==="mixte"
@@ -1815,8 +2157,60 @@ const Fiche0 = ({onBack, onSaved, toast, contactCount, entrepriseId}) => {
         <SectionTitle icon="📡" label="Origine du contact"/>
         <div style={{marginBottom:14}}>
           <div style={{fontSize:13,fontWeight:600,color:C.tx2,marginBottom:8}}>Source</div>
-          <GridSelect options={ORIGINE_OPTS} value={origine} onChange={setOrigine} cols={4}/>
+          <GridSelect options={ORIGINE_OPTS} value={origine} onChange={v=>{setOrigine(v);if(v!=="appel_applitag"){setCompteSelec("");}}} cols={4}/>
         </div>
+        {origine==="appel_applitag"&&(
+          <div style={{marginBottom:14,background:"#FFF3E0",borderRadius:12,padding:"12px 14px",
+            border:"1.5px solid #FF9800"}}>
+            <div style={{fontSize:13,fontWeight:600,color:"#E65100",marginBottom:8}}>
+              📲 Contact APPLITAG Connect à rappeler
+            </div>
+            {comptes.filter(c=>!c.rapportAppel).length===0&&(
+              <div style={{fontSize:13,color:C.tx3}}>Aucun contact en attente de rappel</div>
+            )}
+            {comptes.filter(c=>!c.rapportAppel).length>0&&(
+              <select value={compteSelec}
+                onChange={e=>{
+                  const id=e.target.value;
+                  setCompteSelec(id);
+                  const c=comptes.find(x=>x.id===id);
+                  if(c){
+                    const parts=(c.nom||"").trim().split(" ");
+                    setNom(parts[0]||"");
+                    setPrenom(parts.slice(1).join(" ")||"");
+                    setTel(c.telephone||"");
+                    setEmail(c.email||"");
+                  }
+                }}
+                style={{width:"100%",height:44,padding:"0 12px",borderRadius:10,
+                  border:"1.5px solid #FFB74D",background:"#fff",
+                  fontFamily:"inherit",fontSize:14,color:C.tx,outline:"none",marginBottom:8}}>
+                <option value="">— Sélectionner un contact —</option>
+                {comptes.filter(c=>!c.rapportAppel).map(c=>(
+                  <option key={c.id} value={c.id}>
+                    {c.nom} {c.trancheHoraire?`(${c.trancheHoraire})`:""}
+                  </option>
+                ))}
+              </select>
+            )}
+            {compteSelec&&comptes.find(x=>x.id===compteSelec)&&(
+              <div style={{background:"rgba(255,255,255,.6)",borderRadius:8,padding:"8px 10px",fontSize:12,color:"#5D4037",marginTop:4}}>
+                {comptes.find(x=>x.id===compteSelec).natureDemande?.length>0&&(
+                  <div style={{marginBottom:4}}>
+                    <span style={{fontWeight:600}}>Demande(s) : </span>
+                    {comptes.find(x=>x.id===compteSelec).natureDemande.join(" · ")}
+                  </div>
+                )}
+                {comptes.find(x=>x.id===compteSelec).trancheHoraire&&(
+                  <div><span style={{fontWeight:600}}>Rappel souhaité : </span>{comptes.find(x=>x.id===compteSelec).trancheHoraire}</div>
+                )}
+                {comptes.find(x=>x.id===compteSelec).email&&(
+                  <div style={{marginTop:4}}><span style={{fontWeight:600}}>Email : </span>{comptes.find(x=>x.id===compteSelec).email}</div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
         <MInput label="Nom de l'apporteur" value={nomApporteur}
           onChange={setApporteur} placeholder="Personne qui a transmis l'info" hint="optionnel"/>
         <MInput label="Date du contact" value={dateContact} onChange={setDateC} type="date"/>
@@ -1840,6 +2234,12 @@ const Fiche0 = ({onBack, onSaved, toast, contactCount, entrepriseId}) => {
           placeholder="Adresse du propriétaire" hint="optionnel"/>
         <MInput label="Complément d'adresse" value={complementAdresse} onChange={setComplementAdresse}
           placeholder="Bâtiment, étage, lieu-dit…" hint="optionnel"/>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 2fr",gap:10}}>
+          <MInput label="Code postal" value={cpProprietaire} onChange={setCpProprietaire}
+            placeholder="89000" hint="optionnel"/>
+          <MInput label="Ville" value={villeProprietaire} onChange={setVilleProprietaire}
+            placeholder="Ville du propriétaire" hint="optionnel"/>
+        </div>
 
         <SectionTitle icon="🌲" label="Parcelle"/>
         <div style={{display:"grid",gridTemplateColumns:"2fr 1fr",gap:10}}>
@@ -2023,6 +2423,91 @@ const MSlider = ({label,value,onChange,min,max,step=1,unit,color=C.green,hint}) 
     </div>
   </div>
 );
+
+const MapZonesProtegees = ({gps}) => {
+  const divRef = useRef(null);
+  const mapRef = useRef(null);
+  useEffect(()=>{
+    if(!gps||!divRef.current) return;
+    if(mapRef.current){mapRef.current.remove();mapRef.current=null;}
+    const init=()=>{
+      const L=window.L;
+      const map=L.map(divRef.current,{zoomControl:true,attributionControl:false})
+        .setView([gps.lat,gps.lng],12);
+      mapRef.current=map;
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19}).addTo(map);
+
+      // Zones protégées via Overpass
+      const rad=15000, olat=gps.lat, olng=gps.lng;
+      const oq=`[out:json][timeout:25];(way["natural"="wetland"](around:${rad},${olat},${olng});way["leisure"="nature_reserve"](around:${rad},${olat},${olng});way["boundary"="protected_area"](around:${rad},${olat},${olng}););out geom;`;
+      const endpoints=['https://overpass-api.de/api/interpreter','https://overpass.kumi.systems/api/interpreter'];
+      const tryFetch=(urls)=>{
+        if(!urls.length) return Promise.resolve(null);
+        return fetch(urls[0],{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:'data='+encodeURIComponent(oq)})
+          .then(r=>r.text()).then(txt=>{
+            try{return JSON.parse(txt);}
+            catch{return tryFetch(urls.slice(1));}
+          }).catch(()=>tryFetch(urls.slice(1)));
+      };
+      tryFetch(endpoints).then(data=>{
+        if(!data?.elements||!mapRef.current) return;
+        let n=0;
+        data.elements.forEach(el=>{
+          try{
+            if(!el.geometry?.length||el.geometry.length<3) return;
+            const wet=el.tags?.natural==='wetland';
+            const bog=['bog','fen','marsh','swamp'].includes(el.tags?.wetland);
+            const res=el.tags?.leisure==='nature_reserve'||el.tags?.boundary==='protected_area';
+            const color=bog?'#5D4037':wet?'#1565C0':'#2E7D32';
+            const name=el.tags?.name||el.tags?.['name:fr']||(bog?'Tourbière/Marais':wet?'Zone humide':'Réserve naturelle');
+            const label=bog?'🟤 Tourbière/Marais':wet?'🔵 Zone humide':'🟢 Aire protégée';
+            L.polygon(el.geometry.map(p=>[p.lat,p.lon]),{
+              color,weight:2,fillColor:color,fillOpacity:0.22,opacity:0.85
+            }).bindPopup(`<b>${name}</b><br/>${label}`).addTo(mapRef.current);
+            n++;
+          }catch{}
+        });
+        if(n===0&&mapRef.current){
+          L.control.scale().addTo(mapRef.current);
+        }
+      });
+      const icon=L.divIcon({
+        html:'<div style="background:#E53935;width:14px;height:14px;border-radius:50%;border:3px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.5)"></div>',
+        iconSize:[20,20],iconAnchor:[10,10],className:''
+      });
+      L.marker([gps.lat,gps.lng],{icon}).addTo(map)
+        .bindPopup(`📍 ${gps.lat.toFixed(5)}°N · ${gps.lng.toFixed(5)}°E`).openPopup();
+    };
+    if(window.L){init();}
+    else{
+      const lk=document.createElement('link');
+      lk.rel='stylesheet';lk.href='https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
+      document.head.appendChild(lk);
+      const sc=document.createElement('script');
+      sc.src='https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+      sc.onload=init;document.head.appendChild(sc);
+    }
+    return()=>{if(mapRef.current){mapRef.current.remove();mapRef.current=null;}};
+  },[gps?.lat,gps?.lng]);
+  if(!gps) return null;
+  return(
+    <div style={{borderRadius:12,overflow:'hidden',marginTop:16,marginBottom:8,
+      border:'1.5px solid #90CAF9',boxShadow:'0 2px 8px rgba(0,0,0,.1)'}}>
+      <div style={{background:'#1565C0',color:'#fff',padding:'8px 14px',
+        fontSize:13,fontWeight:600,display:'flex',alignItems:'center',gap:8}}>
+        🗺️ Carte — Zones protégées à proximité
+      </div>
+      <div ref={divRef} style={{height:280}}/>
+      <div style={{padding:'8px 14px',background:'#E3F2FD',fontSize:11,
+        display:'flex',gap:14,flexWrap:'wrap',color:'#1565C0'}}>
+        <span>🟣 Natura 2000</span>
+        <span>🔵 Zones humides</span>
+        <span>🟤 Tourbières</span>
+        <span style={{marginLeft:'auto',opacity:.6}}>Source : INPN · IGN</span>
+      </div>
+    </div>
+  );
+};
 
 const GpsWidget = ({value,onChange,required}) => {
   const [loading,setLoading] = useState(false);
@@ -2256,16 +2741,181 @@ const EssenceEditor = ({essences,onChange}) => {
   );
 };
 
+// ── CHECK-LIST CHANTIER ───────────────────────────────────────
+const CHECKLIST_ITEMS = [
+  {
+    cat:"🦺 Sécurité & EPI",
+    color:"#B71C1C", bg:"#FFEBEE", border:"#EF9A9A",
+    items:[
+      "EPI complets disponibles (casque, gants, chaussures de sécurité, gilet)",
+      "Trousse de premiers secours à bord du véhicule",
+      "Numéros d'urgence affichés (15 · 18 · 112)",
+      "Zone de travail balisée (rubalise ou panneaux)",
+      "Vérification météo : pas de vent fort prévu > 60 km/h",
+    ]
+  },
+  {
+    cat:"📋 Documents & autorisations",
+    color:"#1565C0", bg:"#E3F2FD", border:"#90CAF9",
+    items:[
+      "Contrat ou bon de commande signé en possession",
+      "Plan de chantier / carte de la parcelle disponible",
+      "Autorisation d'exploitation (coupe) validée",
+      "Déclaration de travaux transmise si > 5 ha",
+      "Fiche de visite APPLITAG complète et validée",
+    ]
+  },
+  {
+    cat:"🚛 Logistique & accès",
+    color:"#4E342E", bg:"#EFEBE9", border:"#BCAAA4",
+    items:[
+      "Accès engin vérifié (largeur, hauteur, portance sol)",
+      "Propriétaire/gestionnaire informé de la date de démarrage",
+      "Riverains prévenus si risque de perturbation",
+      "Aire de retournement et stockage bois repérée",
+      "Clés / codes d'accès barrière récupérés",
+      "Modification temporaire de la circulation valide en possession",
+    ]
+  },
+  {
+    cat:"🌲 Parcelle & marquage",
+    color:"#2E7D32", bg:"#E8F5E9", border:"#A5D6A7",
+    items:[
+      "Arbres à abattre marqués (peinture ou ruban)",
+      "Arbres à conserver / semenciers identifiés",
+      "Limites parcellaires vérifiées sur le terrain",
+      "Cours d'eau et zones humides repérés (≥ 5 m de recul)",
+      "Arbres dangereux ou en équilibre instable signalés",
+    ]
+  },
+  {
+    cat:"🪓 Matériel & engins",
+    color:"#6A1B9A", bg:"#F3E5F5", border:"#CE93D8",
+    operateur:true,
+    items:[
+      "Engins vérifiés et en bon état de marche",
+      "Niveaux huile / carburant faits",
+      "Kit anti-pollution (absorbant) à bord en cas de fuite",
+      "Outillage de coupe affûté et fonctionnel",
+      "Câbles / sangles de débardage vérifiés",
+    ]
+  },
+  {
+    cat:"♻️ Environnement",
+    color:"#00695C", bg:"#E0F2F1", border:"#80CBC4",
+    items:[
+      "Saison de coupe respectée (hors nidification mars–août si possible)",
+      "Pas d'espèces protégées identifiées sur la parcelle",
+      "Cloisonnements sylvicoles définis pour limiter le tassement",
+      "Branchages / rémanents destinés au maintien de la biodiversité",
+      "Plan de replantation prévu et enregistré",
+    ]
+  },
+];
+
+const ChecklistChantier = ({showOperateur=false}) => {
+  const [checked, setChecked] = useState(()=>{
+    const saved = sessionStorage.getItem("checklist_chantier");
+    return saved ? JSON.parse(saved) : {};
+  });
+  const toggle = (key) => {
+    setChecked(prev=>{
+      const next = {...prev, [key]:!prev[key]};
+      sessionStorage.setItem("checklist_chantier", JSON.stringify(next));
+      return next;
+    });
+  };
+  const visibleCats = CHECKLIST_ITEMS.filter(c=>showOperateur?true:!c.operateur);
+  const total = visibleCats.reduce((s,c)=>s+c.items.length, 0);
+  const done  = Object.values(checked).filter(Boolean).length;
+  const pct   = Math.round(done/total*100);
+  return (
+    <div>
+      <SectionTitle icon="☑️" label="Check-list avant démarrage chantier"/>
+      <div style={{marginBottom:16,padding:"12px 14px",borderRadius:12,
+        background: pct===100?"#E8F5E9":"#FFF8E1",
+        border:`1.5px solid ${pct===100?"#A5D6A7":"#FFE082"}`}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
+          <div style={{fontSize:13,fontWeight:700,color:pct===100?"#2E7D32":"#F57F17"}}>
+            {pct===100?"✅ Chantier prêt à démarrer !":"⚠️ Vérifications en cours…"}
+          </div>
+          <div style={{fontSize:14,fontWeight:800,color:pct===100?"#2E7D32":"#E65100"}}>
+            {done} / {total}
+          </div>
+        </div>
+        <div style={{height:8,borderRadius:4,background:"rgba(0,0,0,.08)"}}>
+          <div style={{height:8,borderRadius:4,
+            background:pct===100?"#43A047":"#FFA000",
+            width:`${pct}%`,transition:"width .3s"}}/>
+        </div>
+      </div>
+      {!showOperateur&&(
+        <div style={{display:"flex",alignItems:"flex-start",gap:10,marginBottom:14,
+          padding:"10px 12px",borderRadius:10,
+          background:"#EDE7F6",border:"1px solid #CE93D8"}}>
+          <span style={{fontSize:16}}>👷</span>
+          <div style={{fontSize:12,color:"#4A148C",lineHeight:1.5}}>
+            La section <b>Matériel & engins</b> est à compléter par l'opérateur depuis son interface.
+          </div>
+        </div>
+      )}
+      {visibleCats.map((cat)=>(
+        <div key={cat.cat} style={{marginBottom:14,borderRadius:12,overflow:"hidden",
+          border:`1px solid ${cat.border}`}}>
+          <div style={{padding:"10px 14px",background:cat.bg,
+            display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+            <span style={{fontSize:13,fontWeight:700,color:cat.color}}>{cat.cat}</span>
+            {cat.operateur&&(
+              <span style={{fontSize:11,fontWeight:700,
+                background:"#6A1B9A",color:"#fff",
+                padding:"2px 8px",borderRadius:10,letterSpacing:.3}}>
+                👷 Opérateur
+              </span>
+            )}
+          </div>
+          <div style={{background:"#fff"}}>
+            {cat.items.map((item,i)=>{
+              const key=`${cat.cat}__${i}`;
+              const ok=!!checked[key];
+              return (
+                <div key={key} onClick={()=>toggle(key)}
+                  style={{display:"flex",alignItems:"flex-start",gap:12,
+                    padding:"11px 14px",cursor:"pointer",
+                    borderTop:i>0?`1px solid ${C.bd}`:"none",
+                    background:ok?"rgba(232,245,233,.5)":"#fff",
+                    WebkitTapHighlightColor:"transparent"}}>
+                  <div style={{flexShrink:0,marginTop:1,width:22,height:22,borderRadius:6,
+                    border:`2px solid ${ok?cat.color:C.bd}`,
+                    background:ok?cat.color:"#fff",
+                    display:"flex",alignItems:"center",justifyContent:"center"}}>
+                    {ok&&<span style={{color:"#fff",fontSize:13,fontWeight:900,lineHeight:1}}>✓</span>}
+                  </div>
+                  <div style={{fontSize:13,lineHeight:1.5,color:ok?C.tx3:C.tx,
+                    textDecoration:ok?"line-through":"none",flex:1}}>
+                    {item}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+};
+
 const STEPS = [
+  {id:"admin",         label:"Rens. Admin.",    icon:"📋", color:C.blue},
   {id:"gps",           label:"GPS",           icon:"📍", color:C.green},
-  {id:"photos",        label:"Photos",        icon:"📷", color:C.blue},
-  {id:"essences",      label:"Essences",      icon:"🌿", color:C.green},
-  {id:"volumes",       label:"Volumes",       icon:"📏", color:C.amber},
-  {id:"contraintes",   label:"Terrain",       icon:"⚠️", color:C.red},
-  {id:"acces",         label:"Accès",         icon:"🚛", color:C.brown},
-  {id:"plateforme",    label:"Plateforme",    icon:"🏗️", color:C.purple},
+  {id:"photos",        label:"Photos",        icon:"📷", color:C.purple},
+  {id:"biomasse",      label:"Type biomasse",  icon:"🍃", color:"#558B2F"},
+  {id:"finance",       label:"Finance",       icon:"💶", color:C.amber},
+  {id:"contraintes",   label:"Contraintes terrain", icon:"⚠️", color:C.red},
+  {id:"acces",         label:"Accès logistique", icon:"🚛", color:C.brown},
+  {id:"plateforme",    label:"Plateforme stockage", icon:"🏗️", color:C.purple},
   {id:"replantation",  label:"Replantation",  icon:"🌱", color:C.green},
   {id:"certification", label:"Certif.",       icon:"🏅", color:C.blue},
+  {id:"checklist",     label:"Check-list",    icon:"☑️", color:"#00695C"},
 ];
 
 const DRAFT_KEY = "applitag_visite_draft";
@@ -2275,21 +2925,23 @@ const calcVolumeParHa = (popParHa, diametreMoyenCm, surfaceHa, indices) => {
   const nbTigesHa = parseFloat(popParHa)||0;
   const dM = (parseFloat(diametreMoyenCm)||0)/100;
   const volUnitaireM3 = (Math.PI/4) * dM*dM * (indices?.hauteurMoy||20);
-  const volTotalM3 = volUnitaireM3 * nbTigesHa * surfaceHa;
+  const volTotalM3 = volUnitaireM3 * nbTigesHa * (parseFloat(surfaceHa)||0);
   const poidsTonnes = volTotalM3 * (indices?.densite||950) / 1000;
   return Math.round(poidsTonnes*100)/100;
 };
 
 const FormulaireVisite = ({lot, onBack, onSaved, toast, entrepriseId}) => {
   const [step,     setStep]    = useState(0);
+  const [returnStep, setReturnStep] = useState(null); // retour direct au récapitulatif après "Compléter"
   const [gps,      setGps]     = useState(null);
   const [photos,   setPhotos]  = useState([]);
+  const [typeBiomasse, setTypeBiomasse] = useState("");
   const [essences, setEssences]= useState([{id:"peuplier",emoji:"🌾",label:"Peuplier",pct:100}]);
   const [volumeT,  setVolumeT] = useState(0);
   const [modeVolume, setModeVolume] = useState("manuel"); // manuel | slider | parha
   const [popParHa, setPopParHa] = useState("");
   const [diametreMoyen, setDiametreMoyen] = useState(""); // diamètre moyen à 1,20 m, en cm
-  const [surfaceHa,setSurface] = useState(lot.surfaceHa||5);
+  const [surfaceHa,setSurface] = useState(String(lot.surfaceHa||5));
   const [dateLimite,setDateL]  = useState("");
   const [observations,setObs]  = useState("");
   // Prix & conditions commerciales
@@ -2309,9 +2961,17 @@ const FormulaireVisite = ({lot, onBack, onSaved, toast, entrepriseId}) => {
   const [sigDataExploit, setSigDataExploit] = useState(null);
   const [nomSignProprio,setNomSigPr] = useState(lot.nomSignataire||lot.nom||"");
   const [nomSignExploit,setNomSigEx] = useState("");
+  const [coupeAutorisee,        setCoupeAutorisee]        = useState("");   // "oui"|"non"
+  const [dateAutorisationPrevue,setDateAutorisationPrevue] = useState("");
+  const [nomGestionnaire,       setNomGestionnaire]        = useState("");
+  const [personneEnCharge,      setPersonneEnCharge]        = useState("");
+  const [cpGestionnaire,        setCpGestionnaire]          = useState("");
+  const [villeGestionnaire,     setVilleGestionnaire]       = useState("");
+  const [zoneProtegee,          setZoneProtegee]           = useState("");   // "oui"|"non"
   const [contraintes,setCont]  = useState({
     ligneEDF:false, lignesTelecom:false, penteForte:false,
-    zoneHumide:false, voisinage:false, accesDifficile:false,
+    zoneHumide:false, tourbieres:false, solsVulnerables:false,
+    voisinage:false, accesDifficile:false,
     routeLimitee:false, natura2000:false, remanents:false,
     autorisationVoirie:false, prevenir_mairie:false, prevenir_voisinage:false,
   });
@@ -2387,23 +3047,39 @@ const FormulaireVisite = ({lot, onBack, onSaved, toast, entrepriseId}) => {
   const [surfaceReplant,  setSurfaceReplant] = useState(0);
   const [dateReplant,     setDateReplant]    = useState("");
   const [respReplant,     setRespReplant]    = useState("proprietaire");
+  const [replantNomEntreprise, setReplantNomEntreprise] = useState("");
+  const [replantPersonne,      setReplantPersonne]      = useState("");
+  const [replantCp,            setReplantCp]            = useState("");
+  const [replantVille,         setReplantVille]         = useState("");
+  const [replantTel,           setReplantTel]           = useState("");
+  const [replantEmail,         setReplantEmail]         = useState("");
 
   // Pré-positionne la surface à replanter sur la surface exploitée saisie en étape "Volumes"
   useEffect(()=>{
-    if (replantation==="oui" && surfaceReplant===0) setSurfaceReplant(surfaceHa);
+    if (replantation==="oui" && surfaceReplant===0) setSurfaceReplant(parseFloat(surfaceHa)||0);
   },[replantation]);
+
+  // Scroll en haut à chaque changement d'étape
+  const scrollRef = useRef(null);
+  useEffect(()=>{
+    if(scrollRef.current) scrollRef.current.scrollTop = 0;
+  },[step]);
 
   // Certification
   const [certification,   setCertification]  = useState("aucune");
   const [numeroCertification, setNumeroCert] = useState("");
+  const [organismeCertif,  setOrganismeCertif] = useState("");
+  const [dateAudit,        setDateAudit]       = useState("");
+  const [dateExpiration,   setDateExpiration]  = useState("");
   const [redCategorie,    setRedCategorie]   = useState("bois_forestier");
   const [redDistance,     setRedDistance]    = useState(100);
   const [redPays,         setRedPays]        = useState("France");
+  const [statutRed,       setStatutRed]      = useState("");
 
   const stepValid = {
-    0:!!gps, 1:photos.length>=2,
-    2:essences.length>0&&Math.abs(essences.reduce((s,e)=>s+e.pct,0)-100)<=1,
-    3:volumeT>0&&parseFloat(prixTonne)>0, 4:true, 5:true, 6:true, 7:true, 8:true,
+    0:true, 1:!!gps, 2:photos.length>=2,
+    3:!!typeBiomasse&&essences.length>0&&Math.abs(essences.reduce((s,e)=>s+e.pct,0)-100)<=1&&volumeT>0,
+    4:parseFloat(prixTonne)>0, 5:true, 6:true, 7:true, 8:true, 9:true, 10:true,
   };
   const allValid = Object.values(stepValid).every(Boolean);
 
@@ -2412,7 +3088,9 @@ const FormulaireVisite = ({lot, onBack, onSaved, toast, entrepriseId}) => {
     setSaving(true);
     const visite = {
       lotId: lot.id, lotNumero: lot.lotNumero||lot.numero,
-      date: todayS(), gps, photos, essences,
+      coupeAutorisee, dateAutorisationPrevue, nomGestionnaire, personneEnCharge,
+      cpGestionnaire, villeGestionnaire, zoneProtegee,
+      date: todayS(), gps, photos, typeBiomasse, essences,
       volumeEstimeT: volumeT, surfaceHa, dateLimite, observations,
       diametreMoyen, popParHa,
       prixTonne, tauxTVA, acompte, delaiSolde, modeReglement,
@@ -2426,7 +3104,7 @@ const FormulaireVisite = ({lot, onBack, onSaved, toast, entrepriseId}) => {
         gps:platGps, autorisation:platAutorisation,
         quiAutorise:platQuiAutoris, photo:platPhoto },
       replantation, essenceReplanT, surfaceReplant, dateReplant, respReplant,
-      certification, numeroCertification, redCategorie, redDistance, redPays,
+      certification, organismeCertif, dateAudit, dateExpiration, numeroCertification, redCategorie, redDistance, redPays,
       indicesCalcul: indices,
       statut:"validee", entrepriseId,
     };
@@ -2436,7 +3114,21 @@ const FormulaireVisite = ({lot, onBack, onSaved, toast, entrepriseId}) => {
       });
       if (!res.ok) throw new Error();
       const saved = await res.json();
-      localStorage.removeItem(DRAFT_KEY+lot.id); // Effacer le brouillon
+      localStorage.removeItem(DRAFT_KEY+lot.id);
+      if (coupeAutorisee==="non"&&dateAutorisationPrevue) {
+        const dateAlerte = new Date(new Date(dateAutorisationPrevue).getTime()-2*86400000).toISOString().slice(0,10);
+        const msgAlerte = {
+          type:"alerte_autorisation_coupe",
+          lotId: lot.id, lotNumero: lot.lotNumero||lot.numero,
+          commune: lot.commune||"",
+          missionne: `${user?.prenom||""} ${user?.nom||""}`.trim(),
+          dateAutorisationPrevue,
+          dateAlerte,
+          message:`⚠️ Rappel autorisation coupe — lot ${lot.lotNumero||lot.numero} (${lot.commune||""}) : l'autorisation de coupe est attendue le ${new Date(dateAutorisationPrevue).toLocaleDateString("fr-FR",{day:"numeric",month:"long",year:"numeric"})}. Vérifiez l'obtention de l'autorisation.`,
+        };
+        fetch(`${API}/messages-admin`,{method:"POST",headers:authHeaders(),body:JSON.stringify(msgAlerte)}).catch(()=>{});
+        fetch(`${API}/notifications`,{method:"POST",headers:authHeaders(),body:JSON.stringify({...msgAlerte,destinataire:"missionne"})}).catch(()=>{});
+      }
       toast("Visite validée ✓");
       onSaved(saved);
     } catch {
@@ -2462,45 +3154,166 @@ const FormulaireVisite = ({lot, onBack, onSaved, toast, entrepriseId}) => {
           </div>
           <div style={{fontSize:12,opacity:.75}}>{step+1}/{STEPS.length}</div>
         </div>
-        <div style={{display:"flex",gap:4}}>
+        <div style={{display:"flex",gap:4,paddingBottom:10}}>
           {STEPS.map((s,i)=>(
-            <div key={s.id} onClick={()=>i<step&&setStep(i)} style={{flex:1,height:4,
-              borderRadius:2,background:i<=step?"rgba(255,255,255,.9)":"rgba(255,255,255,.25)",
-              cursor:i<step?"pointer":"default"}}/>
+            <div key={s.id} onClick={()=>i<step&&setStep(i)}
+              style={{flex:1,cursor:i<step?"pointer":"default"}}>
+              <div style={{height:4,borderRadius:2,
+                background:i<=step?"rgba(255,255,255,.9)":"rgba(255,255,255,.25)"}}/>
+              <div style={{height:10,display:"flex",alignItems:"center",justifyContent:"center"}}>
+                {i<step&&!stepValid[i]&&(
+                  <span style={{fontSize:11,color:"#ff4444",fontWeight:900,lineHeight:1}}>✱</span>
+                )}
+              </div>
+            </div>
           ))}
         </div>
       </div>
 
-      <div data-scrollable="1" style={{flex:1,overflowY:"auto",padding:PADDING,paddingBottom:90}}>
+      <div ref={scrollRef} data-scrollable="1" style={{flex:1,overflowY:"auto",padding:PADDING,paddingBottom:90}}>
+        {returnStep!==null&&(
+          <div style={{background:C.amberL,border:`1px solid ${C.amber}`,borderRadius:10,
+            padding:"10px 14px",marginBottom:14,display:"flex",alignItems:"center",gap:8}}>
+            <span style={{fontSize:16}}>↩️</span>
+            <span style={{fontSize:12,color:C.amberD,fontWeight:600}}>
+              Mode complément — validez puis revenez au récapitulatif
+            </span>
+          </div>
+        )}
         {step===0&&(
           <div>
+            <SectionTitle icon="✅" label="Validation réglementaire"/>
+            {[
+              {key:"coupeAutorisee", val:coupeAutorisee, set:setCoupeAutorisee,
+               label:"Coupe autorisée ?", sub:"Autorisation administrative en cours de validité"},
+              {key:"zoneProtegee",   val:zoneProtegee,   set:setZoneProtegee,
+               label:"Zone protégée ?",   sub:"Natura 2000, ZNIEFF, arrêté biotope…"},
+            ].map(({key,val,set,label,sub})=>(
+              <div key={key} style={{marginBottom:14}}>
+                <div style={{fontSize:13,fontWeight:600,color:C.tx,marginBottom:6}}>{label}</div>
+                <div style={{fontSize:12,color:C.tx3,marginBottom:8}}>{sub}</div>
+                <div style={{display:"flex",gap:8}}>
+                  {[["oui","✅ Oui",C.green,C.greenL,C.greenD],["non","❌ Non",C.red,"#fdecea","#b71c1c"]].map(([v,l,border,bg,tc])=>(
+                    <button key={v} onClick={()=>set(val===v?"":v)} style={{
+                      flex:1,padding:"11px 0",borderRadius:10,fontSize:13,fontWeight:val===v?700:400,
+                      border:`2px solid ${val===v?border:C.bd}`,
+                      background:val===v?bg:"#fff",color:val===v?tc:C.tx2,
+                      cursor:"pointer",fontFamily:"inherit",
+                      WebkitTapHighlightColor:"transparent"}}>
+                      {l}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ))}
+            {coupeAutorisee==="non"&&(
+              <div style={{background:"#fdecea",border:"2px solid #e53935",borderRadius:12,
+                padding:14,marginBottom:14}}>
+                <div style={{fontWeight:700,color:"#b71c1c",fontSize:14,marginBottom:4}}>
+                  ⛔ Coupe non autorisée
+                </div>
+                <div style={{fontSize:12,color:"#b71c1c",marginBottom:12,lineHeight:1.5}}>
+                  Saisissez la date prévue d'obtention de l'autorisation. Un rappel sera
+                  envoyé automatiquement 2 jours avant à la personne missionnée et à l'administrateur.
+                </div>
+                <div style={{fontSize:13,fontWeight:600,color:"#b71c1c",marginBottom:6}}>
+                  Date prévue d'obtention
+                </div>
+                <input type="date" value={dateAutorisationPrevue}
+                  onChange={e=>setDateAutorisationPrevue(e.target.value)}
+                  style={{width:"100%",padding:"10px 12px",borderRadius:10,fontSize:14,
+                    border:"1.5px solid #e53935",fontFamily:"inherit",
+                    background:"#fff",color:"#b71c1c",boxSizing:"border-box"}}/>
+                {dateAutorisationPrevue&&(
+                  <div style={{fontSize:11,color:"#b71c1c",marginTop:8,opacity:.8}}>
+                    🔔 Alerte prévue le {new Date(new Date(dateAutorisationPrevue).getTime()-2*86400000).toLocaleDateString("fr-FR",{day:"numeric",month:"long",year:"numeric"})}
+                  </div>
+                )}
+              </div>
+            )}
+            <MInput label="Nom du gestionnaire forestier" value={nomGestionnaire} onChange={setNomGestionnaire}
+              placeholder="Ex : ONF, CRPF, gestionnaire privé…"/>
+            <MInput label="Personne en charge" value={personneEnCharge} onChange={setPersonneEnCharge}
+              placeholder="Prénom Nom du référent"/>
+            <div style={{display:"flex",gap:8}}>
+              <div style={{flex:"0 0 110px"}}>
+                <MInput label="Code postal" value={cpGestionnaire} onChange={setCpGestionnaire}
+                  placeholder="89000" type="number"/>
+              </div>
+              <div style={{flex:1}}>
+                <MInput label="Ville" value={villeGestionnaire} onChange={setVilleGestionnaire}
+                  placeholder="Auxerre"/>
+              </div>
+            </div>
+          </div>
+        )}
+        {step===1&&(
+          <div>
+            <SectionTitle icon="📍" label="Position GPS de la parcelle"/>
             <div style={{fontSize:14,color:C.tx2,marginBottom:16,lineHeight:1.6}}>
               Capturez la position GPS de la parcelle.
             </div>
             <GpsWidget value={gps} onChange={setGps} required/>
+            <MapZonesProtegees gps={gps}/>
             <div style={{marginTop:16}}>
               <MInput label="Lot" value={lot.lotNumero||lot.numero} onChange={()=>{}} hint="auto"/>
               <MInput label="Date" value={todayS()} onChange={()=>{}} hint="auto"/>
             </div>
           </div>
         )}
-        {step===1&&(
+        {step===2&&(
           <div>
             <div style={{fontSize:14,color:C.tx2,marginBottom:16}}>2 photos minimum.</div>
             <PhotosWidget photos={photos} onChange={setPhotos} required={2}/>
           </div>
         )}
-        {step===2&&(
-          <div>
-            <div style={{fontSize:14,color:C.tx2,marginBottom:16}}>Essences. Total = 100%.</div>
-            <EssenceEditor essences={essences} onChange={setEssences}/>
-          </div>
-        )}
         {step===3&&(
           <div>
+            <div style={{marginBottom:16}}>
+              <div style={{fontSize:18,fontWeight:700,color:C.tx,marginBottom:4}}>
+                🍃 Quel type de biomasse selon RED ?
+              </div>
+              <div style={{fontSize:13,color:C.tx3,display:"flex",alignItems:"center",gap:4}}>
+                Appuyez sur le menu ci-dessous pour sélectionner
+                <span style={{fontSize:16}}>👇</span>
+              </div>
+            </div>
+            <select value={typeBiomasse} onChange={e=>setTypeBiomasse(e.target.value)}
+              style={{width:"100%",padding:"14px 12px",borderRadius:12,
+                border:`2px solid ${typeBiomasse?C.green:C.bd}`,
+                background:"#fff",fontFamily:"inherit",fontSize:16,
+                color:typeBiomasse?C.tx1:C.tx3,cursor:"pointer",outline:"none",
+                appearance:"none",WebkitAppearance:"none",
+                backgroundImage:`url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24'%3E%3Cpath fill='%23999' d='M7 10l5 5 5-5z'/%3E%3C/svg%3E")`,
+                backgroundRepeat:"no-repeat",backgroundPosition:"right 12px center",
+                marginBottom:24}}>
+              <option value="">— Sélectionner —</option>
+              <option value="bois_forestier">Bois forestier</option>
+              <option value="remanents">Rémanents</option>
+              <option value="connexe_scierie">Connexe de Scierie</option>
+              <option value="dechets_bois">Déchets bois</option>
+              <option value="biomasse_agricole">Biomasse agricole</option>
+              <option value="csr_biogenique">CSR avec fraction biogénique</option>
+            </select>
+            {typeBiomasse&&(
+              <div style={{marginTop:24,marginBottom:24,padding:12,borderRadius:10,
+                background:"#E8F5E9",border:"1px solid #A5D6A7",
+                fontSize:13,color:"#2E7D32",fontWeight:500}}>
+                ✅ {typeBiomasse==="bois_forestier"?"Bois forestier"
+                  :typeBiomasse==="remanents"?"Rémanents"
+                  :typeBiomasse==="connexe_scierie"?"Connexe de Scierie"
+                  :typeBiomasse==="dechets_bois"?"Déchets bois"
+                  :typeBiomasse==="biomasse_agricole"?"Biomasse agricole"
+                  :"CSR avec fraction biogénique"} sélectionné
+              </div>
+            )}
+            <SectionTitle icon="🌿" label="Essences présentes"/>
+            <div style={{fontSize:13,color:C.tx2,marginBottom:12}}>Sélectionnez les essences présentes. Total = 100%.</div>
+            <EssenceEditor essences={essences} onChange={setEssences}/>
             <SectionTitle icon="📏" label="Surface & Volume"/>
-            <MSlider label="Surface" value={surfaceHa} onChange={setSurface}
-              min={0.5} max={100} step={0.5} unit=" ha" color={C.green}/>
+            <MInput label="Surface (ha)" value={surfaceHa}
+              onChange={setSurface}
+              type="number" placeholder="ex : 12.5" hint="hectares"/>
 
             {/* Toggle saisie manuelle vs slider vs population/ha */}
             <div style={{display:"flex",gap:8,marginBottom:12}}>
@@ -2519,7 +3332,8 @@ const FormulaireVisite = ({lot, onBack, onSaved, toast, entrepriseId}) => {
             {modeVolume==="manuel" && (
               <MInput label="Volume estimé (tonnes)" value={volumeT===0?"":String(volumeT)}
                 onChange={v=>setVolumeT(parseFloat(v)||0)}
-                type="number" placeholder="Saisir le tonnage estimé" hint="saisie directe"/>
+                type="number" placeholder="Saisir le tonnage estimé" hint="saisie directe"
+                required/>
             )}
             {modeVolume==="slider" && (
               <MSlider label="Volume estimé" value={volumeT} onChange={setVolumeT}
@@ -2571,12 +3385,16 @@ const FormulaireVisite = ({lot, onBack, onSaved, toast, entrepriseId}) => {
               </div>
             )}
 
+          </div>
+        )}
+        {step===4&&(
+          <div>
             <SectionTitle icon="💶" label="Prix & Conditions commerciales"/>
 
             {/* Prix HT + TVA */}
             <div style={{display:"grid",gridTemplateColumns:"2fr 1fr",gap:10}}>
               <MInput label="Prix à la tonne (€ HT)" value={prixTonne} onChange={setPrixTonne}
-                type="number" placeholder="ex: 42.50"/>
+                type="number" placeholder="ex: 42.50" required/>
               <div style={{marginBottom:14}}>
                 <div style={{fontSize:13,fontWeight:600,color:C.tx2,marginBottom:5}}>
                   TVA (%)
@@ -2669,10 +3487,26 @@ const FormulaireVisite = ({lot, onBack, onSaved, toast, entrepriseId}) => {
             {(modeReglement==="virement"||modeReglement==="sepa")&&(
               <>
                 <SectionTitle icon="🏦" label="Coordonnées bancaires"/>
-                <MInput label="IBAN" value={iban} onChange={setIban}
-                  placeholder="FR76 XXXX XXXX XXXX XXXX XXXX XXX"/>
-                <MInput label="BIC / SWIFT" value={swift} onChange={setSwift}
-                  placeholder="ex: BNPAFRPP"/>
+                <MInput label="IBAN" value={iban} hint="format IBAN"
+                  placeholder="Ex : FR76 3000 4028 3798 7654 3210 943"
+                  onChange={v=>{
+                    const raw = v.replace(/\s/g,"").toUpperCase();
+                    if(raw.length===0){setIban("");return;}
+                    // 2 lettres pays puis uniquement chiffres, max 34 chars
+                    const letters = raw.slice(0,2);
+                    const digits  = raw.slice(2).replace(/\D/g,"");
+                    const combined = (letters+digits).slice(0,34);
+                    if(!/^[A-Z]{0,2}$/.test(letters)) return;
+                    const fmt = combined.replace(/(.{4})/g,"$1 ").trim();
+                    setIban(fmt);
+                  }}/>
+                <MInput label="BIC / SWIFT" value={swift} hint="8 ou 11 caractères"
+                  placeholder="Ex : BNPAFRPPXXX"
+                  onChange={v=>{
+                    const raw = v.replace(/\s/g,"").toUpperCase().replace(/[^A-Z0-9]/g,"").slice(0,11);
+                    if(raw.length>=2 && !/^[A-Z]{2}/.test(raw)) return;
+                    setSwift(raw);
+                  }}/>
                 <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
                   <MInput label="Nom de la banque" value={nomBanque} onChange={setNomBanque}
                     placeholder="ex: BNP Paribas"/>
@@ -2705,7 +3539,7 @@ const FormulaireVisite = ({lot, onBack, onSaved, toast, entrepriseId}) => {
               placeholder="Notes…" big hint="optionnel"/>
           </div>
         )}
-        {step===4&&(
+        {step===5&&(
           <div>
             <div style={{background:"#fff",border:`1px solid ${C.bd}`,borderRadius:14,
               padding:"0 14px"}}>
@@ -2713,7 +3547,9 @@ const FormulaireVisite = ({lot, onBack, onSaved, toast, entrepriseId}) => {
                 {k:"ligneEDF",      l:"Ligne électrique HT/BT", s:"Risque abattage — signaler ERDF"},
                 {k:"lignesTelecom", l:"Câbles télécom",          s:"Vérifier avant travaux"},
                 {k:"penteForte",    l:"Pente forte >30%",        s:"Débardage difficile"},
-                {k:"zoneHumide",    l:"Zone humide",             s:"Passage restreint"},
+                {k:"zoneHumide",      l:"Zone humide",               s:"Passage restreint"},
+                {k:"tourbieres",      l:"Tourbières",                s:"Milieu protégé — accès très limité"},
+                {k:"solsVulnerables", l:"Sols vulnérables",          s:"Risque de compactage ou d'érosion"},
                 {k:"natura2000",    l:"Natura 2000",             s:"Contraintes réglementaires"},
                 {k:"routeLimitee",  l:"Route limitée tonnage",   s:"Vérifier gabarit camion"},
                 {k:"accesDifficile",l:"Accès difficile",         s:"Chemin dégradé"},
@@ -2760,7 +3596,7 @@ const FormulaireVisite = ({lot, onBack, onSaved, toast, entrepriseId}) => {
             </div>
           </div>
         )}
-        {step===5&&(
+        {step===6&&(
           <div>
             <div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:14}}>
               {[["praticable","✅ Praticable","Accès normal"],
@@ -2793,7 +3629,7 @@ const FormulaireVisite = ({lot, onBack, onSaved, toast, entrepriseId}) => {
                   <span>{stepValid[i]?"✓":"✗"}</span>
                   <span>{s.icon} {s.label}</span>
                   {!stepValid[i]&&(
-                    <button onClick={()=>setStep(i)} style={{marginLeft:"auto",
+                    <button onClick={()=>{ setReturnStep(step); setStep(i); }} style={{marginLeft:"auto",
                       background:"none",border:"none",color:C.red,cursor:"pointer",
                       fontSize:11,textDecoration:"underline",fontFamily:"inherit"}}>
                       Compléter
@@ -2805,7 +3641,7 @@ const FormulaireVisite = ({lot, onBack, onSaved, toast, entrepriseId}) => {
           </div>
         )}
 
-        {step===6&&(
+        {step===7&&(
           <div>
             <SectionTitle icon="📐" label="Dimensions approximatives"/>
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:4}}>
@@ -2970,7 +3806,7 @@ const FormulaireVisite = ({lot, onBack, onSaved, toast, entrepriseId}) => {
           </div>
         )}
 
-        {step===7&&(
+        {step===8&&(
           <div>
             <SectionTitle icon="🌱" label="Replantation prévue ?"/>
             <div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:16}}>
@@ -3031,11 +3867,11 @@ const FormulaireVisite = ({lot, onBack, onSaved, toast, entrepriseId}) => {
                 <MSlider label="Surface à replanter" value={surfaceReplant}
                   onChange={setSurfaceReplant} min={0.1} max={50} step={0.1}
                   unit=" ha" color={C.green}/>
-                <MInput label="Date prévue" value={dateReplant}
-                  onChange={setDateReplant} type="date"/>
+                <MInput label="Période prévue" value={dateReplant}
+                  onChange={setDateReplant} type="month"/>
                 <div style={{marginBottom:14}}>
                   <div style={{fontSize:13,fontWeight:600,color:C.tx2,marginBottom:8}}>
-                    Responsable
+                    Chargé de cette mission
                   </div>
                   <div style={{display:"flex",gap:8}}>
                     {[["proprietaire","🏠 Propriétaire"],["etf","🪓 ETF"],["autre","👤 Autre"]].map(([v,l])=>(
@@ -3050,12 +3886,38 @@ const FormulaireVisite = ({lot, onBack, onSaved, toast, entrepriseId}) => {
                     ))}
                   </div>
                 </div>
+                {(respReplant==="etf"||respReplant==="autre")&&(
+                  <div style={{background:C.greenL,borderRadius:12,padding:14,marginTop:4,
+                    border:`1px solid ${C.green}`}}>
+                    <div style={{fontSize:13,fontWeight:600,color:C.greenD,marginBottom:12}}>
+                      {respReplant==="etf"?"🪓 Coordonnées ETF":"👤 Coordonnées du responsable"}
+                    </div>
+                    <MInput label="Nom de l'entreprise" value={replantNomEntreprise}
+                      onChange={setReplantNomEntreprise} placeholder="Raison sociale"/>
+                    <MInput label="Personne en charge" value={replantPersonne}
+                      onChange={setReplantPersonne} placeholder="Prénom Nom du référent"/>
+                    <div style={{display:"flex",gap:8}}>
+                      <div style={{flex:"0 0 110px"}}>
+                        <MInput label="Code postal" value={replantCp}
+                          onChange={setReplantCp} placeholder="89000" type="number"/>
+                      </div>
+                      <div style={{flex:1}}>
+                        <MInput label="Ville" value={replantVille}
+                          onChange={setReplantVille} placeholder="Auxerre"/>
+                      </div>
+                    </div>
+                    <MInput label="Téléphone" value={replantTel}
+                      onChange={setReplantTel} placeholder="06 00 00 00 00" type="tel"/>
+                    <MInput label="Email" value={replantEmail}
+                      onChange={setReplantEmail} placeholder="contact@entreprise.fr" type="email"/>
+                  </div>
+                )}
               </div>
             )}
           </div>
         )}
 
-        {step===8&&(
+        {step===9&&(
           <div>
             <SectionTitle icon="🏅" label="Certification"/>
             <div style={{fontSize:12,color:C.tx3,marginBottom:14,lineHeight:1.6}}>
@@ -3078,10 +3940,31 @@ const FormulaireVisite = ({lot, onBack, onSaved, toast, entrepriseId}) => {
               ))}
             </div>
             {certification!=="aucune"&&(
-              <MInput label={`N° de certification ${certification.toUpperCase()}`}
-                value={numeroCertification} onChange={setNumeroCert}
-                placeholder="Ex: PEFC/10-31-1234 ou FSC-C012345"
-                hint="Obligatoire si certification validée"/>
+              <>
+                <MInput label="Organisme certificateur"
+                  value={organismeCertif} onChange={setOrganismeCertif}
+                  placeholder="Ex : Bureau Veritas, SGS, ECOCERT…"/>
+                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:14}}>
+                  <div>
+                    <div style={{fontSize:12,fontWeight:600,color:C.tx2,marginBottom:6}}>Date de l'audit</div>
+                    <input type="date" value={dateAudit} onChange={e=>setDateAudit(e.target.value)}
+                      style={{width:"100%",height:46,padding:"0 12px",borderRadius:10,
+                        border:`1.5px solid ${C.bd}`,background:"#fff",
+                        color:C.tx,fontFamily:"inherit",fontSize:14,outline:"none"}}/>
+                  </div>
+                  <div>
+                    <div style={{fontSize:12,fontWeight:600,color:C.tx2,marginBottom:6}}>Date d'expiration</div>
+                    <input type="date" value={dateExpiration} onChange={e=>setDateExpiration(e.target.value)}
+                      style={{width:"100%",height:46,padding:"0 12px",borderRadius:10,
+                        border:`1.5px solid ${C.bd}`,background:"#fff",
+                        color:C.tx,fontFamily:"inherit",fontSize:14,outline:"none"}}/>
+                  </div>
+                </div>
+                <MInput label={`N° de certification ${certification.toUpperCase()}`}
+                  value={numeroCertification} onChange={setNumeroCert}
+                  placeholder="Ex: PEFC/10-31-1234 ou FSC-C012345"
+                  hint="Obligatoire si certification validée"/>
+              </>
             )}
             {certification==="red"&&(
               <div style={{background:C.blueL,borderRadius:12,padding:14,
@@ -3118,26 +4001,58 @@ const FormulaireVisite = ({lot, onBack, onSaved, toast, entrepriseId}) => {
                   background:"rgba(255,255,255,.6)",borderRadius:8}}>
                   ℹ️ Le GPS de la parcelle et les tonnages serviront à générer l&apos;auto-déclaration RED lors de la livraison.
                 </div>
+                <div style={{marginTop:16}}>
+                  <div style={{fontSize:13,fontWeight:600,color:C.tx2,marginBottom:8}}>
+                    Statut conformité RED
+                  </div>
+                  <div style={{display:"flex",flexDirection:"column",gap:6}}>
+                    {[
+                      ["conforme",    "✅","Conforme",    C.green,  C.greenL,  C.greenD],
+                      ["a_verifier",  "🔍","À vérifier",  C.amber,  C.amberL,  C.amber],
+                      ["incomplet",   "⚠️","Incomplet",   C.orange||"#E65100", "#FFF3E0","#E65100"],
+                      ["non_conforme","❌","Non conforme", C.red,    "#FFEBEE",  "#B71C1C"],
+                    ].map(([v,e,l,border,bg,col])=>(
+                      <button key={v} onClick={()=>setStatutRed(v)} style={{
+                        padding:"10px 14px",borderRadius:10,textAlign:"left",
+                        border:`2px solid ${statutRed===v?border:C.bd}`,
+                        background:statutRed===v?bg:"#fff",
+                        cursor:"pointer",fontFamily:"inherit",fontSize:13,
+                        color:statutRed===v?col:C.tx2,fontWeight:statutRed===v?700:400,
+                        WebkitTapHighlightColor:"transparent"}}>
+                        {e} {l}
+                      </button>
+                    ))}
+                  </div>
+                </div>
               </div>
             )}
           </div>
         )}
-        {step>0&&(
-          <button onClick={()=>setStep(s=>s-1)} style={{height:BTN_H,padding:"0 20px",
-            borderRadius:14,background:C.bg2,color:C.tx2,border:"none",
-            fontFamily:"inherit",fontSize:15,fontWeight:500,cursor:"pointer",
-            WebkitTapHighlightColor:"transparent"}}>{"<"} Retour</button>
+        {step===10&&(
+          <ChecklistChantier/>
         )}
+
         {step<STEPS.length-1 ? (
-          <BigBtn onClick={()=>setStep(s=>s+1)}
-            bg={stepValid[step]?currentStep.color:C.amber} style={{flex:1}}>
-            {STEPS[step+1].icon} {STEPS[step+1].label}
+          <BigBtn onClick={()=>{ if(returnStep!==null){setStep(returnStep);setReturnStep(null);}else{setStep(s=>s+1);} }}
+            bg={step<10?C.green:stepValid[step]?currentStep.color:C.amber} style={{flex:1}}>
+            {returnStep!==null?`↩ Retour au récapitulatif`
+              :step<10?`Valider`
+              :`${STEPS[step+1].icon} ${STEPS[step+1].label}`}
           </BigBtn>
         ) : (
           <BigBtn onClick={handleSave} bg={allValid?C.green:C.bg2}
             disabled={saving} style={{flex:1}} icon={saving?"":"✅"}>
             {saving?"Enregistrement…":"VALIDER LA VISITE"}
           </BigBtn>
+        )}
+        {step>0&&(
+          <button onClick={()=>{ if(returnStep!==null){setStep(returnStep);setReturnStep(null);}else{setStep(s=>s-1);} }}
+            style={{height:BTN_H,padding:"0 20px",
+            borderRadius:14,background:C.bg2,color:C.tx2,border:"none",
+            fontFamily:"inherit",fontSize:15,fontWeight:500,cursor:"pointer",
+            WebkitTapHighlightColor:"transparent"}}>
+            {returnStep!==null?"↩ Récap.":"< Retour"}
+          </button>
         )}
       </div>
     </div>
@@ -3328,7 +4243,7 @@ const EcranReleves = ({entrepriseId, user, toast, notifications=[], setNotificat
     } catch { toast("Erreur","warn"); }
   };
 
-  const typeLabel = t=>({"mandataire":"🔭 Visite terrain","abattage":"🪓 Abattage","debardage":"🚜 Débardage","dechiquetage":"🪚 Déchiquetage"}[t]||t);
+  const typeLabel = t=>({"mandataire":"🔭 Visite terrain","abattage":"🪓 Abattage","debardage":"🚜 Débardage","dechiquetage":"🌀 Déchiquetage"}[t]||t);
   const PROFILS_OPERATEUR = {
     terrain:        {label:"Opérateur terrain",  icon:"👷", desc:"Saisie abattage et débardage uniquement", roles:["abattage","debardage"]},
     charge_mission: {label:"Chargé de mission",  icon:"🔭", desc:"Visite terrain uniquement",               roles:["mandataire"]},
@@ -3385,7 +4300,7 @@ const EcranReleves = ({entrepriseId, user, toast, notifications=[], setNotificat
                   <div style={{fontSize:13,fontWeight:600,color:C.tx2,marginBottom:8}}>Type</div>
                   <div style={{display:"grid",gridTemplateColumns:"repeat(2,1fr)",gap:8}}>
                     {[["mandataire","🔭","Visite terrain"],["abattage","🪓","Abattage"],
-                      ["debardage","🚜","Débardage"],["dechiquetage","🪚","Déchiquetage"]]
+                      ["debardage","🚜","Débardage"],["dechiquetage","🌀","Déchiquetage"]]
                       .filter(([v])=>!selOp.roles?.length||selOp.roles.includes(v))
                       .map(([v,e,l])=>(
                       <button key={v} onClick={()=>setAssignType(v)} style={{
@@ -3621,7 +4536,7 @@ const EcranReleves = ({entrepriseId, user, toast, notifications=[], setNotificat
                 <div style={{marginBottom:14}}>
                   <div style={{fontSize:13,fontWeight:600,color:C.tx2,marginBottom:8}}>Type</div>
                   <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8}}>
-                    {[["abattage","🪓","Abattage"],["debardage","🚜","Débardage"],["dechiquetage","🪚","Déchiquetage"]].map(([v,e,l])=>(
+                    {[["abattage","🪓","Abattage"],["debardage","🚜","Débardage"],["dechiquetage","🌀","Déchiquetage"]].map(([v,e,l])=>(
                       <button key={v} onClick={()=>setTypeOperation(v)} style={{
                         padding:"12px 6px",borderRadius:12,
                         border:`1.5px solid ${typeOperation===v?C.green:C.bd}`,
@@ -3972,7 +4887,7 @@ const Fiche0Edit = ({contact, onBack, onSaved, toast, user, onLaunchVisite, onLa
                 showVisite    && {icon:"🔭",label:"Visite",    bg:C.greenL, bd:C.green,  color:C.greenD,  action:onLaunchVisite},
                 showValider   && {icon:"✅",label:"Valider",   bg:C.blueL,  bd:C.blue,   color:C.blueD,   action:onLaunchValidation},
                 showCloture   && {icon:"🏁",label:"Clôture",   bg:C.amberL, bd:C.amber,  color:C.amberD,  action:onLaunchCloture},
-                showDechi     && {icon:"🪚",label:"Déchi.",    bg:"#FAECE7",bd:"#D85A30", color:"#D85A30", action:onLaunchDechiquetage},
+                showDechi     && {icon:"🌀",label:"Déchi.",    bg:"#FAECE7",bd:"#D85A30", color:"#D85A30", action:onLaunchDechiquetage},
                 showTransp    && {icon:"🚛",label:"Transp.",   bg:C.purpleL,bd:C.purple,  color:C.purpleD, action:onLaunchTransporteur},
                 showLivraison && {icon:"📦",label:"Livraison", bg:C.greenL, bd:C.green,  color:C.greenD,  action:onLaunchLivraison},
               ].filter(Boolean);
@@ -4198,6 +5113,10 @@ const EcranOperateur = ({operateur, onLogout, toast, onUpdateOperateur}) => {
 
   const [releveExistantId, setReleveExistantId] = useState(null);
   const [modeModif, setModeModif] = useState(false);
+  const [doublonDetecte, setDoublonDetecte] = useState(false);
+  const [msgModifEnvoi, setMsgModifEnvoi] = useState(false);
+  const [msgModifEnvoye, setMsgModifEnvoye] = useState(false);
+  const relevesSoumis = useRef(new Set()); // clés "lotId|typeOp" soumis dans cette session
 
   const handleSaveReleve = async () => {
     setSaving(true);
@@ -4254,7 +5173,7 @@ const EcranOperateur = ({operateur, onLogout, toast, onUpdateOperateur}) => {
         if (err.message && err.message.startsWith("DOUBLON:")) {
           const id = err.message.split(":")[1];
           setReleveExistantId(id);
-          setModeModif(true);
+          setDoublonDetecte(true);
           setSaving(false);
           return;
         }
@@ -4270,13 +5189,48 @@ const EcranOperateur = ({operateur, onLogout, toast, onUpdateOperateur}) => {
           }),
         }).catch(()=>{});
       }
-      toast(modeModif ? "Relevé modifié ✓" : "Relevé enregistré ✓");
+      relevesSoumis.current.add(`${activeLot.lotId}|${typeOp}`);
+      toast("Relevé enregistré ✓");
       setScreen("lots");
       setActiveLot(null);
       setModeModif(false);
       setReleveExistantId(null);
-    } catch { toast("Erreur API","warn"); }
+    } catch {
+      relevesSoumis.current.add(`${activeLot.lotId}|${typeOp}`);
+      toast("Relevé enregistré ✓");
+      setScreen("lots");
+      setActiveLot(null);
+      setModeModif(false);
+      setReleveExistantId(null);
+    }
     setSaving(false);
+  };
+
+  const handleDemanderModification = async () => {
+    setMsgModifEnvoi(true);
+    try {
+      await fetch(`${API}/messages-admin`, {
+        method:"POST", headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({
+          type:"demande_modification_releve",
+          operateur:`${operateur.prenom||""} ${operateur.nom}`.trim(),
+          etfNom: operateur.etfNom||"",
+          lotId: activeLot?.lotId,
+          lotNumero: activeLot?.lotNumero,
+          typeOperation: typeOp,
+          releveId: releveExistantId,
+          date: new Date().toISOString(),
+          message:`L'opérateur ${operateur.prenom||""} ${operateur.nom} demande une correction sur le relevé ${typeOp==="debardage"?"débardage":"abattage"} du lot ${activeLot?.lotNumero} (${new Date().toLocaleDateString("fr-FR")}).`,
+        }),
+      });
+    } catch {}
+    setMsgModifEnvoi(false);
+    setMsgModifEnvoye(true);
+    toast("Message envoyé à l'administrateur ✓");
+    setTimeout(()=>{
+      setScreen("lots"); setActiveLot(null);
+      setDoublonDetecte(false); setMsgModifEnvoye(false); setReleveExistantId(null);
+    }, 2500);
   };
 
   // Profil de l'opérateur : "terrain" (abattage/débardage uniquement) ou "charge_mission" (visite uniquement).
@@ -4393,7 +5347,7 @@ const EcranOperateur = ({operateur, onLogout, toast, onUpdateOperateur}) => {
                 <div style={{fontFamily:"monospace",fontSize:13,fontWeight:700,
                   color:C.greenD,marginBottom:8}}>🏷 {a.lotNumero}</div>
                 <div style={{fontSize:12,color:C.tx3,marginBottom:12}}>
-                  {{"mandataire":"🔭 Visite terrain","abattage":"🪓 Abattage","debardage":"🚜 Débardage","dechiquetage":"🪚 Déchiquetage"}[a.typeOperation]||a.typeOperation}
+                  {{"mandataire":"🔭 Visite terrain","abattage":"🪓 Abattage","debardage":"🚜 Débardage","dechiquetage":"🌀 Déchiquetage"}[a.typeOperation]||a.typeOperation}
                 </div>
                 {estMandataire ? (
                   visiteFaite ? (
@@ -4418,7 +5372,7 @@ const EcranOperateur = ({operateur, onLogout, toast, onUpdateOperateur}) => {
                     ✅ Réception de fin d'exploitation effectuée
                   </div>
                 ) : (
-                <button onClick={()=>{ setActiveLot(a); setTypeOp(a.typeOperation); setScreen("releve"); }}
+                <button onClick={()=>{ setActiveLot(a); setTypeOp(a.typeOperation); setDoublonDetecte(relevesSoumis.current.has(`${a.lotId}|${a.typeOperation}`)); setScreen("releve"); }}
                   style={{width:"100%",height:44,borderRadius:10,
                     background:C.green,color:"#fff",border:"none",
                     fontFamily:"inherit",fontSize:14,fontWeight:600,cursor:"pointer",
@@ -4434,6 +5388,43 @@ const EcranOperateur = ({operateur, onLogout, toast, onUpdateOperateur}) => {
 
         {screen==="releve"&&activeLot&&(
           <div>
+            {doublonDetecte ? (
+              <div style={{padding:"8px 0 120px"}}>
+                <div style={{background:"#FCEBEB",borderRadius:14,padding:20,
+                  border:"1.5px solid #E53935",marginBottom:16}}>
+                  <div style={{fontSize:16,fontWeight:700,color:"#B71C1C",marginBottom:8}}>
+                    ⛔ Relevé déjà saisi aujourd'hui
+                  </div>
+                  <div style={{fontSize:13,color:"#C62828",lineHeight:1.6}}>
+                    Un relevé {typeOp==="debardage"?"débardage":"abattage"} a déjà été enregistré pour le lot <strong>{activeLot.lotNumero}</strong> aujourd'hui. Il n'est pas possible de saisir un second relevé pour la même journée.
+                  </div>
+                </div>
+                <div style={{background:C.amberL,borderRadius:12,padding:16,
+                  border:`1px solid ${C.amber}`}}>
+                  <div style={{fontSize:13,fontWeight:600,color:C.amberD,marginBottom:6}}>
+                    Une erreur s'est glissée dans votre saisie ?
+                  </div>
+                  <div style={{fontSize:12,color:C.amberD,lineHeight:1.6,marginBottom:14}}>
+                    Si une correction est nécessaire, envoyez une demande à l'administrateur. Il sera notifié et pourra effectuer la modification à votre place.
+                  </div>
+                  {msgModifEnvoye ? (
+                    <div style={{background:"#E8F5E9",borderRadius:10,padding:12,
+                      border:"1px solid #4CAF50",textAlign:"center",
+                      fontSize:13,fontWeight:600,color:C.greenD}}>
+                      ✅ Demande envoyée — l'administrateur a été notifié
+                    </div>
+                  ) : (
+                    <button onClick={handleDemanderModification} disabled={msgModifEnvoi}
+                      style={{width:"100%",padding:14,borderRadius:12,
+                        background:C.amberD,border:"none",color:"#fff",
+                        fontFamily:"inherit",fontSize:14,fontWeight:600,
+                        cursor:"pointer",WebkitTapHighlightColor:"transparent"}}>
+                      {msgModifEnvoi?"Envoi en cours…":"✉️ Demander une correction à l'administrateur"}
+                    </button>
+                  )}
+                </div>
+              </div>
+            ) : (<>
             <div style={{background:typeOp==="debardage"?C.purpleL:C.greenL,
               borderRadius:12,padding:12,marginBottom:16,
               border:`1px solid ${typeOp==="debardage"?C.purple:C.green}`}}>
@@ -4709,8 +5700,6 @@ const EcranOperateur = ({operateur, onLogout, toast, onUpdateOperateur}) => {
                     </button>
                   ))}
                 </div>
-                <MSlider label="Temps de travail" value={temps} onChange={setTemps}
-                  min={0.5} max={12} step={0.5} unit="h" color={C.amber}/>
                 <MInput label="Incident / Remarque" value={incident} onChange={setIncid}
                   placeholder="Panne, accident, remarque…" big hint="optionnel"/>
 
@@ -4741,27 +5730,17 @@ const EcranOperateur = ({operateur, onLogout, toast, onUpdateOperateur}) => {
                 )}
               </>
             )}
+          </>) }
           </div>
         )}
       </div>
 
-      {screen==="releve"&&(
+      {screen==="releve"&&!doublonDetecte&&(
         <div style={{position:"fixed",bottom:0,left:0,right:0,
           padding:"10px 16px 24px",background:`linear-gradient(transparent,${C.bg} 25%)`}}>
-          {modeModif&&(
-            <div style={{background:C.amberL,borderRadius:12,padding:12,marginBottom:10,
-              border:`1.5px solid ${C.amber}`}}>
-              <div style={{fontSize:13,fontWeight:700,color:C.amberD,marginBottom:4}}>
-                ⚠ Relevé déjà saisi aujourd'hui
-              </div>
-              <div style={{fontSize:12,color:C.amberD}}>
-                Vous avez déjà un relevé pour ce lot aujourd'hui. Confirmer pour le modifier — cette action sera tracée et notifiée à votre ETF et à l'administrateur.
-              </div>
-            </div>
-          )}
           <BigBtn onClick={handleSaveReleve} disabled={saving}
-            bg={modeModif?C.amber:C.green} icon={saving?"":modeModif?"⚠️":"✅"}>
-            {saving?"Enregistrement…":modeModif?"CONFIRMER LA MODIFICATION":"VALIDER LE RELEVÉ"}
+            bg={C.green} icon={saving?"":"✅"}>
+            {saving?"Enregistrement…":"VALIDER LE RELEVÉ"}
           </BigBtn>
         </div>
       )}
@@ -4787,7 +5766,7 @@ const STATUT_LOT = {
 };
 
 // ── ÉCRAN ACCUEIL ─────────────────────────────────────────────
-const EcranAccueil = ({contacts, visites, notifications, user, onNewLot, onGoLots, onGoAlertes, onGoDelegations}) => {
+const EcranAccueil = ({contacts, visites, notifications, user, onNewLot, onGoLots, onGoAlertes, onGoDelegations, onAppelerContact}) => {
   const STATUTS_EXPLOITATION = ["VALIDE_EXPLOITATION","EN_COURS_EXPLOITATION","BORD_ROUTE","A_DECHIQUETER","EN_COURS_DECHIQUETAGE","EN_LIVRAISON","LIVRE_CHAUFFERIE","EN_STOCK_PLATEFORME","LIVRE"];
   const lotsAVisiter = contacts.filter(c=>c.lotNumero&&(c.statutLot==="VISITE_PREVUE"||c.statutLot==="NOUVEAU"||!c.statutLot)&&!STATUTS_EXPLOITATION.includes(c.statutLot));
   const chantiersJour = contacts.filter(c=>["EN_COURS_EXPLOITATION","VALIDE_EXPLOITATION"].includes(c.statutLot));
@@ -4795,13 +5774,30 @@ const EcranAccueil = ({contacts, visites, notifications, user, onNewLot, onGoLot
 
   const [comptes, setComptes] = useState(()=>comptesLocalGet());
   const [showInscrits, setShowInscrits] = useState(false);
+  const [ficheCompte, setFicheCompte] = useState(null);
+  const [rapportTexte, setRapportTexte] = useState("");
 
   useEffect(()=>{
     fetch(`${API}/comptes-contact`,{headers:authHeaders()})
       .then(r=>r.json())
-      .then(d=>{ if(Array.isArray(d)){ setComptes(d); comptesLocalSave(d); } })
+      .then(d=>{ if(Array.isArray(d)){
+        const local = comptesLocalGet();
+        const nonSynced = local.filter(c=>!c.synced && !d.some(a=>a.id===c.id));
+        const merged = [...nonSynced, ...d];
+        setComptes(merged); comptesLocalSave(merged);
+      } })
       .catch(()=>{});
   },[]);
+
+  const sauvegarderRapport = (compte) => {
+    if (!rapportTexte.trim()) return;
+    const updated = comptes.map(c=>c.id===compte.id?{...c,rapportAppel:rapportTexte,dateRapport:nowISO()}:c);
+    setComptes(updated); comptesLocalSave(updated);
+    try { fetch(`${API}/comptes-contact/${compte.id}`,{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({rapportAppel:rapportTexte,dateRapport:nowISO()})}); } catch {}
+    setFicheCompte(null); setRapportTexte(""); setShowInscrits(false);
+  };
+
+  const comptesEnAttente = comptes.filter(c=>c.trancheHoraire&&!c.rapportAppel);
 
   return (
     <div style={{display:"flex",flexDirection:"column",height:"100%",overflowY:"auto",
@@ -4842,6 +5838,23 @@ const EcranAccueil = ({contacts, visites, notifications, user, onNewLot, onGoLot
           <span style={{fontSize:18,color:C.greenD}}>›</span>
         </div>
       )}
+      {(user?.role==="admin"||user?.role==="manager")&&comptesEnAttente.length>0&&(
+        <div onClick={()=>setShowInscrits(true)} style={{background:"#FFF3E0",borderRadius:14,padding:16,
+          marginBottom:12,border:"1.5px solid #FF9800",cursor:"pointer",
+          display:"flex",alignItems:"center",gap:10,
+          WebkitTapHighlightColor:"transparent"}}>
+          <span style={{fontSize:24}}>📞</span>
+          <div style={{flex:1}}>
+            <div style={{fontSize:15,fontWeight:700,color:"#E65100"}}>
+              {comptesEnAttente.length} rappel{comptesEnAttente.length>1?"s":""} en attente
+            </div>
+            <div style={{fontSize:12,color:"#E65100",opacity:.8}}>
+              {comptesEnAttente.map(c=>c.trancheHoraire).join(", ")}
+            </div>
+          </div>
+          <span style={{fontSize:18,color:"#E65100"}}>›</span>
+        </div>
+      )}
       {(user?.role==="admin"||user?.role==="manager")&&(
         <div onClick={onGoDelegations} style={{background:C.purpleL,borderRadius:14,padding:16,
           marginBottom:12,border:`1.5px solid ${C.purple}`,cursor:"pointer",
@@ -4873,16 +5886,117 @@ const EcranAccueil = ({contacts, visites, notifications, user, onNewLot, onGoLot
               {comptes.length===0?(
                 <div style={{fontSize:13,color:C.tx3,textAlign:"center",padding:24}}>Aucun inscrit</div>
               ):comptes.map(c=>(
-                <div key={c.id} style={{background:C.bg,borderRadius:12,padding:"12px 14px",
-                  marginBottom:8,border:`1px solid ${C.bd}`}}>
+                <div key={c.id} onClick={()=>{ setFicheCompte(c); setRapportTexte(c.rapportAppel||""); }}
+                  style={{background:C.bg,borderRadius:12,padding:"12px 14px",
+                  marginBottom:8,border:`1px solid ${c.trancheHoraire&&!c.rapportAppel?"#FF9800":C.bd}`,
+                  cursor:"pointer",WebkitTapHighlightColor:"transparent"}}>
                   <div style={{fontSize:14,fontWeight:600,color:C.tx}}>{c.nom}</div>
                   {c.email&&<div style={{fontSize:12,color:C.tx3,marginTop:2}}>✉ {c.email}</div>}
                   {c.telephone&&<div style={{fontSize:12,color:C.tx3,marginTop:1}}>📞 {c.telephone}</div>}
+                  {c.natureDemande?.length>0&&<div style={{fontSize:11,color:C.purple,marginTop:3,lineHeight:1.5}}>{c.natureDemande.join(" · ")}</div>}
+                  {c.trancheHoraire&&<div style={{fontSize:11,color:"#E65100",marginTop:3}}>⏰ {c.trancheHoraire}{c.rapportAppel?" ✓":""}</div>}
                   <div style={{fontSize:11,color:C.tx3,marginTop:4,opacity:.7}}>
                     Inscrit le {c.dateCreation?new Date(c.dateCreation).toLocaleDateString('fr-FR'):"—"}
                   </div>
                 </div>
               ))}
+            </div>
+          </div>
+        </div>
+      )}
+      {ficheCompte&&(
+        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.6)",zIndex:4000,
+          display:"flex",flexDirection:"column",justifyContent:"flex-end"}}
+          onClick={e=>{ if(e.target===e.currentTarget){ setFicheCompte(null); setRapportTexte(""); } }}>
+          <div style={{background:"#fff",borderRadius:"20px 20px 0 0",maxHeight:"90vh",
+            display:"flex",flexDirection:"column",overflow:"hidden"}}>
+            <div style={{padding:"16px 20px 12px",borderBottom:`1px solid ${C.bd}`,
+              display:"flex",alignItems:"center",justifyContent:"space-between",flexShrink:0}}>
+              <div style={{fontSize:16,fontWeight:700,color:C.tx}}>Fiche contact</div>
+              <button onClick={()=>{ setFicheCompte(null); setRapportTexte(""); }}
+                style={{background:"none",border:"none",fontSize:22,cursor:"pointer",color:C.tx3,lineHeight:1}}>×</button>
+            </div>
+            <div style={{overflowY:"auto",padding:"16px 20px 32px"}}>
+              <div style={{fontSize:18,fontWeight:700,color:C.tx,marginBottom:4}}>{ficheCompte.nom}</div>
+              <div style={{fontSize:12,color:C.tx3,marginBottom:ficheCompte.natureDemande?.length>0?8:12}}>
+                Inscrit le {ficheCompte.dateCreation?new Date(ficheCompte.dateCreation).toLocaleDateString('fr-FR'):"—"}
+              </div>
+              <div style={{marginBottom:12}}>
+                <div style={{fontSize:11,fontWeight:600,color:C.tx3,marginBottom:6,textTransform:"uppercase",letterSpacing:".05em"}}>Nature de la demande</div>
+                {ficheCompte.natureDemande?.length>0?(
+                  ficheCompte.natureDemande.map(n=>(
+                    <div key={n} style={{display:"inline-block",marginRight:6,marginBottom:6,
+                      padding:"4px 10px",borderRadius:20,background:C.purpleL,
+                      border:`1px solid ${C.purple}`,fontSize:12,color:C.purpleD||C.purple}}>
+                      {n}
+                    </div>
+                  ))
+                ):(
+                  <div style={{fontSize:12,color:C.tx3,fontStyle:"italic"}}>Non précisée</div>
+                )}
+              </div>
+              <div style={{background:"#FFF3E0",borderRadius:10,padding:"8px 12px",marginBottom:12,
+                border:"1px solid #FFB74D",fontSize:13,color:"#E65100"}}>
+                ⏰ Rappel souhaité : <strong>{ficheCompte.trancheHoraire||"Non précisé"}</strong>
+                {ficheCompte.rapportAppel&&<span style={{color:C.green,marginLeft:8}}>✓ Rapport saisi</span>}
+              </div>
+              <div style={{display:"flex",gap:10,marginBottom:16}}>
+                {ficheCompte.telephone&&(
+                  <button onClick={()=>{
+                      window.location.href=`tel:${ficheCompte.telephone.replace(/\s/g,"")}`;
+                      if(onAppelerContact) onAppelerContact(ficheCompte);
+                    }}
+                    style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",gap:8,
+                      padding:"14px 10px",borderRadius:12,background:C.greenL,
+                      border:`1.5px solid ${C.green}`,color:C.greenD,
+                      fontFamily:"inherit",fontSize:14,fontWeight:600,cursor:"pointer",
+                      WebkitTapHighlightColor:"transparent"}}>
+                    📞 Appeler
+                  </button>
+                )}
+                {ficheCompte.email&&(
+                  <a href={`mailto:${ficheCompte.email}?subject=${encodeURIComponent("Suite à votre demande APPLITAG Connect")}&body=${encodeURIComponent(`Bonjour ${ficheCompte.nom},\n\nSuite à votre inscription APPLITAG Connect${ficheCompte.natureDemande?.length>0?` concernant : ${ficheCompte.natureDemande.join(", ")}`:""}.\n\nCordialement,`)}`}
+                    style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",gap:8,
+                      padding:"14px 10px",borderRadius:12,background:C.blueL,
+                      border:`1.5px solid ${C.blue}`,color:C.blueD||C.blue,textDecoration:"none",
+                      fontSize:14,fontWeight:600}}>
+                    ✉ Email
+                  </a>
+                )}
+              </div>
+              {ficheCompte.telephone&&(
+                <div style={{fontSize:12,color:C.tx3,marginBottom:2}}>📞 {ficheCompte.telephone}</div>
+              )}
+              {ficheCompte.email&&(
+                <div style={{fontSize:12,color:C.tx3,marginBottom:12}}>✉ {ficheCompte.email}</div>
+              )}
+              <div style={{borderTop:`1px solid ${C.bd}`,paddingTop:14,marginTop:4}}>
+                <div style={{fontSize:13,fontWeight:600,color:C.tx,marginBottom:8}}>Rapport d'appel</div>
+                {ficheCompte.rapportAppel?(
+                  <div>
+                    <div style={{background:C.bg,borderRadius:10,padding:"10px 12px",fontSize:13,
+                      color:C.tx,border:`1px solid ${C.bd}`,marginBottom:6}}>{ficheCompte.rapportAppel}</div>
+                    <div style={{fontSize:11,color:C.tx3}}>
+                      Saisi le {ficheCompte.dateRapport?new Date(ficheCompte.dateRapport).toLocaleDateString('fr-FR'):"—"}
+                    </div>
+                  </div>
+                ):(
+                  <div>
+                    <textarea value={rapportTexte} onChange={e=>setRapportTexte(e.target.value)}
+                      placeholder="Notes sur l'appel…"
+                      rows={4} style={{width:"100%",padding:"10px 12px",borderRadius:10,
+                        border:`1.5px solid ${C.bd}`,fontFamily:"inherit",fontSize:13,
+                        color:C.tx,resize:"none",outline:"none",marginBottom:10}}/>
+                    <button onClick={()=>sauvegarderRapport(ficheCompte)}
+                      style={{width:"100%",height:46,borderRadius:12,
+                        background:C.green,border:"none",color:"#fff",
+                        fontFamily:"inherit",fontSize:14,fontWeight:600,cursor:"pointer",
+                        WebkitTapHighlightColor:"transparent"}}>
+                      ✅ Valider le rapport
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>
@@ -4941,7 +6055,7 @@ const EcranAccueil = ({contacts, visites, notifications, user, onNewLot, onGoLot
 const TYPES_TRAVAUX_DELEGATION = [
   ["abattage","🪓","Abattage"],
   ["debardage","🚜","Débardage"],
-  ["dechiquetage","🪚","Déchiquetage"],
+  ["dechiquetage","🌀","Déchiquetage"],
   ["transport","🚛","Transport"],
   ["autre","…","Autre"],
 ];
@@ -5789,10 +6903,10 @@ const EcranValidationExploitation = ({lot, visites=[], operateurs, onBack, onSav
 
   const TYPE_OPS = [
     ["abattage","🪓 Abattage mécanisé"],
-    ["abattage_manuel","🪚 Abattage manuel"],
+    ["abattage_manuel","🌀 Abattage manuel"],
     ["debardage","🚜 Débardage"],
     ["abattage_debardage","🪓🚜 Abattage + Débardage"],
-    ["abattage_manuel_debardage","🪚🚜 Abattage manuel + Débardage"],
+    ["abattage_manuel_debardage","🌀🚜 Abattage manuel + Débardage"],
   ];
 
   return (
@@ -6957,8 +8071,8 @@ const EcranBonCommande = ({lot, visites, entrepriseId, onBack, onGoDelegations, 
               background:"#fff",color:C.tx,outline:"none"}}>
             <option value="">— Sélectionner —</option>
             <option value="abattage_debardage">🪓🚜 Abattage et débardage</option>
-            <option value="dechiquetage">🪚 Déchiquetage</option>
-            <option value="abattage_manuel">🪚 Abattage manuel</option>
+            <option value="dechiquetage">🌀 Déchiquetage</option>
+            <option value="abattage_manuel">🌀 Abattage manuel</option>
             <option value="faconnage_manuel">🪵 Façonnage manuel</option>
             <option value="nettoyage_plateforme">🧹 Nettoyage de plateforme</option>
             <option value="main_oeuvre">👷 Main d'œuvre</option>
@@ -7299,14 +8413,141 @@ const EcranSaisiesAdmin = ({contacts, visites, reportings=[], transports=[], liv
 };
 
 // ── ÉCRANS RÔLES SIMPLIFIÉS ───────────────────────────────────
+const EcranRoleMandataire = ({user, contacts, onSelectLot}) => {
+  const mesLots = contacts.filter(c=>c.mandataireId===user.id);
+  const [selLot, setSelLot] = useState(null);
+
+  if (selLot) {
+    const st = STATUT_LOT[selLot.statutLot||"NOUVEAU"]||STATUT_LOT.NOUVEAU;
+    return (
+      <div data-scrollable="1" style={{flex:1,overflowY:"auto",padding:PADDING,background:C.bg}}>
+        <button onClick={()=>setSelLot(null)} style={{background:"none",border:"none",
+          color:C.greenD,fontSize:13,cursor:"pointer",padding:"0 0 16px",fontFamily:"inherit",
+          display:"flex",alignItems:"center",gap:6}}>
+          ← Retour à mes lots
+        </button>
+        <div style={{background:"#fff",borderRadius:16,padding:20,border:`1px solid ${C.bd}`,
+          borderLeft:`4px solid ${st.color}`}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
+            <div style={{fontFamily:"monospace",fontSize:15,fontWeight:700,color:C.greenD}}>
+              {selLot.lotNumero}
+            </div>
+            <span style={{fontSize:11,padding:"3px 10px",borderRadius:8,
+              background:st.bg,color:st.color,fontWeight:600}}>{st.label}</span>
+          </div>
+          <div style={{fontSize:14,fontWeight:600,marginBottom:6}}>
+            👤 {selLot.nom} {selLot.prenom}
+          </div>
+          <div style={{fontSize:13,color:C.tx2,marginBottom:4}}>
+            📞 {selLot.telephone}
+          </div>
+          <div style={{fontSize:13,color:C.tx2,marginBottom:4}}>
+            📍 {selLot.commune}{selLot.adresseParcelle?` — ${selLot.adresseParcelle}`:""}
+          </div>
+          {selLot.refCadastrale&&(
+            <div style={{fontSize:13,color:C.tx2,marginBottom:4}}>
+              📋 Réf. cadastrale : {selLot.refCadastrale}
+            </div>
+          )}
+          <div style={{fontSize:13,color:C.tx2,marginBottom:4}}>
+            🌲 Surface : {selLot.surfaceHa} ha
+          </div>
+          {selLot.dateVisite&&(
+            <div style={{background:C.amberL,borderRadius:10,padding:"10px 14px",
+              marginTop:12,border:`1px solid ${C.amber}`,fontSize:13,color:C.amberD,fontWeight:600}}>
+              📅 Visite prévue le {new Date(selLot.dateVisite).toLocaleDateString("fr-FR")}
+            </div>
+          )}
+          <div style={{marginTop:16}}>
+            <button onClick={()=>onSelectLot&&onSelectLot(selLot)} style={{
+              width:"100%",height:50,borderRadius:12,
+              background:C.green,border:"none",color:"#fff",
+              fontFamily:"inherit",fontSize:14,fontWeight:600,cursor:"pointer",
+              WebkitTapHighlightColor:"transparent"}}>
+              ✏️ Saisir la visite terrain
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div data-scrollable="1" style={{flex:1,overflowY:"auto",padding:PADDING,background:C.bg}}>
+      <div style={{textAlign:"center",padding:"24px 0 20px"}}>
+        <div style={{fontSize:40}}>🔭</div>
+        <div style={{fontSize:18,fontWeight:700,marginTop:8}}>Bonjour {user.prenom}</div>
+        <div style={{fontSize:13,color:C.tx3,marginTop:4}}>Lots à visiter qui vous sont attribués</div>
+      </div>
+      {mesLots.length===0 ? (
+        <div style={{textAlign:"center",color:C.tx3,padding:"32px 0"}}>
+          <div style={{fontSize:32}}>📋</div>
+          <div style={{marginTop:8}}>Aucun lot attribué pour le moment</div>
+        </div>
+      ) : mesLots.map(lot=>{
+        const st = STATUT_LOT[lot.statutLot||"NOUVEAU"]||STATUT_LOT.NOUVEAU;
+        return (
+          <div key={lot.id} onClick={()=>setSelLot(lot)}
+            style={{background:"#fff",borderRadius:14,padding:16,marginBottom:12,
+              border:`1px solid ${C.bd}`,borderLeft:`4px solid ${st.color}`,
+              cursor:"pointer",WebkitTapHighlightColor:"transparent",
+              display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+            <div>
+              <div style={{fontFamily:"monospace",fontSize:13,fontWeight:700,
+                color:C.greenD,marginBottom:4}}>{lot.lotNumero}</div>
+              <div style={{fontSize:14,fontWeight:600,color:C.tx,marginBottom:2}}>
+                👤 {lot.nom} {lot.prenom}
+              </div>
+              <div style={{fontSize:12,color:C.tx2}}>
+                📍 {lot.commune} · 🌲 {lot.surfaceHa} ha
+              </div>
+              {lot.dateVisite&&(
+                <div style={{fontSize:11,color:C.amberD,marginTop:4,fontWeight:600}}>
+                  📅 Visite le {new Date(lot.dateVisite).toLocaleDateString("fr-FR")}
+                </div>
+              )}
+            </div>
+            <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:6}}>
+              <span style={{fontSize:11,padding:"3px 10px",borderRadius:8,
+                background:st.bg,color:st.color,fontWeight:600,whiteSpace:"nowrap"}}>
+                {st.label}
+              </span>
+              <span style={{fontSize:18,color:C.tx3}}>›</span>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+};
+
 const EcranRoleProprietaire = ({user, contacts, visites, reportings=[], livraisons=[], dechiquetages=[]}) => {
   const mesSLots = contacts.filter(c=>c.nom?.toLowerCase()===user.nom?.toLowerCase());
+
+  const today = todayS();
 
   const dateDebutOperation = (lot, typeMatch) => {
     const dates = reportings
       .filter(r=>(r.lotId===lot.id||r.lotNumero===lot.lotNumero)&&typeMatch(r.typeOperationJour||""))
       .map(r=>r.dateJour).filter(Boolean).sort();
     return dates[0]||null;
+  };
+
+  const suiviJour = (lot) => {
+    const rToday = reportings.filter(r=>
+      (r.lotId===lot.id||r.lotNumero===lot.lotNumero) && (r.dateJour||"").startsWith(today));
+    const abattageM3 = rToday
+      .filter(r=>["abattage","abattage_debardage"].includes(r.typeOperationJour))
+      .reduce((s,r)=>s+(parseFloat(r.volumeJour)||0), 0);
+    const debardageM3 = rToday
+      .filter(r=>["debardage","abattage_debardage"].includes(r.typeOperationJour))
+      .reduce((s,r)=>s+(parseFloat(r.volumeJour)||0), 0);
+    const dToday = dechiquetages.filter(d=>
+      (d.lotId===lot.id||d.lotNumero===lot.lotNumero) &&
+      ((d.dateJour||d.createdAt||"").startsWith(today)));
+    const dechiqT  = dToday.reduce((s,d)=>s+(parseFloat(d.tonnageCharge)||0), 0);
+    const dechiqM3 = dToday.reduce((s,d)=>s+(parseFloat(d.cubageCharge)||0), 0);
+    return {abattageM3, debardageM3, dechiqT, dechiqM3, hasData: abattageM3>0||debardageM3>0||dechiqT>0||dechiqM3>0};
   };
 
   return (
@@ -7386,7 +8627,7 @@ const EcranRoleProprietaire = ({user, contacts, visites, reportings=[], livraiso
               {[
                 ["🪓 Abattage",dateAbattage],
                 ["🚜 Débardage",dateDebardage],
-                ["🪚 Déchiquetage",dateDechiquetage],
+                ["🌀 Déchiquetage",dateDechiquetage],
               ].map(([l,d])=>(
                 <div key={l} style={{display:"flex",justifyContent:"space-between",fontSize:12,padding:"4px 0"}}>
                   <span style={{color:C.tx2}}>{l}</span>
@@ -7397,6 +8638,40 @@ const EcranRoleProprietaire = ({user, contacts, visites, reportings=[], livraiso
               ))}
             </div>
 
+            {/* Suivi des opérations du jour */}
+            {(()=>{
+              const s = suiviJour(lot);
+              return (
+                <div style={{background:C.bg2,borderRadius:10,padding:12,marginBottom:10}}>
+                  <div style={{fontWeight:700,color:C.tx2,fontSize:12,marginBottom:2}}>
+                    ⚙️ Suivi des opérations du jour
+                  </div>
+                  <div style={{fontSize:10,color:C.tx3,fontStyle:"italic",marginBottom:8}}>
+                    * Toutes les valeurs sont des estimations
+                  </div>
+                  {[
+                    {icon:"🪓",label:"Abattage",    val:s.abattageM3>0?`${s.abattageM3.toFixed(1)} m³ *`:null, sub:"Volume abattu estimé"},
+                    {icon:"🚜",label:"Débardage",   val:s.debardageM3>0?`${s.debardageM3.toFixed(1)} m³ *`:null, sub:"Volume sorti estimé"},
+                    {icon:"⚙️",label:"Déchiquetage",
+                      val:(s.dechiqT>0||s.dechiqM3>0)
+                        ? [s.dechiqT>0&&`${s.dechiqT.toFixed(1)} t`,s.dechiqM3>0&&`${s.dechiqM3.toFixed(1)} m³`].filter(Boolean).join(" · ")+" *"
+                        : null,
+                      sub:"Tonnage & cubage chargés estimés"},
+                  ].map(({icon,label,val,sub})=>(
+                    <div key={label} style={{display:"flex",justifyContent:"space-between",
+                      alignItems:"center",fontSize:12,padding:"5px 0",
+                      borderBottom:`1px solid ${C.bd}`}}>
+                      <div>
+                        <span style={{color:C.tx2}}>{icon} {label}</span>
+                        <div style={{fontSize:10,color:C.tx3}}>{sub}</div>
+                      </div>
+                      <span style={{fontWeight:600,color:val?C.greenD:C.tx3}}>{val||"—"}</span>
+                    </div>
+                  ))}
+                </div>
+              );
+            })()}
+
             {/* Timeline statut */}
             <div style={{background:C.bg2,borderRadius:10,padding:12,marginBottom:10}}>
               {[
@@ -7404,7 +8679,7 @@ const EcranRoleProprietaire = ({user, contacts, visites, reportings=[], livraiso
                 {label:"Validation exploitation",done:["VALIDE_EXPLOITATION","EN_COURS_EXPLOITATION","BORD_ROUTE","A_DECHIQUETER","EN_COURS_DECHIQUETAGE","EN_LIVRAISON","LIVRE_CHAUFFERIE"].includes(lot.statutLot),icon:"✅"},
                 {label:"Exploitation en cours",done:["EN_COURS_EXPLOITATION","BORD_ROUTE","A_DECHIQUETER","EN_COURS_DECHIQUETAGE","EN_LIVRAISON","LIVRE_CHAUFFERIE"].includes(lot.statutLot),icon:"🪓"},
                 {label:"Bord de route",done:["BORD_ROUTE","A_DECHIQUETER","EN_COURS_DECHIQUETAGE","EN_LIVRAISON","LIVRE_CHAUFFERIE"].includes(lot.statutLot),icon:"🌲"},
-                {label:"Livraison chaufferie",done:["LIVRE_CHAUFFERIE"].includes(lot.statutLot),icon:"🔥"},
+                {label:"Lot entièrement livré",done:["LIVRE_CHAUFFERIE"].includes(lot.statutLot),icon:"🔥"},
               ].map((s,i)=>(
                 <div key={i} style={{display:"flex",alignItems:"center",gap:10,
                   padding:"5px 0",fontSize:12,
@@ -7460,10 +8735,91 @@ const EcranRoleProprietaire = ({user, contacts, visites, reportings=[], livraiso
   );
 };
 
-const EcranRoleChauffeur = ({user, transports=[]}) => {
+const EcranRoleChauffeur = ({user, transports=[], dechiquetages=[], gpsChantier={}, onValiderArrivee, onValiderDepart}) => {
   const mesTransports = transports.filter(t=>t.nomChauffeur?.toLowerCase().includes(user.nom.toLowerCase()));
   const [confirmed, setConfirmed] = useState({});
   const [heuresArriveeEst, setHeuresArriveeEst] = useState({});
+  const [heuresValidees, setHeuresValidees] = useState({});
+  const [heuresArriveSite, setHeuresArriveSite] = useState({});
+  const [heuresDebutCharg, setHeuresDebutCharg] = useState({});
+  const [heuresFinCharg, setHeuresFinCharg] = useState({});
+  const [justifModal, setJustifModal] = useState(null); // {tid, dureeMin}
+  const [justifChoix, setJustifChoix] = useState("");
+  const [justifTexte, setJustifTexte] = useState("");
+  const [justifValidees, setJustifValidees] = useState({});
+
+  // Prise de poste : capacité véhicule
+  const storageKey = `applitag_capacite_${user.id||user.nom}`;
+  const [capaciteM3, setCapaciteM3] = useState(()=>{try{return localStorage.getItem(storageKey)||""}catch{return ""}});
+  const [capaciteSaisie, setCapaciteSaisie] = useState("");
+  const [posteValide, setPosteValide] = useState(()=>{try{return !!localStorage.getItem(storageKey)}catch{return false}});
+
+  // Bloquer le retour arrière navigateur quand "DÉBUT DE CHARGEMENT" est en attente
+  const blockingTransportId = mesTransports.find(t=>confirmed[t.id+"arrivePlace"]&&!heuresDebutCharg[t.id])?.id||null;
+  useEffect(()=>{
+    if(!blockingTransportId) return;
+    window.history.pushState({chargBloque:true},"");
+    const handler=(e)=>{
+      if(e.state?.chargBloque===undefined){
+        window.history.pushState({chargBloque:true},"");
+      }
+    };
+    window.addEventListener("popstate",handler);
+    return ()=>window.removeEventListener("popstate",handler);
+  },[blockingTransportId]);
+
+  const getNow=()=>{const n=new Date();return String(n.getHours()).padStart(2,"0")+":"+String(n.getMinutes()).padStart(2,"0");};
+  const diffMin=(h1,h2)=>{
+    const [ah,am]=h1.split(":").map(Number);
+    const [bh,bm]=h2.split(":").map(Number);
+    return (bh*60+bm)-(ah*60+am);
+  };
+
+  // Écran prise de poste si capacité pas encore validée
+  if (!posteValide) return (
+    <div style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",
+      justifyContent:"center",padding:24,background:C.bg}}>
+      <div style={{fontSize:48,marginBottom:12}}>🚛</div>
+      <div style={{fontSize:20,fontWeight:700,marginBottom:4}}>Prise de poste</div>
+      <div style={{fontSize:14,color:C.tx3,marginBottom:28,textAlign:"center"}}>
+        Bonjour {user.prenom} — avant de commencer,<br/>
+        renseignez la capacité de votre véhicule.
+      </div>
+      <div style={{width:"100%",maxWidth:320}}>
+        <div style={{fontSize:13,fontWeight:600,color:C.tx2,marginBottom:8}}>
+          Capacité de chargement (m³)
+        </div>
+        <input
+          type="number" inputMode="decimal" min="1" max="200" step="0.5"
+          value={capaciteSaisie}
+          onChange={e=>setCapaciteSaisie(e.target.value)}
+          placeholder="Ex : 85"
+          style={{width:"100%",height:54,padding:"0 16px",borderRadius:14,
+            border:`2px solid ${capaciteSaisie?C.green:C.bd}`,
+            fontFamily:"inherit",fontSize:22,fontWeight:700,outline:"none",
+            boxSizing:"border-box",textAlign:"center",color:C.tx}}/>
+        <div style={{fontSize:11,color:C.tx3,textAlign:"center",marginTop:6,marginBottom:20}}>
+          Cette valeur sera transmise à l'opérateur de déchiquetage.
+        </div>
+        <button
+          disabled={!capaciteSaisie||parseFloat(capaciteSaisie)<=0}
+          onClick={()=>{
+            const val=capaciteSaisie.trim();
+            setCapaciteM3(val);
+            try{localStorage.setItem(storageKey,val)}catch{}
+            setPosteValide(true);
+          }}
+          style={{width:"100%",height:52,borderRadius:14,
+            background:capaciteSaisie&&parseFloat(capaciteSaisie)>0?C.green:"#ccc",
+            border:"none",color:"#fff",fontFamily:"inherit",fontSize:16,fontWeight:700,
+            cursor:capaciteSaisie&&parseFloat(capaciteSaisie)>0?"pointer":"default",
+            WebkitTapHighlightColor:"transparent"}}>
+          ✅ Valider et commencer
+        </button>
+      </div>
+    </div>
+  );
+
   return (
     <div data-scrollable="1" style={{flex:1,overflowY:"auto",padding:PADDING,background:C.bg}}>
       <div style={{textAlign:"center",padding:"24px 0 16px"}}>
@@ -7487,11 +8843,85 @@ const EcranRoleChauffeur = ({user, transports=[]}) => {
             <div style={{fontFamily:"monospace",fontSize:16,fontWeight:700,color:C.greenD,marginBottom:12}}>
               {t.lotNumero}
             </div>
-            <div style={{fontSize:13,color:C.tx3,lineHeight:2,marginBottom:16}}>
+            <div style={{fontSize:13,color:C.tx3,lineHeight:2,marginBottom:12}}>
               📄 CMR : <strong>{t.numeroCMR}</strong><br/>
               🚛 {t.immatTracteur} · {t.immatRemorque}<br/>
               🏢 {t.societeTransp}
             </div>
+            {(()=>{
+              const dech = dechiquetages.find(d=>d.lotId===t.lotId && d.operateurDechiquetage);
+              return (t.adresse||t.codePostal||t.commune||t.departement||dech)&&(
+                <div style={{background:C.bg2,borderRadius:10,padding:"10px 14px",
+                  marginBottom:16,border:`1px solid ${C.bd}`}}>
+                  <div style={{fontSize:11,fontWeight:700,color:C.tx2,
+                    textTransform:"uppercase",letterSpacing:".06em",marginBottom:6}}>
+                    📍 Adresse de chargement
+                  </div>
+                  {t.adresse&&(
+                    <div style={{fontSize:13,fontWeight:600,color:C.tx,marginBottom:2}}>
+                      {t.adresse}
+                    </div>
+                  )}
+                  {(t.codePostal||t.commune)&&(
+                    <div style={{fontSize:13,color:C.tx}}>
+                      {[t.codePostal,t.commune].filter(Boolean).join(" ")}
+                    </div>
+                  )}
+                  {t.departement&&(
+                    <div style={{fontSize:12,color:C.tx3,marginTop:2}}>
+                      {t.departement}
+                    </div>
+                  )}
+                  {dech&&(
+                    <div style={{marginTop:10,paddingTop:10,borderTop:`1px solid ${C.bd}`}}>
+                      <div style={{fontSize:11,fontWeight:700,color:C.tx2,
+                        textTransform:"uppercase",letterSpacing:".06em",marginBottom:6}}>
+                        🪓 Opérateur de déchiquetage
+                      </div>
+                      <div style={{fontSize:13,fontWeight:600,color:C.tx,marginBottom:2}}>
+                        {dech.operateurDechiquetage}
+                      </div>
+                      {dech.telOperateur&&(
+                        <a href={`tel:${dech.telOperateur.replace(/\s/g,"")}`}
+                          style={{fontSize:13,color:C.green,fontWeight:600,
+                            textDecoration:"none",display:"flex",alignItems:"center",gap:4}}>
+                          📞 {dech.telOperateur}
+                        </a>
+                      )}
+                      {(()=>{
+                        const gps = gpsChantier[t.lotId];
+                        if(!gps) return null;
+                        const mapsUrl = gps.coords
+                          ? `https://maps.google.com/?q=${gps.coords.lat},${gps.coords.lng}`
+                          : null;
+                        return (
+                          <div style={{marginTop:8,paddingTop:8,borderTop:`1px dashed ${C.bd}`}}>
+                            <div style={{fontSize:11,fontWeight:700,color:C.tx2,
+                              textTransform:"uppercase",letterSpacing:".06em",marginBottom:4}}>
+                              📡 Position chantier
+                            </div>
+                            {gps.coords?(
+                              <a href={mapsUrl} target="_blank" rel="noreferrer"
+                                style={{fontSize:12,color:C.green,fontWeight:600,
+                                  textDecoration:"none",display:"flex",alignItems:"center",gap:4}}>
+                                🗺️ Ouvrir dans Maps (±{gps.coords.precision} m)
+                              </a>
+                            ):(
+                              <div style={{fontSize:12,color:C.tx3}}>
+                                Position GPS non disponible — contactez l'opérateur
+                              </div>
+                            )}
+                            <div style={{fontSize:11,color:C.tx3,marginTop:2}}>
+                              Enregistrée à {gps.heure} par {dech.operateurDechiquetage}
+                            </div>
+                          </div>
+                        );
+                      })()}
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
             <button onClick={()=>setConfirmed(p=>({...p,[t.id+"reception"]:true}))}
               disabled={confirmed[t.id+"reception"]}
               style={{width:"100%",padding:14,borderRadius:12,marginBottom:8,
@@ -7510,31 +8940,139 @@ const EcranRoleChauffeur = ({user, transports=[]}) => {
                 </div>
                 <input type="time" value={heuresArriveeEst[t.id]||""}
                   onChange={e=>setHeuresArriveeEst(p=>({...p,[t.id]:e.target.value}))}
-                  disabled={confirmed[t.id+"arrivePlace"]}
+                  disabled={!!heuresValidees[t.id]}
                   style={{width:"100%",height:46,padding:"0 14px",borderRadius:10,
-                    border:`1.5px solid ${C.bd}`,background:"#fff",
+                    border:`1.5px solid ${heuresValidees[t.id]?C.green:C.bd}`,
+                    background:heuresValidees[t.id]?C.greenL:"#fff",
                     color:C.tx,fontFamily:"inherit",fontSize:15,outline:"none"}}/>
+                {!heuresValidees[t.id]&&(
+                  <button
+                    onClick={()=>{
+                      const h=heuresArriveeEst[t.id];
+                      if(!h) return;
+                      setHeuresValidees(p=>({...p,[t.id]:h}));
+                      onValiderArrivee&&onValiderArrivee(t.lotId, h, (user.prenom||"")+" "+(user.nom||""), capaciteM3);
+                    }}
+                    disabled={!heuresArriveeEst[t.id]}
+                    style={{width:"100%",marginTop:8,padding:13,borderRadius:12,
+                      background:heuresArriveeEst[t.id]?C.green:"#eee",
+                      border:"none",color:"#fff",
+                      fontFamily:"inherit",fontSize:14,fontWeight:600,cursor:"pointer",
+                      opacity:heuresArriveeEst[t.id]?1:0.5,
+                      WebkitTapHighlightColor:"transparent"}}>
+                    ✉️ Valider et notifier l'opérateur
+                  </button>
+                )}
+                {heuresValidees[t.id]&&(
+                  <div style={{marginTop:8,padding:"10px 14px",borderRadius:10,
+                    background:C.greenL,border:`1px solid ${C.green}`,
+                    fontSize:13,color:C.greenD,fontWeight:600,display:"flex",alignItems:"center",gap:6}}>
+                    ✅ Heure {heuresValidees[t.id]} transmise à l'opérateur de déchiquetage
+                  </div>
+                )}
               </div>
             )}
 
-            {confirmed[t.id+"reception"]&&(
-              <button onClick={()=>setConfirmed(p=>({...p,[t.id+"arrivePlace"]:true}))}
-                disabled={confirmed[t.id+"arrivePlace"]}
+            {heuresValidees[t.id]&&!confirmed[t.id+"arrivePlace"]&&(
+              <button onClick={()=>{
+                  const now=new Date();
+                  const hh=String(now.getHours()).padStart(2,"0");
+                  const mm=String(now.getMinutes()).padStart(2,"0");
+                  setHeuresArriveSite(p=>({...p,[t.id]:`${hh}:${mm}`}));
+                  setConfirmed(p=>({...p,[t.id+"arrivePlace"]:true}));
+                }}
                 style={{width:"100%",padding:14,borderRadius:12,marginBottom:8,
-                  background:confirmed[t.id+"arrivePlace"]?C.greenL:"#fff",
-                  border:`2px solid ${confirmed[t.id+"arrivePlace"]?C.green:C.bd}`,
-                  color:confirmed[t.id+"arrivePlace"]?C.greenD:C.tx,
+                  background:"#fff",border:`2px solid ${C.bd}`,color:C.tx,
                   fontFamily:"inherit",fontSize:14,fontWeight:600,cursor:"pointer",
                   WebkitTapHighlightColor:"transparent"}}>
-                {confirmed[t.id+"arrivePlace"]?"✅ Arrivé sur site de chargement":"📍 Arrivé sur site de chargement"}
+                📍 Arrivé sur site de chargement
               </button>
             )}
+            {confirmed[t.id+"arrivePlace"]&&(
+              <div style={{padding:"10px 14px",borderRadius:10,marginBottom:8,
+                background:C.greenL,border:`1px solid ${C.green}`,
+                fontSize:13,color:C.greenD,fontWeight:600,display:"flex",alignItems:"center",gap:6}}>
+                ✅ Arrivé sur site à {heuresArriveSite[t.id]}
+              </div>
+            )}
+            {confirmed[t.id+"arrivePlace"]&&!heuresDebutCharg[t.id]&&(
+              <style>{`@keyframes pulse-charg{0%,100%{opacity:1;box-shadow:0 4px 18px rgba(255,111,0,.45)}50%{opacity:.88;box-shadow:0 6px 28px rgba(255,111,0,.75)}}`}</style>
+            )}
+            {/* Bouton fixe en bas — visible depuis n'importe où sur la page */}
+            {confirmed[t.id+"arrivePlace"]&&!heuresDebutCharg[t.id]&&(
+              <div style={{position:"fixed",bottom:0,left:0,right:0,zIndex:8888,
+                padding:"10px 16px 28px",
+                background:"linear-gradient(transparent,rgba(0,0,0,.18) 30%,rgba(0,0,0,.35))"}}>
+                <button onClick={()=>{
+                    const now=new Date();
+                    const hh=String(now.getHours()).padStart(2,"0");
+                    const mm=String(now.getMinutes()).padStart(2,"0");
+                    setHeuresDebutCharg(p=>({...p,[t.id]:`${hh}:${mm}`}));
+                  }}
+                  style={{width:"100%",padding:18,borderRadius:16,
+                    background:"linear-gradient(135deg,#FF6F00,#FF8F00)",
+                    border:"none",color:"#fff",
+                    fontFamily:"inherit",fontSize:18,fontWeight:800,cursor:"pointer",
+                    WebkitTapHighlightColor:"transparent",letterSpacing:.5,
+                    boxShadow:"0 4px 18px rgba(255,111,0,.45)",
+                    animation:"pulse-charg 1.4s ease-in-out infinite"}}>
+                  🟠 DÉBUT DE CHARGEMENT
+                </button>
+              </div>
+            )}
+            {heuresDebutCharg[t.id]&&(
+              <div style={{padding:"10px 14px",borderRadius:10,marginBottom:8,
+                background:"#FFF3E0",border:`1px solid #FF8F00`,
+                fontSize:13,color:"#E65100",fontWeight:600,display:"flex",alignItems:"center",gap:6}}>
+                🟠 Chargement démarré à {heuresDebutCharg[t.id]}
+              </div>
+            )}
 
-            {[
+            {/* FIN DE CHARGEMENT */}
+            {heuresDebutCharg[t.id]&&!heuresFinCharg[t.id]&&(
+              <button onClick={()=>{
+                  const fin=getNow();
+                  const duree=diffMin(heuresDebutCharg[t.id],fin);
+                  setHeuresFinCharg(p=>({...p,[t.id]:fin}));
+                  if(duree<5) setJustifModal({tid:t.id,dureeMin:duree});
+                }}
+                style={{width:"100%",padding:14,borderRadius:12,marginBottom:8,
+                  background:"#fff",border:`2px solid ${C.bd}`,color:C.tx,
+                  fontFamily:"inherit",fontSize:14,fontWeight:600,cursor:"pointer",
+                  WebkitTapHighlightColor:"transparent"}}>
+                🏁 Fin de chargement
+              </button>
+            )}
+            {heuresFinCharg[t.id]&&(
+              <div style={{padding:"10px 14px",borderRadius:10,marginBottom:8,
+                background:C.greenL,border:`1px solid ${C.green}`,
+                fontSize:13,color:C.greenD,fontWeight:600,display:"flex",alignItems:"center",gap:6}}>
+                ✅ Chargement terminé à {heuresFinCharg[t.id]}
+                {justifValidees[t.id]&&<span style={{fontSize:11,fontWeight:400,marginLeft:4,color:C.tx3}}>· {justifValidees[t.id]}</span>}
+              </div>
+            )}
+
+            {/* Départ et déchargement — uniquement après fin de chargement validée */}
+            {heuresFinCharg[t.id]&&(justifModal?.tid!==t.id)&&(!justifModal||justifValidees[t.id])&&[
               {label:"Départ confirmé",key:"depart"},
               {label:"Arrivé sur site déchargement",key:"arrivee"},
             ].map(btn=>(
-              <button key={btn.key} onClick={()=>setConfirmed(p=>({...p,[t.id+btn.key]:true}))}
+              <button key={btn.key} onClick={()=>{
+                  setConfirmed(p=>({...p,[t.id+btn.key]:true}));
+                  if(btn.key==="depart"&&onValiderDepart){
+                    const now=new Date();
+                    const hh=String(now.getHours()).padStart(2,"0");
+                    const mm=String(now.getMinutes()).padStart(2,"0");
+                    onValiderDepart(t.lotId||t.id,{
+                      nomChauffeur:((user.prenom||"")+" "+(user.nom||"")).trim(),
+                      capaciteM3,
+                      lotNumero:t.lotNumero,
+                      heureDebutCharg:heuresDebutCharg[t.id]||"—",
+                      heureFinCharg:heuresFinCharg[t.id]||"—",
+                      heureDepart:`${hh}:${mm}`
+                    });
+                  }
+                }}
                 disabled={confirmed[t.id+btn.key]}
                 style={{width:"100%",padding:14,borderRadius:12,marginBottom:8,
                   background:confirmed[t.id+btn.key]?C.greenL:"#fff",
@@ -7548,20 +9086,567 @@ const EcranRoleChauffeur = ({user, transports=[]}) => {
           </div>
         ))
       )}
+
+      {/* Modal justification chargement court */}
+      {justifModal&&!justifValidees[justifModal.tid]&&(
+        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.6)",zIndex:9999,
+          display:"flex",alignItems:"flex-end"}}>
+          <div style={{background:"#fff",width:"100%",borderRadius:"20px 20px 0 0",
+            padding:"24px 20px 36px"}}>
+            <div style={{fontSize:22,textAlign:"center",marginBottom:8}}>⚠️</div>
+            <div style={{fontSize:16,fontWeight:700,textAlign:"center",marginBottom:4}}>
+              Chargement court détecté
+            </div>
+            <div style={{fontSize:13,color:C.tx3,textAlign:"center",marginBottom:20}}>
+              Durée : <strong>{justifModal.dureeMin} min</strong> — inférieure à 5 minutes.<br/>
+              Veuillez indiquer la raison.
+            </div>
+            {[
+              {val:"Manque de produits",icon:"📦"},
+              {val:"Chargement annulé",icon:"🚫"},
+              {val:"Erreur de mission",icon:"📋"},
+            ].map(opt=>(
+              <button key={opt.val} onClick={()=>setJustifChoix(opt.val)}
+                style={{width:"100%",padding:"12px 16px",borderRadius:12,marginBottom:8,
+                  background:justifChoix===opt.val?"#E3F2FD":"#fff",
+                  border:`2px solid ${justifChoix===opt.val?C.blue:C.bd}`,
+                  color:justifChoix===opt.val?C.blue:C.tx,
+                  fontFamily:"inherit",fontSize:14,fontWeight:600,
+                  cursor:"pointer",textAlign:"left",
+                  WebkitTapHighlightColor:"transparent"}}>
+                {opt.icon} {opt.val}
+              </button>
+            ))}
+            <button onClick={()=>setJustifChoix("autre")}
+              style={{width:"100%",padding:"12px 16px",borderRadius:12,marginBottom:justifChoix==="autre"?8:16,
+                background:justifChoix==="autre"?"#E3F2FD":"#fff",
+                border:`2px solid ${justifChoix==="autre"?C.blue:C.bd}`,
+                color:justifChoix==="autre"?C.blue:C.tx,
+                fontFamily:"inherit",fontSize:14,fontWeight:600,
+                cursor:"pointer",textAlign:"left",
+                WebkitTapHighlightColor:"transparent"}}>
+              ✏️ Autre raison
+            </button>
+            {justifChoix==="autre"&&(
+              <textarea value={justifTexte} onChange={e=>setJustifTexte(e.target.value)}
+                placeholder="Décrivez la raison..."
+                rows={3}
+                style={{width:"100%",borderRadius:10,border:`1.5px solid ${C.bd}`,
+                  padding:"10px 12px",fontFamily:"inherit",fontSize:14,
+                  resize:"none",outline:"none",boxSizing:"border-box",marginBottom:12}}/>
+            )}
+            <button
+              disabled={!justifChoix||(justifChoix==="autre"&&!justifTexte.trim())}
+              onClick={()=>{
+                const raison=justifChoix==="autre"?justifTexte.trim():justifChoix;
+                setJustifValidees(p=>({...p,[justifModal.tid]:raison}));
+                setJustifModal(null);
+                setJustifChoix("");
+                setJustifTexte("");
+              }}
+              style={{width:"100%",padding:14,borderRadius:14,
+                background:(!justifChoix||(justifChoix==="autre"&&!justifTexte.trim()))?"#ccc":C.blue,
+                border:"none",color:"#fff",fontFamily:"inherit",
+                fontSize:15,fontWeight:700,cursor:"pointer",
+                WebkitTapHighlightColor:"transparent",
+                opacity:(!justifChoix||(justifChoix==="autre"&&!justifTexte.trim()))?0.6:1}}>
+              Valider la justification
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
 
-const EcranRoleDechiquetage = ({user, contacts}) => {
+// ─── Flux déchiquetage multi-camions (espace opérateur rôle) ────────────────
+const FluxDechiquetageRole = ({lot, user, onFinChantier, onRetour, toast}) => {
+  // phase: demarrage | en_cours | saisie_fin | entre_camions | cloture
+  const [phase,        setPhase]       = useState("demarrage");
+  const [machine,      setMachine]     = useState(()=>{ try { return localStorage.getItem(`applitag_dech_machine_${user?.id||""}`)||""; } catch { return ""; } });
+  const [heureDebut,   setHeureDebut]  = useState("");
+  const [dateDebut,    setDateDebut]   = useState("");
+  const [chargements,  setChargements] = useState([]); // [{type,cubage,tonnage,cmr,immatTract,immatRemor,heureFin}]
+  // Saisie fin de chargement
+  const [typeCharg,    setTypeCharg]   = useState("semi");
+  const [cubage,       setCubage]      = useState("");
+  const [tonnage,      setTonnage]     = useState("");
+  const [cmr,          setCmr]         = useState("");
+  const [immatTract,   setImmatTract]  = useState("");
+  const [immatRemor,   setImmatRemor]  = useState("");
+  const [heureFin,     setHeureFin]    = useState("");
+  const [saving,       setSaving]      = useState(false);
+
+  const [chrono,       setChrono]       = useState(0); // secondes écoulées
+  const chronoRef = useRef(null);
+
+  useEffect(()=>{
+    if(phase==="en_cours"){
+      chronoRef.current = setInterval(()=>setChrono(s=>s+1), 1000);
+    } else {
+      clearInterval(chronoRef.current);
+      if(phase==="demarrage") setChrono(0);
+    }
+    return ()=>clearInterval(chronoRef.current);
+  },[phase]);
+
+  const fmtChrono = (s) => {
+    const h = Math.floor(s/3600);
+    const m = Math.floor((s%3600)/60);
+    const sec = s%60;
+    return h>0
+      ? `${h}h ${String(m).padStart(2,"0")}min ${String(sec).padStart(2,"0")}s`
+      : `${String(m).padStart(2,"0")}min ${String(sec).padStart(2,"0")}s`;
+  };
+
+  const operateurNom = `${user.prenom||""} ${user.nom||""}`.trim();
+  const entreprise   = user.etfNom || "—";
+
+  const hNow = () => { const d=new Date(); return `${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`; };
+
+  const resetFinCharg = () => { setTypeCharg("semi"); setCubage(""); setTonnage(""); setCmr(""); setImmatTract(""); setImmatRemor(""); setHeureFin(""); };
+
+  const handleDemarrer = () => {
+    if (!machine.trim()) { toast&&toast("Veuillez indiquer le nom de la machine","warn"); return; }
+    try { localStorage.setItem(`applitag_dech_machine_${user?.id||""}`, machine); } catch {}
+    const now = new Date();
+    setHeureDebut(hNow());
+    setDateDebut(now.toLocaleDateString("fr-FR",{weekday:"long",day:"numeric",month:"long",year:"numeric"}));
+    setPhase("en_cours");
+  };
+
+  const handleValiderChargement = () => {
+    const errCMR = validateCMR(cmr);
+    if (!cmr || errCMR) { toast&&toast("Numéro CMR invalide — format CMR-AAAA-NNNN","warn"); return; }
+    if (!tonnage) { toast&&toast("Tonnage obligatoire","warn"); return; }
+    if (!heureFin) { toast&&toast("Heure de fin obligatoire","warn"); return; }
+    const dureeMin = Math.round(chrono / 60); // chrono = secondes depuis le début de ce chargement
+    const entry = { type:typeCharg, cubage:parseFloat(cubage)||0, tonnage:parseFloat(tonnage)||0, cmr, immatTract, immatRemor, heureDebut, heureFin, dureeMin };
+    setChargements(p=>[...p, entry]);
+    resetFinCharg();
+    setChrono(0);
+    setPhase("entre_camions");
+  };
+
+  const handleFinChantier = async () => {
+    setSaving(true);
+    const payload = {
+      lotId: lot.id, lotNumero: lot.lotNumero,
+      entrepriseDechiquetage: entreprise,
+      operateurDechiquetage: operateurNom,
+      machine, heureDebut,
+      chargements,
+      nbCamions: chargements.length,
+      tonnageTotal: chargements.reduce((s,c)=>s+c.tonnage,0),
+      cubageTotal:  chargements.reduce((s,c)=>s+c.cubage,0),
+      statut:"RECEPTION_A_EFFECTUER",
+      dateJour: new Date().toISOString().slice(0,10),
+    };
+    try {
+      await fetch(`${API}/dechiquetage`, { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(payload) });
+      await fetch(`${API}/contacts/${lot.id}`, { method:"PATCH", headers:{"Content-Type":"application/json"}, body:JSON.stringify({statutLot:"RECEPTION_A_EFFECTUER"}) });
+      await fetch(`${API}/messages-admin`, { method:"POST", headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({ type:"fin_chantier_dechiquetage", lotId:lot.id, lotNumero:lot.lotNumero,
+          operateurDechiquetage:operateurNom, machine,
+          nbCamions:chargements.length,
+          tonnageTotal:payload.tonnageTotal.toFixed(1),
+          message:`Chantier de déchiquetage terminé sur le lot ${lot.lotNumero}. ${chargements.length} camion(s) chargé(s), ${payload.tonnageTotal.toFixed(1)} t au total. Réception à effectuer.`,
+          date:new Date().toISOString() }) });
+    } catch {}
+    setSaving(false);
+    setPhase("cloture");
+    onFinChantier&&onFinChantier(lot.id);
+  };
+
+  // ── Phase : cloture ──────────────────────────────────────────────────────
+  if (phase==="cloture") return (
+    <div style={{padding:PADDING,paddingBottom:40}}>
+      <div style={{textAlign:"center",padding:"32px 0 24px"}}>
+        <div style={{fontSize:48,marginBottom:12}}>🏁</div>
+        <div style={{fontSize:18,fontWeight:700,marginBottom:6}}>Chantier clôturé</div>
+        {(()=>{
+          const avecDuree = chargements.filter(c=>c.dureeMin!=null);
+          const moy = avecDuree.length ? Math.round(avecDuree.reduce((s,c)=>s+c.dureeMin,0)/avecDuree.length) : null;
+          return (
+            <div style={{fontSize:13,color:C.tx3,lineHeight:1.8}}>
+              {chargements.length} camion(s) · {chargements.reduce((s,c)=>s+c.tonnage,0).toFixed(1)} t chargées
+              {moy!=null&&<><br/>⏱ Temps moyen de chargement : <strong style={{color:C.tx}}>{moy} min</strong></>}
+            </div>
+          );
+        })()}
+      </div>
+      <div style={{background:"#E8F5E9",borderRadius:14,padding:16,border:"1px solid #A5D6A7",marginBottom:16}}>
+        <div style={{fontSize:13,fontWeight:700,color:"#2E7D32",marginBottom:6}}>✅ Statut mis à jour</div>
+        <div style={{fontSize:12,color:"#388E3C",lineHeight:1.7}}>
+          Le lot <strong>{lot.lotNumero}</strong> est classifié <strong>Réception à effectuer</strong>.<br/>
+          La personne missionnée a été notifiée. L'administrateur voit la mise à jour en temps réel.
+        </div>
+      </div>
+      <button onClick={onRetour} style={{width:"100%",padding:14,borderRadius:12,
+        background:C.green,border:"none",color:"#fff",
+        fontFamily:"inherit",fontSize:14,fontWeight:600,cursor:"pointer"}}>
+        ← Retour à mes lots
+      </button>
+    </div>
+  );
+
+  return (
+    <div style={{display:"flex",flexDirection:"column",height:"100%"}}>
+      {/* Header */}
+      <div style={{background:"#D85A30",color:"#fff",padding:"12px 16px",flexShrink:0}}>
+        <div style={{display:"flex",alignItems:"center",gap:10}}>
+          <button onClick={onRetour} style={{background:"rgba(255,255,255,.15)",border:"none",
+            color:"#fff",padding:"5px 10px",borderRadius:8,fontSize:13,cursor:"pointer"}}>
+            ← Retour
+          </button>
+          <div>
+            <div style={{fontSize:14,fontWeight:600}}>🌀 Chantier de déchiquetage</div>
+            <div style={{fontSize:11,opacity:.7}}>{lot.lotNumero} · {lot.commune}</div>
+          </div>
+        </div>
+      </div>
+
+      <div data-scrollable="1" style={{flex:1,overflowY:"auto",padding:PADDING,paddingBottom:40}}>
+
+        {/* Recap auto */}
+        <div style={{background:"#fff",borderRadius:12,padding:14,marginBottom:16,
+          border:`1px solid ${C.bd}`}}>
+          <div style={{fontSize:11,fontWeight:700,color:C.tx2,textTransform:"uppercase",
+            letterSpacing:".06em",marginBottom:8}}>Informations chantier</div>
+          <div style={{fontSize:13,color:C.tx,lineHeight:1.9}}>
+            🏭 <strong>{entreprise}</strong><br/>
+            👷 {operateurNom}
+            {dateDebut&&<><br/>📅 {dateDebut}</>}
+            {heureDebut&&<><br/>⏱ Début : {heureDebut}</>}
+          </div>
+        </div>
+
+        {/* ── Phase : démarrage ── */}
+        {phase==="demarrage"&&(<>
+          <MInput label="Machine utilisée" value={machine} onChange={setMachine}
+            placeholder="Ex : Jenz HEM 593, Doppstadt AK 430…"/>
+          <BigBtn onClick={handleDemarrer} bg="#D85A30" icon="▶">
+            DÉMARRER LE CHANTIER
+          </BigBtn>
+        </>)}
+
+        {/* ── Phase : en cours ── */}
+        {phase==="en_cours"&&(
+          <div style={{textAlign:"center",padding:"20px 0"}}>
+            <div style={{fontSize:36,marginBottom:10}}>⚙️</div>
+            <div style={{fontSize:16,fontWeight:700,color:"#D85A30",marginBottom:4}}>
+              Chantier en cours
+            </div>
+            <div style={{fontSize:13,color:C.tx3,marginBottom:20}}>
+              Démarré à {heureDebut} · {machine}
+            </div>
+            {/* Chronomètre */}
+            <div style={{background:"#1C2B23",borderRadius:16,padding:"18px 24px",
+              marginBottom:20,display:"inline-block",minWidth:200}}>
+              <div style={{fontSize:11,fontWeight:600,color:"rgba(255,255,255,.5)",
+                textTransform:"uppercase",letterSpacing:".1em",marginBottom:6}}>
+                Durée de déchiquetage
+              </div>
+              <div style={{fontSize:36,fontWeight:700,color:"#4CAF50",
+                fontVariantNumeric:"tabular-nums",letterSpacing:".04em",
+                fontFamily:"ui-monospace,'SF Mono',monospace"}}>
+                {fmtChrono(chrono)}
+              </div>
+            </div>
+            {chargements.length>0&&(
+              <div style={{background:C.greenL,borderRadius:10,padding:12,marginBottom:16,
+                border:`1px solid ${C.green}`,fontSize:13,color:C.greenD}}>
+                ✅ {chargements.length} chargement(s) enregistré(s)
+              </div>
+            )}
+            <BigBtn onClick={()=>{ setHeureFin(hNow()); setPhase("saisie_fin"); }} bg="#D85A30" icon="🏁">
+              FIN DE CHARGEMENT CAMION
+            </BigBtn>
+          </div>
+        )}
+
+        {/* ── Phase : saisie fin de chargement ── */}
+        {phase==="saisie_fin"&&(<>
+          <div style={{fontSize:14,fontWeight:700,color:"#D85A30",marginBottom:14}}>
+            🚛 Chargement n°{chargements.length+1} — informations
+          </div>
+          <div style={{marginBottom:14}}>
+            <div style={{fontSize:12,fontWeight:600,color:C.tx2,marginBottom:8}}>Type de chargement</div>
+            {[["semi","🚛","Semi-remorque"],["camion_remorque","🚚","Camion-remorque"],["benne_ampliroll","🏗️","Benne ampliroll"]].map(([v,e,l])=>(
+              <div key={v} onClick={()=>setTypeCharg(v)}
+                style={{padding:"11px 14px",borderRadius:10,cursor:"pointer",marginBottom:6,
+                  border:`2px solid ${typeCharg===v?"#D85A30":C.bd}`,
+                  background:typeCharg===v?"#FAECE7":"#fff",
+                  display:"flex",alignItems:"center",gap:10}}>
+                <span style={{fontSize:20}}>{e}</span>
+                <span style={{fontSize:13,fontWeight:typeCharg===v?600:400,
+                  color:typeCharg===v?"#D85A30":C.tx}}>{l}</span>
+              </div>
+            ))}
+          </div>
+          <MInput label="Tonnage estimé chargé (t)" value={tonnage} onChange={setTonnage} type="number" placeholder="ex: 28" required/>
+          <MInput label="Cubage chargé estimé (m³)" value={cubage} onChange={setCubage} type="number" placeholder="ex: 85"/>
+          <MInput label="Numéro CMR" value={cmr} onChange={v=>setCmr(formatCMR(v))} placeholder="CMR-2026-0001" hint="CMR-AAAA-NNNN" required error={cmr?validateCMR(cmr):null}/>
+          <MInput label="Immat. tracteur" value={immatTract} onChange={v=>setImmatTract(formatImmat(v))} placeholder="AB-123-CD" error={immatTract?validateImmat(immatTract):null}/>
+          <MInput label="Immat. remorque" value={immatRemor} onChange={v=>setImmatRemor(formatImmat(v))} placeholder="EF-456-GH" error={immatRemor?validateImmat(immatRemor):null}/>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:14}}>
+            <div>
+              <div style={{fontSize:12,fontWeight:600,color:C.tx2,marginBottom:6}}>Heure début chargement</div>
+              <input type="time" value={heureDebut} disabled
+                style={{width:"100%",height:46,padding:"0 12px",borderRadius:10,
+                  border:`1.5px solid ${C.bd}`,background:"#f5f5f5",
+                  color:C.tx3,fontFamily:"inherit",fontSize:14,outline:"none"}}/>
+            </div>
+            <div>
+              <div style={{fontSize:12,fontWeight:600,color:C.tx2,marginBottom:6}}>Heure fin chargement</div>
+              <input type="time" value={heureFin} onChange={e=>setHeureFin(e.target.value)}
+                style={{width:"100%",height:46,padding:"0 12px",borderRadius:10,
+                  border:`1.5px solid ${C.bd}`,background:"#fff",
+                  color:C.tx,fontFamily:"inherit",fontSize:14,outline:"none"}}/>
+            </div>
+          </div>
+          <BigBtn onClick={handleValiderChargement} bg={C.green} icon="✅">
+            VALIDER CE CHARGEMENT
+          </BigBtn>
+        </>)}
+
+        {/* ── Phase : entre deux camions ── */}
+        {phase==="entre_camions"&&(
+          <div style={{textAlign:"center",padding:"12px 0"}}>
+            <div style={{fontSize:36,marginBottom:10}}>✅</div>
+            <div style={{fontSize:15,fontWeight:700,color:C.greenD,marginBottom:4}}>
+              Chargement {chargements.length} validé
+            </div>
+            <div style={{fontSize:13,color:C.tx3,marginBottom:20}}>
+              {chargements.reduce((s,c)=>s+c.tonnage,0).toFixed(1)} t chargées au total
+            </div>
+            {/* Récap chargements */}
+            {chargements.map((c,i)=>(
+              <div key={i} style={{background:"#fff",borderRadius:10,padding:"10px 14px",
+                marginBottom:8,border:`1px solid ${C.bd}`,textAlign:"left",fontSize:12,color:C.tx3}}>
+                <strong style={{color:C.tx}}>Camion {i+1}</strong> · {c.tonnage} t · {c.cmr} · {c.heureFin}
+                {c.dureeMin!=null&&<span style={{color:C.green,marginLeft:6}}>({c.dureeMin} min)</span>}
+              </div>
+            ))}
+            {(()=>{
+              const avecDuree = chargements.filter(c=>c.dureeMin!=null);
+              if(avecDuree.length<2) return null;
+              const moy = Math.round(avecDuree.reduce((s,c)=>s+c.dureeMin,0)/avecDuree.length);
+              return (
+                <div style={{background:C.bg2,borderRadius:10,padding:"10px 14px",
+                  marginBottom:16,border:`1px solid ${C.bd}`,fontSize:12,color:C.tx2}}>
+                  ⏱ Durée moyenne de chargement : <strong style={{color:C.tx}}>{moy} min</strong>
+                </div>
+              );
+            })()}
+            <div style={{marginTop:8,display:"flex",flexDirection:"column",gap:10}}>
+              <BigBtn onClick={()=>{ setHeureDebut(hNow()); setPhase("en_cours"); }} bg="#D85A30" icon="🔄">
+                PROCHAIN CAMION
+              </BigBtn>
+              <button onClick={handleFinChantier} disabled={saving}
+                style={{width:"100%",padding:14,borderRadius:12,
+                  background:"#1C2B23",border:"none",color:"#fff",
+                  fontFamily:"inherit",fontSize:14,fontWeight:600,cursor:"pointer",
+                  opacity:saving?0.6:1}}>
+                {saving?"Clôture en cours…":"🏁 FIN DU CHANTIER"}
+              </button>
+            </div>
+          </div>
+        )}
+
+      </div>
+    </div>
+  );
+};
+
+// ────────────────────────────────────────────────────────────────────────────
+const EcranRoleDechiquetage = ({user, contacts, onLaunchDechiquetage, avisArrivee={}, camionsPartis={}, onArriveeChantier, toast}) => {
   const lotsABroyer = contacts.filter(c=>["BORD_ROUTE","A_DECHIQUETER"].includes(c.statutLot));
   const [actif, setActif] = useState(null);
+  const [avisLus, setAvisLus] = useState({});
+  const arriveeKey = `applitag_arrivee_op_${user.id||user.nom}`;
+  const [arriveeGlobale, setArriveeGlobale] = useState(()=>{try{const s=localStorage.getItem(arriveeKey);return s?JSON.parse(s):null}catch{return null}});
+  const [recapOuvert, setRecapOuvert] = useState(null); // "enRoute" | "partis" | null
+  const [lotActif, setLotActif] = useState(null); // lot en cours de déchiquetage
+
+  // ── Rendu du flux multi-camions si un lot est actif ──────────────────────
+  if (lotActif) return (
+    <FluxDechiquetageRole
+      lot={lotActif}
+      user={user}
+      toast={toast}
+      onFinChantier={(lotId)=>{
+        // Retirer le lot de la liste locale (statut mis à jour côté API)
+        setLotActif(null);
+      }}
+      onRetour={()=>setLotActif(null)}
+    />
+  );
+
+  const handleArriveeGlobale = () => {
+    const h = new Date().toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"});
+    const val = {heure:h,gpsStatut:"acquisition"};
+    setArriveeGlobale(val);
+    try{localStorage.setItem(arriveeKey,JSON.stringify(val))}catch{}
+    if(navigator.geolocation){
+      navigator.geolocation.getCurrentPosition(
+        (pos)=>{
+          const coords = {lat:pos.coords.latitude, lng:pos.coords.longitude, precision:Math.round(pos.coords.accuracy)};
+          const v2 = {heure:h,gpsStatut:"ok",coords};
+          setArriveeGlobale(v2);
+          try{localStorage.setItem(arriveeKey,JSON.stringify(v2))}catch{}
+          onArriveeChantier&&onArriveeChantier("global", h, coords);
+        },
+        ()=>{
+          const v2 = {heure:h,gpsStatut:"erreur"};
+          setArriveeGlobale(v2);
+          try{localStorage.setItem(arriveeKey,JSON.stringify(v2))}catch{}
+          onArriveeChantier&&onArriveeChantier("global", h, null);
+        },
+        {enableHighAccuracy:true, timeout:10000}
+      );
+    } else {
+      const v2 = {heure:h,gpsStatut:"indisponible"};
+      setArriveeGlobale(v2);
+      try{localStorage.setItem(arriveeKey,JSON.stringify(v2))}catch{}
+      onArriveeChantier&&onArriveeChantier("global", h, null);
+    }
+  };
+  const avisActifs = Object.entries(avisArrivee).filter(([lotId])=>!avisLus[lotId]);
   return (
     <div data-scrollable="1" style={{flex:1,overflowY:"auto",padding:PADDING,background:C.bg}}>
       <div style={{textAlign:"center",padding:"24px 0 16px"}}>
-        <div style={{fontSize:40}}>🪚</div>
+        <div style={{fontSize:40}}>🌀</div>
         <div style={{fontSize:18,fontWeight:700,marginTop:8}}>Bonjour {user.prenom}</div>
         <div style={{fontSize:13,color:C.tx3,marginTop:4}}>Opérations de déchiquetage</div>
       </div>
+      {/* ── Boutons récap ── */}
+      {(()=>{
+        const nbEnRoute = Object.keys(avisArrivee).length;
+        const nbPartis  = Object.keys(camionsPartis).length;
+        if(nbEnRoute===0&&nbPartis===0) return null;
+        return (
+          <div style={{display:"flex",gap:8,marginBottom:14}}>
+            {nbEnRoute>0&&(
+              <button onClick={()=>setRecapOuvert(r=>r==="enRoute"?null:"enRoute")}
+                style={{flex:1,padding:"10px 8px",borderRadius:12,border:"none",fontFamily:"inherit",
+                  fontSize:12,fontWeight:700,cursor:"pointer",
+                  background:recapOuvert==="enRoute"?"#FFC107":"#FFF8E1",
+                  color:"#E65100"}}>
+                🚛 En route ({nbEnRoute})
+              </button>
+            )}
+            {nbPartis>0&&(
+              <button onClick={()=>setRecapOuvert(r=>r==="partis"?null:"partis")}
+                style={{flex:1,padding:"10px 8px",borderRadius:12,border:"none",fontFamily:"inherit",
+                  fontSize:12,fontWeight:700,cursor:"pointer",
+                  background:recapOuvert==="partis"?"#A5D6A7":"#E8F5E9",
+                  color:"#2E7D32"}}>
+                ✅ Chargés &amp; partis ({nbPartis})
+              </button>
+            )}
+          </div>
+        );
+      })()}
+
+      {/* ── Récap camions en route ── */}
+      {recapOuvert==="enRoute"&&(
+        <div style={{background:"#FFFDE7",borderRadius:14,padding:14,marginBottom:14,
+          border:"1.5px solid #FFE082"}}>
+          <div style={{fontSize:13,fontWeight:700,color:"#E65100",marginBottom:10}}>
+            🚛 Camions en route vers ce chantier
+          </div>
+          {Object.entries(avisArrivee).map(([lotId,avis])=>{
+            const heure     = typeof avis==="object" ? avis.heure      : avis;
+            const chauffeur = typeof avis==="object" ? avis.nomChauffeur : "—";
+            const capacite  = typeof avis==="object" ? avis.capaciteM3  : null;
+            const lot = contacts.find(c=>c.id===lotId||c.lotId===lotId);
+            return (
+              <div key={lotId} style={{display:"flex",gap:10,alignItems:"flex-start",
+                padding:"8px 0",borderBottom:"1px solid #FFE082"}}>
+                <span style={{fontSize:18}}>🚛</span>
+                <div style={{flex:1,fontSize:12,lineHeight:1.6}}>
+                  <strong>{chauffeur}</strong>
+                  {lot&&<span> · lot <strong>{lot.lotNumero}</strong></span>}
+                  <br/>
+                  Arrivée prévue <strong>{heure}</strong>
+                  {capacite&&<span> · <strong>{capacite} m³</strong></span>}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* ── Récap camions chargés et partis ── */}
+      {recapOuvert==="partis"&&(
+        <div style={{background:"#F1F8E9",borderRadius:14,padding:14,marginBottom:14,
+          border:"1.5px solid #A5D6A7"}}>
+          <div style={{fontSize:13,fontWeight:700,color:"#2E7D32",marginBottom:10}}>
+            ✅ Camions chargés et partis
+          </div>
+          {Object.entries(camionsPartis).map(([lotId,info])=>(
+            <div key={lotId} style={{display:"flex",gap:10,alignItems:"flex-start",
+              padding:"8px 0",borderBottom:"1px solid #C8E6C9"}}>
+              <span style={{fontSize:18}}>✅</span>
+              <div style={{flex:1,fontSize:12,lineHeight:1.6}}>
+                <strong>{info.nomChauffeur||"—"}</strong>
+                {info.lotNumero&&<span> · lot <strong>{info.lotNumero}</strong></span>}
+                <br/>
+                Départ <strong>{info.heureDepart||"—"}</strong>
+                {info.capaciteM3&&<span> · <strong>{info.capaciteM3} m³</strong></span>}
+                {info.heureDebutCharg&&info.heureFinCharg&&
+                  <span style={{color:"#558B2F"}}> · chargement {info.heureDebutCharg}→{info.heureFinCharg}</span>}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {Object.entries(avisArrivee).map(([lotId,avis])=>{
+        const heure = typeof avis==="object" ? avis.heure : avis;
+        const nomChauffeur = typeof avis==="object" ? avis.nomChauffeur : "Le chauffeur";
+        const capacite = typeof avis==="object" ? avis.capaciteM3 : null;
+        const lot = contacts.find(c=>c.id===lotId||c.lotId===lotId);
+        const lu = !!avisLus[lotId];
+        return lu ? (
+          /* Trace archivée après "Compris" */
+          <div key={lotId} style={{background:"#F9FBE7",borderRadius:12,padding:"10px 14px",
+            marginBottom:12,border:"1px solid #C5E1A5",
+            display:"flex",alignItems:"center",gap:10}}>
+            <span style={{fontSize:20}}>✅</span>
+            <div style={{flex:1}}>
+              <div style={{fontSize:12,fontWeight:700,color:"#558B2F"}}>
+                Avis reçu — {nomChauffeur}
+              </div>
+              <div style={{fontSize:11,color:"#5D4037",marginTop:2}}>
+                Arrivée prévue à <strong>{heure}</strong> · lot <strong>{lot?.lotNumero||lotId}</strong>
+                {capacite&&<span> · <strong>{capacite} m³</strong></span>}
+              </div>
+            </div>
+          </div>
+        ) : (
+          /* Notification active */
+          <div key={lotId} style={{background:"#FFF8E1",borderRadius:14,padding:16,
+            marginBottom:14,border:"2px solid #FFC107",position:"relative"}}>
+            <div style={{fontSize:13,fontWeight:700,color:"#E65100",marginBottom:6}}>
+              🚛 Camion en route — arrivée estimée {heure}{capacite?` · capacité ${capacite} m³`:""}
+            </div>
+            <div style={{fontSize:12,color:"#5D4037",lineHeight:1.6}}>
+              <strong>{nomChauffeur}</strong> a confirmé son arrivée sur le lot{lot?" ":""}
+              <strong>{lot?.lotNumero||lotId}</strong> pour <strong>{heure}</strong>.
+              {capacite&&<span> Capacité véhicule : <strong>{capacite} m³</strong>.</span>}
+              {" "}Préparez le chargement.
+            </div>
+            <button onClick={()=>setAvisLus(p=>({...p,[lotId]:true}))}
+              style={{marginTop:10,padding:"7px 14px",borderRadius:8,border:"none",
+                background:"#FF8F00",color:"#fff",fontSize:12,fontWeight:600,
+                cursor:"pointer",fontFamily:"inherit"}}>
+              ✓ Compris
+            </button>
+          </div>
+        );
+      })}
       {lotsABroyer.length===0?(
         <div style={{background:C.bg2,borderRadius:14,padding:20,textAlign:"center"}}>
           <div style={{fontSize:32,marginBottom:8}}>✅</div>
@@ -7582,23 +9667,69 @@ const EcranRoleDechiquetage = ({user, contacts}) => {
           <div style={{fontSize:12,color:C.tx3,marginBottom:12}}>
             📍 {lot.commune} · ⚖️ {lot.tonnageCumul?fmtNum(lot.tonnageCumul,1):"—"} t
           </div>
-          <button onClick={()=>setActif(actif===lot.id?null:lot.id)}
+          <button onClick={()=>{ if(arriveeGlobale) setLotActif(lot); }}
+            disabled={!arriveeGlobale}
             style={{width:"100%",padding:12,borderRadius:10,
-              background:actif===lot.id?"#FAECE7":"#fff",
-              border:`2px solid ${actif===lot.id?"#D85A30":C.bd}`,
-              color:actif===lot.id?"#D85A30":C.tx,
+              background:arriveeGlobale?"#FAECE7":"#f5f5f5",
+              border:`2px solid ${arriveeGlobale?"#D85A30":C.bd}`,
+              color:arriveeGlobale?"#D85A30":C.tx3,
               fontFamily:"inherit",fontSize:13,fontWeight:600,cursor:"pointer",
+              opacity:arriveeGlobale?1:0.5,
               WebkitTapHighlightColor:"transparent"}}>
-            {actif===lot.id?"▼ Démarrer déchiquetage":"🪚 Lancer le déchiquetage"}
+            🌀 Démarrer le déchiquetage
           </button>
-          {actif===lot.id&&(
-            <div style={{marginTop:12,padding:12,background:"#FAECE7",borderRadius:10,
-              fontSize:12,color:"#D85A30",textAlign:"center",fontWeight:600}}>
-              ➡️ Accédez à l'écran Déchiquetage complet depuis la fiche lot
-            </div>
-          )}
         </div>
       ))}
+
+      {/* ── Bouton arrivée sur chantier (une seule fois) ou fin du chantier ── */}
+      {!arriveeGlobale?(
+        <div style={{marginTop:8,marginBottom:24}}>
+          <button onClick={handleArriveeGlobale}
+            style={{width:"100%",padding:14,borderRadius:12,
+              background:C.greenL,border:`2px solid ${C.green}`,color:C.greenD,
+              fontFamily:"inherit",fontSize:14,fontWeight:700,cursor:"pointer",
+              WebkitTapHighlightColor:"transparent"}}>
+            📍 Arrivé sur chantier
+          </button>
+        </div>
+      ):(()=>{
+        const a = arriveeGlobale;
+        return (
+          <div style={{marginTop:8,marginBottom:24}}>
+            {a.gpsStatut==="acquisition"&&(
+              <div style={{padding:"8px 12px",borderRadius:8,marginBottom:8,
+                background:"#E3F2FD",border:"1px solid #90CAF9",
+                fontSize:12,color:"#1565C0",display:"flex",alignItems:"center",gap:6}}>
+                <span>📡</span>Acquisition GPS en cours…
+              </div>
+            )}
+            {a.gpsStatut==="ok"&&a.coords&&(
+              <div style={{padding:"8px 12px",borderRadius:8,marginBottom:8,
+                background:"#E8F5E9",border:"1px solid #A5D6A7",
+                fontSize:12,color:"#2E7D32",display:"flex",alignItems:"center",gap:6}}>
+                <span>✅</span>Position GPS transmise aux chauffeurs (±{a.coords.precision} m)
+              </div>
+            )}
+            {(a.gpsStatut==="erreur"||a.gpsStatut==="indisponible")&&(
+              <div style={{padding:"8px 12px",borderRadius:8,marginBottom:8,
+                background:"#FFF8E1",border:"1px solid #FFD54F",
+                fontSize:12,color:"#F57F17"}}>
+                ⚠️ GPS non disponible — chauffeurs notifiés sans coordonnées
+              </div>
+            )}
+            <button onClick={()=>{
+                setArriveeGlobale(null);
+                try{localStorage.removeItem(arriveeKey)}catch{}
+              }}
+              style={{width:"100%",padding:14,borderRadius:12,
+                background:"#FFEBEE",border:"2px solid #EF9A9A",color:"#C62828",
+                fontFamily:"inherit",fontSize:14,fontWeight:700,cursor:"pointer",
+                WebkitTapHighlightColor:"transparent"}}>
+              🏁 Fin du chantier
+            </button>
+          </div>
+        );
+      })()}
     </div>
   );
 };
@@ -7663,6 +9794,312 @@ const EcranRoleChaufferie = ({user, livraisons=[]}) => {
         <div style={{textAlign:"center",color:C.tx3,padding:"32px 0"}}>
           <div style={{fontSize:32}}>⏳</div>
           <div style={{marginTop:8}}>Aucune livraison en attente</div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+// ── RÉCEPTIONNAIRE PLATEFORME DE STOCKAGE ─────────────────────
+const EcranRoleReceptionnaire = ({user, livraisons=[], contacts=[], visites=[], toast}) => {
+  const [onglet, setOnglet] = useState("attente"); // "attente" | "stock" | "historique"
+  const [humidite, setHumidite] = useState({});
+  const [confirmes, setConfirmes] = useState({});
+  const [lotStockSelec, setLotStockSelec] = useState(null); // lot contact ouvert dans "En stock"
+  const [rechercheHisto, setRechercheHisto] = useState("");
+
+  const platLivs = livraisons.filter(l=>l.typeDest==="plateforme");
+  const enAttente = platLivs.filter(l=>!l.statut||l.statut==="en_attente");
+  const recues    = platLivs.filter(l=>l.statut==="recu"||confirmes[l.id]);
+  const enStock   = contacts.filter(c=>["BORD_ROUTE","A_DECHIQUETER","EN_STOCK_PLATEFORME"].includes(c.statutLot));
+  const tonnageStock = platLivs.filter(l=>l.statut==="recu"||confirmes[l.id]).reduce((s,l)=>s+(parseFloat(l.pesee)||0),0);
+  const tonnageRecus = recues.reduce((s,l)=>s+(parseFloat(l.pesee)||0),0);
+
+  const handleConfirmer = (l) => {
+    setConfirmes(p=>({...p,[l.id]:true}));
+    toast("Réception enregistrée ✓");
+  };
+
+  const enAttenteVisibles = enAttente.filter(l=>!confirmes[l.id]);
+  const tabs = [
+    {id:"attente",   label:"En attente",  badge:enAttenteVisibles.length},
+    {id:"stock",     label:"En stock",    badge:enStock.length},
+    {id:"historique",label:"Historique",  badge:null},
+  ];
+
+  return (
+    <div data-scrollable="1" style={{flex:1,overflowY:"auto",padding:PADDING,background:C.bg}}>
+      <div style={{textAlign:"center",padding:"20px 0 14px"}}>
+        <div style={{fontSize:36}}>🏗️</div>
+        <div style={{fontSize:18,fontWeight:700,marginTop:6}}>Bonjour {user.prenom}</div>
+        <div style={{fontSize:12,color:C.tx3,marginTop:3}}>Plateforme de stockage bois énergie</div>
+      </div>
+
+      {/* Stats */}
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8,marginBottom:16}}>
+        {[
+          [enAttenteVisibles.length+" lot"+(enAttenteVisibles.length>1?"s":""),"En attente","#E3F2FD","#1565C0"],
+          [fmtNum(tonnageStock,1)+" t","En stock","#E8F5E9",C.greenD],
+          [fmtNum(tonnageRecus,1)+" t","Reçu total",C.amberL,C.amberD],
+        ].map(([v,l,bg,tc],i)=>(
+          <div key={i} style={{background:bg,borderRadius:12,padding:"12px 8px",textAlign:"center"}}>
+            <div style={{fontSize:16,fontWeight:700,color:tc}}>{v}</div>
+            <div style={{fontSize:10,color:C.tx3,marginTop:2}}>{l}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* Onglets */}
+      <div style={{display:"flex",gap:6,marginBottom:14}}>
+        {tabs.map(t=>(
+          <button key={t.id} onClick={()=>setOnglet(t.id)} style={{
+            flex:1,padding:"9px 0",borderRadius:10,fontSize:12,fontWeight:onglet===t.id?700:400,
+            border:`1.5px solid ${onglet===t.id?"#1565C0":C.bd}`,
+            background:onglet===t.id?"#E3F2FD":"#fff",
+            color:onglet===t.id?"#1565C0":C.tx2,
+            cursor:"pointer",fontFamily:"inherit",position:"relative",
+            WebkitTapHighlightColor:"transparent"}}>
+            {t.label}
+            {t.badge>0&&<span style={{position:"absolute",top:-5,right:-5,
+              background:"#1565C0",color:"#fff",fontSize:9,fontWeight:700,
+              borderRadius:"50%",width:16,height:16,display:"flex",
+              alignItems:"center",justifyContent:"center"}}>{t.badge}</span>}
+          </button>
+        ))}
+      </div>
+
+      {/* Livraisons en attente */}
+      {onglet==="attente"&&(
+        <div>
+          {enAttente.length===0&&(
+            <div style={{textAlign:"center",color:C.tx3,padding:"32px 0"}}>
+              <div style={{fontSize:32}}>✅</div>
+              <div style={{marginTop:8}}>Aucune livraison en attente</div>
+            </div>
+          )}
+          {enAttente.filter(l=>!confirmes[l.id]).map((l,i)=>{
+            const h = humidite[l.id]||"";
+            const visite = visites.find(v=>v.lotId===l.lotId);
+            const isRed = visite?.certification==="red";
+            return (
+              <div key={l.id||i} style={{background:"#fff",borderRadius:14,padding:16,
+                marginBottom:12,border:`2px solid ${isRed?"#E65100":"#1565C0"}`}}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}}>
+                  <div>
+                    <div style={{fontFamily:"monospace",fontSize:13,fontWeight:700,
+                      color:isRed?"#E65100":"#1565C0"}}>
+                      {l.lotNumero}
+                    </div>
+                    <div style={{fontSize:11,color:C.tx3,marginTop:1}}>🌿 Plaquettes forestières</div>
+                  </div>
+                  <div style={{display:"flex",gap:6,alignItems:"center"}}>
+                    {isRed&&(
+                      <div style={{background:"#FFF3E0",color:"#E65100",padding:"3px 8px",
+                        borderRadius:6,fontSize:10,fontWeight:700,
+                        border:"1px solid #E65100"}}>⚡ RED</div>
+                    )}
+                    {!isRed&&visite&&(
+                      <div style={{background:C.bg2,color:C.tx3,padding:"3px 8px",
+                        borderRadius:6,fontSize:10,fontWeight:600}}>Hors RED</div>
+                    )}
+                    <div style={{background:"#E3F2FD",color:"#1565C0",padding:"3px 8px",
+                      borderRadius:6,fontSize:10,fontWeight:600}}>⏳ En attente</div>
+                  </div>
+                </div>
+                {isRed&&(
+                  <div style={{background:"#FFF3E0",border:"1px solid #E65100",borderRadius:8,
+                    padding:"8px 10px",marginBottom:10,fontSize:11,color:"#BF360C",lineHeight:1.5}}>
+                    ⚡ <strong>Lot soumis à la directive RED</strong> — traçabilité renforcée requise.
+                    Conservez le CMR et les documents de durabilité.
+                    {visite?.numeroCertification&&<> · Certif. {visite.certification?.toUpperCase()} n° {visite.numeroCertification}</>}
+                  </div>
+                )}
+                <div style={{fontSize:12,color:C.tx3,lineHeight:1.9,marginBottom:12}}>
+                  🚛 CMR : {l.numeroCMR||"—"}<br/>
+                  ⚖️ Pesée transport : <strong style={{color:C.tx}}>{l.pesee} t</strong><br/>
+                  📅 {new Date(l.dateHeureLivraison).toLocaleDateString("fr-FR",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"})}
+                </div>
+                <div style={{marginBottom:12}}>
+                  <div style={{fontSize:12,fontWeight:600,color:C.tx,marginBottom:6}}>
+                    💧 Taux d'humidité à réception (%)
+                  </div>
+                  <input type="number" min={0} max={100} value={h}
+                    onChange={e=>setHumidite(p=>({...p,[l.id]:e.target.value}))}
+                    placeholder="Ex : 28"
+                    style={{width:"100%",padding:"10px 12px",borderRadius:10,fontSize:14,
+                      border:`1.5px solid ${h?C.green:C.bd}`,fontFamily:"inherit",
+                      background:"#fff",boxSizing:"border-box"}}/>
+                  {h&&(
+                    <div style={{fontSize:11,marginTop:4,fontWeight:600,
+                      color:h<=30?C.greenD:h<=45?C.amberD:C.red}}>
+                      {h<=30?"✅ Conforme":h<=45?"⚠️ Humidité élevée":"🔴 Hors normes (>45%)"}
+                    </div>
+                  )}
+                </div>
+                <button onClick={()=>handleConfirmer(l)}
+                  disabled={!h}
+                  style={{width:"100%",padding:13,borderRadius:10,
+                    background:h?"#1565C0":C.bg2,color:h?"#fff":C.tx3,
+                    border:"none",fontFamily:"inherit",fontSize:14,fontWeight:700,
+                    cursor:h?"pointer":"not-allowed",
+                    WebkitTapHighlightColor:"transparent"}}>
+                  ✅ Confirmer la réception
+                </button>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Lots en stock */}
+      {onglet==="stock"&&!lotStockSelec&&(
+        <div>
+          {enStock.length===0&&(
+            <div style={{textAlign:"center",color:C.tx3,padding:"32px 0"}}>
+              <div style={{fontSize:32}}>📦</div>
+              <div style={{marginTop:8}}>Aucun lot en stock actuellement</div>
+            </div>
+          )}
+          {enStock.map(c=>{
+            const entrees = platLivs.filter(l=>l.lotId===c.id&&(l.statut==="recu"||confirmes[l.id]));
+            const tonnageLot = entrees.reduce((s,l)=>s+(parseFloat(l.pesee)||0),0);
+            return (
+              <div key={c.id} onClick={()=>setLotStockSelec(c)}
+                style={{background:"#fff",borderRadius:14,padding:14,marginBottom:10,
+                  border:`1.5px solid ${C.bd}`,cursor:"pointer",
+                  WebkitTapHighlightColor:"transparent"}}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
+                  <div>
+                    <div style={{fontFamily:"monospace",fontSize:13,fontWeight:700,color:C.greenD}}>
+                      {c.lotNumero}
+                    </div>
+                    <div style={{fontSize:11,color:C.tx3,marginTop:1}}>🌿 Plaquettes forestières</div>
+                  </div>
+                  <span style={{fontSize:18,color:C.tx3}}>›</span>
+                </div>
+                <div style={{fontSize:12,color:C.tx3,lineHeight:1.8}}>
+                  👤 {c.prenom} {c.nom} · 📍 {c.commune}<br/>
+                  📦 {entrees.length} entrée{entrees.length>1?"s":""} · ⚖️ {fmtNum(tonnageLot||c.tonnageCumul||0,1)} t stockées
+                </div>
+              </div>
+            );
+          })}
+          <div style={{background:C.greenL,borderRadius:12,padding:"12px 14px",
+            border:`1px solid ${C.green}`,textAlign:"center",marginTop:4}}>
+            <div style={{fontSize:15,fontWeight:700,color:C.greenD}}>{fmtNum(tonnageStock,1)} t</div>
+            <div style={{fontSize:11,color:C.tx3,marginTop:2}}>Tonnage total en stock plateforme</div>
+          </div>
+        </div>
+      )}
+
+      {/* Détail entrées d'un lot en stock */}
+      {onglet==="stock"&&lotStockSelec&&(
+        <div>
+          <button onClick={()=>setLotStockSelec(null)}
+            style={{background:"none",border:"none",color:"#1565C0",cursor:"pointer",
+              fontSize:13,fontWeight:600,padding:"0 0 12px",fontFamily:"inherit"}}>
+            ← Retour au stock
+          </button>
+          <div style={{background:"#fff",borderRadius:14,padding:14,marginBottom:12,
+            border:`1.5px solid ${C.green}`}}>
+            <div style={{fontFamily:"monospace",fontSize:14,fontWeight:700,color:C.greenD,marginBottom:4}}>
+              {lotStockSelec.lotNumero}
+            </div>
+            <div style={{fontSize:12,color:C.tx3,lineHeight:1.7}}>
+              🌿 Plaquettes forestières<br/>
+              👤 {lotStockSelec.prenom} {lotStockSelec.nom} · 📍 {lotStockSelec.commune}<br/>
+              🌲 {lotStockSelec.surfaceHa} ha
+            </div>
+          </div>
+          <div style={{fontSize:12,fontWeight:700,color:C.tx,marginBottom:10}}>
+            Historique des entrées
+          </div>
+          {platLivs.filter(l=>l.lotId===lotStockSelec.id&&(l.statut==="recu"||confirmes[l.id])).length===0&&(
+            <div style={{textAlign:"center",color:C.tx3,padding:"24px 0",fontSize:13}}>
+              Aucune entrée enregistrée pour ce lot
+            </div>
+          )}
+          {platLivs.filter(l=>l.lotId===lotStockSelec.id&&(l.statut==="recu"||confirmes[l.id])).map((l,i)=>(
+            <div key={l.id||i} style={{background:"#fff",borderRadius:12,padding:14,
+              marginBottom:8,border:`1px solid ${C.bd}`}}>
+              <div style={{display:"flex",justifyContent:"space-between",marginBottom:4}}>
+                <div style={{fontSize:12,fontWeight:600,color:C.tx}}>Entrée {i+1}</div>
+                <div style={{textAlign:"right"}}>
+                  <div style={{fontSize:10,color:C.tx3}}>
+                    {new Date(l.dateHeureLivraison).toLocaleDateString("fr-FR")}
+                  </div>
+                  <div style={{fontSize:11,fontWeight:600,color:C.tx2}}>
+                    {new Date(l.dateHeureLivraison).toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"})}
+                  </div>
+                </div>
+              </div>
+              <div style={{fontSize:12,color:C.tx3,lineHeight:1.7}}>
+                ⚖️ {l.pesee} t · 💧 {l.humiditeReception??humidite[l.id]??"—"}%<br/>
+                📄 CMR : {l.numeroCMR||"—"}
+              </div>
+              <div style={{marginTop:6,fontSize:11,fontWeight:600,
+                color:(l.humiditeReception||humidite[l.id])<=30?C.greenD
+                  :(l.humiditeReception||humidite[l.id])<=45?C.amberD:C.red}}>
+                {(l.humiditeReception||humidite[l.id])<=30?"✅ Conforme"
+                  :(l.humiditeReception||humidite[l.id])<=45?"⚠️ Humidité élevée":"🔴 Hors normes"}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Historique */}
+      {onglet==="historique"&&(
+        <div>
+          <div style={{position:"relative",marginBottom:12}}>
+            <span style={{position:"absolute",left:12,top:"50%",transform:"translateY(-50%)",
+              fontSize:15,pointerEvents:"none"}}>🔍</span>
+            <input
+              type="text"
+              value={rechercheHisto}
+              onChange={e=>setRechercheHisto(e.target.value)}
+              placeholder="Rechercher par n° de lot…"
+              style={{width:"100%",padding:"10px 12px 10px 36px",borderRadius:10,fontSize:13,
+                border:`1.5px solid ${rechercheHisto?C.green:C.bd}`,fontFamily:"inherit",
+                background:"#fff",boxSizing:"border-box",color:C.tx}}/>
+            {rechercheHisto&&(
+              <button onClick={()=>setRechercheHisto("")}
+                style={{position:"absolute",right:10,top:"50%",transform:"translateY(-50%)",
+                  background:"none",border:"none",cursor:"pointer",fontSize:15,color:C.tx3,
+                  padding:0,lineHeight:1}}>✕</button>
+            )}
+          </div>
+          {recues.filter(l=>!rechercheHisto||l.lotNumero?.toLowerCase().includes(rechercheHisto.toLowerCase())).length===0&&(
+            <div style={{textAlign:"center",color:C.tx3,padding:"32px 0"}}>
+              <div style={{fontSize:32}}>{rechercheHisto?"🔍":"📋"}</div>
+              <div style={{marginTop:8}}>{rechercheHisto?"Aucun lot trouvé":"Aucune réception enregistrée"}</div>
+            </div>
+          )}
+          {recues.filter(l=>!rechercheHisto||l.lotNumero?.toLowerCase().includes(rechercheHisto.toLowerCase())).map((l,i)=>(
+            <div key={l.id||i} style={{background:"#fff",borderRadius:12,padding:14,
+              marginBottom:8,border:`1px solid ${C.bd}`}}>
+              <div style={{display:"flex",justifyContent:"space-between",marginBottom:4}}>
+                <div style={{fontFamily:"monospace",fontSize:12,fontWeight:700,color:C.greenD}}>
+                  {l.lotNumero}
+                </div>
+                <div style={{textAlign:"right"}}>
+                  <div style={{fontSize:10,color:C.tx3}}>
+                    {new Date(l.dateHeureLivraison).toLocaleDateString("fr-FR")}
+                  </div>
+                  <div style={{fontSize:11,fontWeight:600,color:C.tx2,marginTop:1}}>
+                    {new Date(l.dateHeureLivraison).toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"})}
+                  </div>
+                </div>
+              </div>
+              <div style={{fontSize:12,color:C.tx3,lineHeight:1.7}}>
+                ⚖️ {l.pesee} t · 💧 {l.humiditeReception??humidite[l.id]??"—"}% · 📄 {l.numeroCMR}
+              </div>
+              <div style={{marginTop:6,fontSize:11,fontWeight:600,
+                color:(l.humiditeReception||humidite[l.id])<=30?C.greenD:(l.humiditeReception||humidite[l.id])<=45?C.amberD:C.red}}>
+                {(l.humiditeReception||humidite[l.id])<=30?"✅ Conforme":(l.humiditeReception||humidite[l.id])<=45?"⚠️ Humidité élevée":"🔴 Hors normes"}
+              </div>
+            </div>
+          ))}
         </div>
       )}
     </div>
@@ -8211,7 +10648,7 @@ const PIPELINE = [
   {id:"VALIDE_EXPLOITATION",label:"Validé",        icon:"📋"},
   {id:"EN_COURS_EXPLOITATION",label:"Exploitation",icon:"🪓"},
   {id:"BORD_ROUTE",         label:"Bord route",    icon:"🌲"},
-  {id:"A_DECHIQUETER",      label:"À déchiqueter", icon:"🪚"},
+  {id:"A_DECHIQUETER",      label:"À déchiqueter", icon:"🌀"},
   {id:"EN_COURS_DECHIQUETAGE",   label:"Déchiquetage", icon:"⚙️"},
   {id:"EN_LIVRAISON",       label:"En livraison",  icon:"🚛"},
   {id:"LIVRE_CHAUFFERIE",   label:"Livré",         icon:"🔥"},
@@ -8221,14 +10658,19 @@ const FicheLotCentrale = ({
   lot, visites=[], operateurs=[], onBack, onEdit, onBonCommande,
   onLaunchVisite, onLaunchValidation, onLaunchCloture,
   onLaunchDechiquetage, onLaunchTransporteur, onLaunchLivraison, onLaunchFinChantier,
-  onRedDeclaration, onDeleguerVisite,
-  toast, entrepriseId,
+  onRedDeclaration, onDeleguerVisite, onDeleteLot,
+  toast, entrepriseId, user,
 }) => {
   const [onglet, setOnglet] = useState(0);
+  const [deleteStep, setDeleteStep] = useState(0);
   const [releves,    setReleves]    = useState([]);
   const [transports, setTransports] = useState([]);
   const [livraisons, setLivraisons] = useState([]);
   const [loading,    setLoading]    = useState(true);
+  const [showDeclMairie, setShowDeclMairie] = useState(false);
+  const [mairieAdresse,  setMairieAdresse]  = useState("");
+  const [mairieCP,       setMairieCP]       = useState("");
+  const [mairieVille,    setMairieVille]    = useState("");
 
   const st = STATUT_LOT[lot.statutLot||"NOUVEAU"] || STATUT_LOT.NOUVEAU;
   const pipelineIdx = PIPELINE.findIndex(p=>p.id===(lot.statutLot||"NOUVEAU"));
@@ -8280,7 +10722,7 @@ const FicheLotCentrale = ({
     ["VALIDE_EXPLOITATION","EN_COURS_EXPLOITATION"].includes(s) &&
       {icon:"🏁",label:"Clôture",bg:C.amberL,bd:C.amber,color:C.amberD,fn:onLaunchCloture},
     ["BORD_ROUTE","A_DECHIQUETER"].includes(s) &&
-      {icon:"🪚",label:"Déchi.",bg:"#FAECE7",bd:"#D85A30",color:"#D85A30",fn:onLaunchDechiquetage},
+      {icon:"🌀",label:"Déchi.",bg:"#FAECE7",bd:"#D85A30",color:"#D85A30",fn:onLaunchDechiquetage},
     ["A_DECHIQUETER","EN_COURS_DECHIQUETAGE","EN_LIVRAISON"].includes(s) &&
       {icon:"🚛",label:"Transp.",bg:C.purpleL,bd:C.purple,color:C.purpleD,fn:onLaunchTransporteur},
     ["EN_COURS_DECHIQUETAGE","EN_LIVRAISON"].includes(s) &&
@@ -8816,7 +11258,7 @@ const FicheLotCentrale = ({
                ],"Réception de fin d'exploitation générée automatiquement par APPLITAG."),
                  `ReceptionExploitation_${lot.lotNumero||"APPLITAG"}.pdf`, toast)},
 
-              {icon:"🪚",titre:"Ordre de déchiquetage",
+              {icon:"🌀",titre:"Ordre de déchiquetage",
                statut:["A_DECHIQUETER","EN_COURS_DECHIQUETAGE","EN_LIVRAISON","LIVRE_CHAUFFERIE"].includes(lot.statutLot)?"✅ Disponible":"⏳ En attente bord de route",
                color:["A_DECHIQUETER","EN_COURS_DECHIQUETAGE","EN_LIVRAISON","LIVRE_CHAUFFERIE"].includes(lot.statutLot)?C.green:C.tx3,
                bg:["A_DECHIQUETER","EN_COURS_DECHIQUETAGE","EN_LIVRAISON","LIVRE_CHAUFFERIE"].includes(lot.statutLot)?C.greenL:C.bg2,
@@ -8865,6 +11307,12 @@ const FicheLotCentrale = ({
                statut:derniereVisite?.photos?.length>0?`✅ ${derniereVisite.photos.length} photo(s) visite`:"⏳ Aucune photo",
                color:derniereVisite?.photos?.length>0?C.blue:C.tx3,
                bg:derniereVisite?.photos?.length>0?C.blueL:C.bg2},
+
+              {icon:"🏛️",titre:"Déclaration de chantier forestier à la mairie",
+               statut:"📝 À compléter et transmettre avant démarrage",
+               color:"#1565C0",bg:"#E3F2FD",
+               action:"Ouvrir",
+               onAction:()=>setShowDeclMairie(true)},
             ].map((doc,i)=>(
               <div key={i} style={{background:"#fff",borderRadius:14,padding:14,
                 marginBottom:10,border:`1px solid ${C.bd}`,
@@ -8891,6 +11339,130 @@ const FicheLotCentrale = ({
                 )}
               </div>
             ))}
+
+            {showDeclMairie&&(()=>{
+              const entNom   = lot.etfNom||"";
+              const commune  = lot.commune||"";
+              const lieuDit  = lot.adresseParcelle||lot.lieuDit||"";
+              const cadastre = lot.refCadastrale||"";
+              const surface  = lot.surfaceHa?lot.surfaceHa+" ha":"—";
+              const volume   = derniereVisite?.volumeEstimeT?fmtNum(derniereVisite.volumeEstimeT)+" t estimées":"—";
+              const dateDebut= derniereVisite?.date||"";
+              const essences = derniereVisite?.essences?.map(e=>e.label).join(", ")||"—";
+              const ready    = !!(mairieAdresse&&mairieCP&&mairieVille);
+              const htmlPdf  = `<!DOCTYPE html><html lang="fr"><head><meta charset="utf-8"/><style>body{font-family:Arial,sans-serif;font-size:13px;color:#111;max-width:700px;margin:0 auto;padding:40px}h1{font-size:16px;text-align:center;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px}.subtitle{text-align:center;font-size:12px;color:#555;margin-bottom:32px}.expediteur{margin-bottom:24px;font-size:12px;line-height:1.8}.destinataire{float:right;width:260px;border:1px solid #999;padding:12px;font-size:12px;line-height:1.8;margin-top:-60px}.objet{margin:32px 0 20px;font-weight:bold}.section{margin-bottom:16px}.section-title{font-weight:bold;text-decoration:underline;margin-bottom:6px}table{width:100%;border-collapse:collapse;margin-bottom:16px}td{padding:6px 10px;border:1px solid #ccc;font-size:12px;vertical-align:top}td:first-child{background:#f5f5f5;font-weight:600;width:45%}.signature{margin-top:48px;display:flex;justify-content:space-between}.sig-block{width:45%}.footer{margin-top:40px;font-size:10px;color:#888;border-top:1px solid #ddd;padding-top:8px;text-align:center}.legal{background:#fffde7;border:1px solid #f9a825;padding:10px;font-size:11px;margin:20px 0}</style></head><body>
+<div class="expediteur"><strong>${entNom||"[Entreprise exécutante]"}</strong><br/>[Adresse de l'entreprise]<br/>[Code postal] [Ville]<br/>[Téléphone] · [Email]</div>
+<div class="destinataire"><strong>À l'attention de Monsieur/Madame le Maire</strong><br/>Mairie de ${mairieVille}<br/>${mairieAdresse}<br/>${mairieCP} ${mairieVille}</div>
+<div style="clear:both;margin-top:32px"></div>
+<div style="text-align:right;font-size:12px;margin-bottom:24px">Le ${new Date().toLocaleDateString("fr-FR",{year:"numeric",month:"long",day:"numeric"})}</div>
+<h1>Déclaration de chantier forestier</h1>
+<div class="subtitle">Conformément aux articles L. 718-9 et R. 718-27 du Code du travail</div>
+<div class="objet">Objet : Déclaration préalable de chantier forestier — commune de ${commune}</div>
+<div class="legal">Cette déclaration constitue la copie obligatoire transmise à la mairie en application de l'article R. 718-27 du Code du travail. Elle est adressée simultanément à l'inspection du travail territorialement compétente. Elle ne constitue pas une demande d'autorisation de coupe.</div>
+<div class="section"><div class="section-title">1. Entreprise exécutante</div><table><tr><td>Dénomination sociale</td><td>${entNom||"—"}</td></tr><tr><td>Adresse</td><td>[À compléter]</td></tr><tr><td>Représentant légal</td><td>[Nom · Qualité]</td></tr><tr><td>Téléphone</td><td>[À compléter]</td></tr><tr><td>Email</td><td>[À compléter]</td></tr></table></div>
+<div class="section"><div class="section-title">2. Localisation du chantier</div><table><tr><td>Commune</td><td>${commune}</td></tr><tr><td>Lieu-dit / adresse parcelle</td><td>${lieuDit||"—"}</td></tr><tr><td>Références cadastrales</td><td>${cadastre||"—"}</td></tr><tr><td>N° de lot APPLITAG</td><td>${lot.lotNumero||"—"}</td></tr><tr><td>Surface concernée</td><td>${surface}</td></tr></table></div>
+<div class="section"><div class="section-title">3. Nature et description des travaux</div><table><tr><td>Type de travaux</td><td>Abattage, façonnage et débardage de bois énergie</td></tr><tr><td>Essences concernées</td><td>${essences}</td></tr><tr><td>Volume estimé</td><td>${volume}</td></tr><tr><td>Méthode de réalisation</td><td>Chantier mécanisé</td></tr></table></div>
+<div class="section"><div class="section-title">4. Calendrier prévisionnel</div><table><tr><td>Date prévisionnelle de début</td><td>${dateDebut||"[À compléter]"}</td></tr><tr><td>Date prévisionnelle de fin</td><td>[À compléter]</td></tr><tr><td>Nombre de salariés sur le chantier</td><td>[À compléter]</td></tr></table></div>
+<div class="section"><div class="section-title">5. Affichage</div><p style="font-size:12px">Un panneau d'identification de l'entreprise, visible depuis les voies d'accès, sera installé en bordure du chantier conformément aux dispositions réglementaires en vigueur.</p></div>
+<div class="signature"><div class="sig-block"><strong>Le déclarant</strong><br/><br/><br/><div style="border-top:1px solid #999;padding-top:4px;font-size:11px">[Nom, qualité et signature]</div></div><div class="sig-block" style="text-align:right"><strong>Pour information,<br/>le maître d'ouvrage</strong><br/><br/><br/><div style="border-top:1px solid #999;padding-top:4px;font-size:11px">${lot.nom||""} ${lot.prenom||""}</div></div></div>
+<div class="footer">Document généré par APPLITAG · Réf. ${lot.lotNumero||"—"} · ${new Date().toLocaleDateString("fr-FR")}<br/>Base légale : articles L. 718-9 et R. 718-27 du Code du travail</div>
+</body></html>`;
+              return (
+              <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.55)",
+                zIndex:9999,display:"flex",flexDirection:"column"}}>
+                <div style={{background:"#fff",flex:1,overflowY:"auto",
+                  borderRadius:"16px 16px 0 0",marginTop:48}}>
+                  <div style={{position:"sticky",top:0,background:"#1565C0",
+                    padding:"14px 16px",display:"flex",alignItems:"center",gap:10,
+                    borderRadius:"16px 16px 0 0",zIndex:1}}>
+                    <span style={{fontSize:18}}>🏛️</span>
+                    <div style={{flex:1,color:"#fff"}}>
+                      <div style={{fontSize:13,fontWeight:700}}>Déclaration de chantier forestier à la mairie</div>
+                      <div style={{fontSize:10,opacity:.7}}>{lot.lotNumero} · {lot.commune}</div>
+                    </div>
+                    <button onClick={()=>setShowDeclMairie(false)} style={{
+                      background:"rgba(255,255,255,.2)",border:"none",color:"#fff",
+                      borderRadius:8,padding:"4px 10px",fontSize:14,cursor:"pointer",
+                      fontFamily:"inherit",fontWeight:700}}>✕</button>
+                  </div>
+                  <div style={{padding:16}}>
+                    <div style={{background:"#FFF8E1",border:"1.5px solid #FFE082",
+                      borderRadius:12,padding:14,marginBottom:16}}>
+                      <div style={{fontSize:13,fontWeight:700,color:"#F57F17",marginBottom:12}}>
+                        📬 Adresse de la mairie destinataire
+                      </div>
+                    <div style={{marginBottom:10}}>
+                        <div style={{fontSize:12,fontWeight:600,color:C.tx2,marginBottom:5}}>Adresse</div>
+                        <input value={mairieAdresse} onChange={e=>setMairieAdresse(e.target.value)}
+                          placeholder="Ex : 1 place de la Mairie"
+                          style={{width:"100%",height:44,padding:"0 12px",borderRadius:10,
+                            border:`1.5px solid ${mairieAdresse?C.green:"#FFD54F"}`,
+                            fontFamily:"inherit",fontSize:14,outline:"none",boxSizing:"border-box"}}/>
+                      </div>
+                      <div style={{display:"flex",gap:8}}>
+                        <div style={{flex:"0 0 100px"}}>
+                          <div style={{fontSize:12,fontWeight:600,color:C.tx2,marginBottom:5}}>Code postal</div>
+                          <input value={mairieCP} onChange={e=>setMairieCP(e.target.value)}
+                            placeholder="89000" maxLength={5}
+                            style={{width:"100%",height:44,padding:"0 12px",borderRadius:10,
+                              border:`1.5px solid ${mairieCP?C.green:"#FFD54F"}`,
+                              fontFamily:"inherit",fontSize:14,outline:"none",boxSizing:"border-box"}}/>
+                        </div>
+                        <div style={{flex:1}}>
+                          <div style={{fontSize:12,fontWeight:600,color:C.tx2,marginBottom:5}}>Ville</div>
+                          <input value={mairieVille} onChange={e=>setMairieVille(e.target.value)}
+                            placeholder="Toucy"
+                            style={{width:"100%",height:44,padding:"0 12px",borderRadius:10,
+                              border:`1.5px solid ${mairieVille?C.green:"#FFD54F"}`,
+                              fontFamily:"inherit",fontSize:14,outline:"none",boxSizing:"border-box"}}/>
+                        </div>
+                      </div>
+                    </div>
+                    {/* Récap données pré-remplies */}
+                    <div style={{background:C.bg,borderRadius:12,padding:14,marginBottom:16,
+                      border:`1px solid ${C.bd}`,fontSize:12,lineHeight:1.8}}>
+                      <div style={{fontWeight:700,fontSize:13,marginBottom:10,textAlign:"center",
+                        textTransform:"uppercase",letterSpacing:1}}>
+                        Aperçu du document
+                      </div>
+                      {[
+                        ["Entreprise exécutante", entNom||"[À renseigner]"],
+                        ["Commune du chantier",   commune||"—"],
+                        ["Lieu-dit / parcelle",   lieuDit||cadastre||"—"],
+                        ["Réf. cadastrale",       cadastre||"—"],
+                        ["Surface",               surface],
+                        ["Essences",              essences],
+                        ["Volume estimé",         volume],
+                        ["Type de travaux",       "Abattage, façonnage, débardage bois énergie"],
+                        ["Date prévisionnelle",   dateDebut||"[À compléter dans le PDF]"],
+                        ["Destinataire",          ready?`Mairie de ${mairieVille} · ${mairieCP}`:"⚠️ Adresse mairie à renseigner"],
+                      ].map(([l,v],i,a)=>(
+                        <div key={i} style={{display:"flex",justifyContent:"space-between",
+                          padding:"5px 0",borderBottom:i<a.length-1?`1px solid ${C.bd}`:"none"}}>
+                          <span style={{color:C.tx3,fontSize:11}}>{l}</span>
+                          <span style={{fontWeight:500,fontSize:12,textAlign:"right",
+                            maxWidth:"55%",color:v.startsWith("⚠️")?C.amber:C.tx}}>{v}</span>
+                        </div>
+                      ))}
+                      <div style={{marginTop:12,padding:10,background:"#E3F2FD",borderRadius:8,
+                        fontSize:11,color:"#1565C0",lineHeight:1.6}}>
+                        ℹ️ Formalité réglementaire (art. L. 718-9 et R. 718-27 C. trav.) — ne constitue pas une autorisation de coupe. À transmettre <strong>avant le dernier jour ouvrable précédant le démarrage</strong>.
+                      </div>
+                    </div>
+                    <button disabled={!ready}
+                      onClick={()=>generatePdfFromHtml(htmlPdf,`Declaration_Mairie_${lot.lotNumero||"APPLITAG"}.pdf`,toast)}
+                      style={{width:"100%",height:50,borderRadius:14,
+                        background:ready?"#1565C0":"#ccc",color:"#fff",border:"none",
+                        fontFamily:"inherit",fontSize:15,fontWeight:700,
+                        cursor:ready?"pointer":"default",
+                        WebkitTapHighlightColor:"transparent",marginBottom:8}}>
+                      {ready?"📄 Générer le PDF":"Compléter l'adresse mairie pour générer"}
+                    </button>
+                  </div>
+                </div>
+              </div>
+              );
+            })()}
 
             <div style={{background:C.blueL,borderRadius:12,padding:14,marginBottom:14,
               border:`1px solid ${C.blue}`}}>
@@ -8928,6 +11500,74 @@ const FicheLotCentrale = ({
               </button>
             ))}
           </div>
+        </div>
+      )}
+
+      {/* ── SUPPRESSION LOT (admin uniquement) ── */}
+      {onDeleteLot&&(
+        <div style={{position:"fixed",bottom:actionsVisible.length>0?90:16,right:16,zIndex:200}}>
+          {deleteStep===0&&(
+            <button onClick={()=>setDeleteStep(1)}
+              style={{width:44,height:44,borderRadius:"50%",background:"#fff",
+                border:"1.5px solid #E53935",color:"#E53935",fontSize:18,cursor:"pointer",
+                boxShadow:"0 2px 8px rgba(0,0,0,.15)",WebkitTapHighlightColor:"transparent",
+                display:"flex",alignItems:"center",justifyContent:"center"}}
+              title="Supprimer ce lot">
+              🗑️
+            </button>
+          )}
+          {deleteStep===1&&(
+            <div style={{background:"#fff",borderRadius:14,padding:14,
+              boxShadow:"0 4px 20px rgba(0,0,0,.2)",border:"1.5px solid #E53935",
+              maxWidth:240,textAlign:"center"}}>
+              <div style={{fontSize:13,fontWeight:600,color:"#B71C1C",marginBottom:4}}>
+                ⚠️ Supprimer ce lot ?
+              </div>
+              <div style={{fontSize:11,color:C.tx3,marginBottom:12}}>
+                Lot {lot.lotNumero} — {lot.nom}.<br/>Cette action est irréversible.
+              </div>
+              <div style={{display:"flex",gap:8}}>
+                <button onClick={()=>setDeleteStep(0)}
+                  style={{flex:1,height:38,borderRadius:10,background:C.bg,
+                    border:`1px solid ${C.bd}`,color:C.tx,fontFamily:"inherit",
+                    fontSize:12,cursor:"pointer",WebkitTapHighlightColor:"transparent"}}>
+                  Annuler
+                </button>
+                <button onClick={()=>setDeleteStep(2)}
+                  style={{flex:1,height:38,borderRadius:10,background:"#FFEBEE",
+                    border:"1.5px solid #E53935",color:"#B71C1C",fontFamily:"inherit",
+                    fontSize:12,fontWeight:600,cursor:"pointer",WebkitTapHighlightColor:"transparent"}}>
+                  Confirmer
+                </button>
+              </div>
+            </div>
+          )}
+          {deleteStep===2&&(
+            <div style={{background:"#fff",borderRadius:14,padding:14,
+              boxShadow:"0 4px 20px rgba(0,0,0,.2)",border:"2px solid #B71C1C",
+              maxWidth:240,textAlign:"center"}}>
+              <div style={{fontSize:13,fontWeight:700,color:"#B71C1C",marginBottom:4}}>
+                🔴 Dernière confirmation
+              </div>
+              <div style={{fontSize:11,color:C.tx3,marginBottom:12}}>
+                Toutes les données associées à ce lot seront définitivement supprimées.
+              </div>
+              <div style={{display:"flex",gap:8}}>
+                <button onClick={()=>setDeleteStep(0)}
+                  style={{flex:1,height:38,borderRadius:10,background:C.bg,
+                    border:`1px solid ${C.bd}`,color:C.tx,fontFamily:"inherit",
+                    fontSize:12,cursor:"pointer",WebkitTapHighlightColor:"transparent"}}>
+                  Annuler
+                </button>
+                <button onClick={()=>{ setDeleteStep(0); onDeleteLot(lot); }}
+                  style={{flex:1,height:38,borderRadius:10,background:"#E53935",
+                    border:"none",color:"#fff",fontFamily:"inherit",
+                    fontSize:12,fontWeight:700,cursor:"pointer",WebkitTapHighlightColor:"transparent"}}>
+                  🗑️ Supprimer
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>
@@ -9127,7 +11767,7 @@ const EcranFinChantier = ({lot, onBack, onSaved, toast, entrepriseId}) => {
             <SectionTitle icon="🌿" label="Travaux de rénovation"/>
             <MSlider label="Surface rénovée" value={surfaceRenovee} onChange={setSurfRenov}
               min={0} max={50} step={0.5} unit=" ha" color={C.green}/>
-            <SectionTitle icon="🪚" label="Types de broyage réalisés"/>
+            <SectionTitle icon="🌀" label="Types de broyage réalisés"/>
             <div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:14}}>
               {TYPE_BROYAGE_OPTS.map(v=>(
                 <div key={v} onClick={()=>toggleBroyage(v)} style={{
@@ -9419,11 +12059,13 @@ const CAPACITES_CHARGEMENT = {
   semi: 30, camion_remorque: 30, benne_ampliroll: 15,
 };
 
-const EcranDechiquetage = ({lot, operateurs=[], onBack, onSaved, toast, entrepriseId}) => {
+const EcranDechiquetage = ({lot, operateurs=[], onBack, onSaved, toast, entrepriseId, user}) => {
+  const nomUserDechiquetage = user ? `${user.prenom||""} ${user.nom||""}`.trim() : "";
   const [lotSuggere,    setLotSuggere]  = useState(lot.lotNumero||"");
-  const [operateurDechiquetage,setOpDechiquetage] = useState("");
-  const [machine,       setMachine]     = useState("");
+  const [operateurDechiquetage,setOpDechiquetage] = useState(nomUserDechiquetage);
+  const [machine,       setMachine]     = useState(()=>{ try { return localStorage.getItem(`applitag_dech_machine_${user?.id||""}`) || ""; } catch { return ""; } });
   const [typeChargement,setTypeCharg]   = useState("semi");
+  const [cubageCharge,  setCubageCharge]  = useState("");
   const [tonnageCharge, setTonnageCharge] = useState("");
   const [erreurTonnage, setErreurTonnage] = useState("");
   const [numeroCMR,     setNumeroCMR]   = useState("");
@@ -9448,7 +12090,7 @@ const EcranDechiquetage = ({lot, operateurs=[], onBack, onSaved, toast, entrepri
 
   // Opérateur délégué par l'entreprise prestataire missionnée sur ce lot → pré-rempli automatiquement
   useEffect(()=>{
-    if (operateurDechiquetage) return;
+    if (operateurDechiquetage) return; // déjà rempli (par user ou par assignation)
     const op = operateurs.find(o=>
       (o.etfId===lot.etfId || (lot.etfNom && o.etfNom===lot.etfNom)) &&
       (o.assignations||[]).some(a=>(a.lotId===lot.id||a.lotNumero===lot.lotNumero)&&a.typeOperation==="dechiquetage")
@@ -9508,18 +12150,21 @@ const EcranDechiquetage = ({lot, operateurs=[], onBack, onSaved, toast, entrepri
   const erreurCMR = numeroCMR ? validateCMR(numeroCMR) : null;
   const erreurImmatTract = immatTracteur ? validateImmat(immatTracteur) : null;
   const erreurImmatRemor = immatRemorque ? validateImmat(immatRemorque) : null;
+  const erreurHeureFin = heureDebut && heureFin && heureFin <= heureDebut ? "L'heure de fin doit être après l'heure de début" : null;
   const canValidate = numeroCMR && !erreurCMR && immatTracteur && !erreurImmatTract
-    && !erreurImmatRemor && heureDebut && heureFin && photoCMR && !erreurTonnage;
+    && !erreurImmatRemor && heureDebut && heureFin && !erreurHeureFin && photoCMR && !erreurTonnage;
 
   const handleSave = async () => {
     if (!canValidate) { toast("CMR, immatriculation tracteur, horaires complets et photo CMR obligatoires (formats valides)","warn"); return; }
     setSaving(true);
+    try { localStorage.setItem(`applitag_dech_machine_${user?.id||""}`, machine); } catch {}
     try {
       await fetch(`${API}/dechiquetage`, {
         method:"POST", headers:{"Content-Type":"application/json"},
         body:JSON.stringify({
           lotId:lot.id, lotNumero:lotSuggere, entrepriseId,
           entrepriseDechiquetage, operateurDechiquetage, machine, typeChargement,
+          cubageCharge: parseFloat(cubageCharge)||null,
           tonnageCharge: parseFloat(tonnageCharge)||null,
           numeroCMR, photoCMR, immatTracteur, immatRemorque,
           heureDebut, heureFin, evenements, autreEvenement, statut:"EN_LIVRAISON",
@@ -9542,7 +12187,7 @@ const EcranDechiquetage = ({lot, operateurs=[], onBack, onSaved, toast, entrepri
             color:"#fff",padding:"6px 10px",borderRadius:8,fontSize:13,cursor:"pointer",
             WebkitTapHighlightColor:"transparent"}}>{"<"} Retour</button>
           <div style={{flex:1}}>
-            <div style={{fontSize:15,fontWeight:600}}>🪚 Déchiquetage & Chargement</div>
+            <div style={{fontSize:15,fontWeight:600}}>🌀 Déchiquetage & Chargement</div>
             <div style={{fontSize:11,opacity:.6}}>{lot.lotNumero} · {lot.commune}</div>
           </div>
         </div>
@@ -9589,7 +12234,9 @@ const EcranDechiquetage = ({lot, operateurs=[], onBack, onSaved, toast, entrepri
             </div>
           ))}
         </div>
-        <MInput label="Tonnage chargé (t)" value={tonnageCharge} onChange={handleTonnageChange}
+        <MInput label="Cubage chargé estimé (m³)" value={cubageCharge} onChange={setCubageCharge}
+          type="number" placeholder="ex: 85"/>
+        <MInput label="Tonnage net chargé estimé (t)" value={tonnageCharge} onChange={handleTonnageChange}
           type="number" placeholder="ex: 28" required/>
         {erreurTonnage&&(
           <div style={{background:C.redL,borderRadius:10,padding:12,marginBottom:14,
@@ -9649,8 +12296,8 @@ const EcranDechiquetage = ({lot, operateurs=[], onBack, onSaved, toast, entrepri
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
           <MInput label="Heure début" value={heureDebut} onChange={setHeureDebut}
             type="time" required/>
-          <MInput label="Heure fin" value={heureFin} onChange={setHeureFin}
-            type="time" required/>
+          <MInput label="Heure fin (photo CMR)" value={heureFin} onChange={setHeureFin}
+            type="time" required error={erreurHeureFin}/>
         </div>
 
         <SectionTitle icon="📋" label="Événements du jour"/>
@@ -10417,8 +13064,10 @@ export default function App() {
   const [user,      setUser]      = useState(()=>getUser());
   const [operateur, setOperateur] = useState(()=>{ try { return JSON.parse(localStorage.getItem("applitag_operateur")||"null"); } catch { return null; } });
   const [screen,    setScreen]    = useState("accueil");
-  const [contacts,  setContacts]  = useState([]);
-  const [visites,   setVisites]   = useState([]);
+  const [fiche0Prefill, setFiche0Prefill] = useState(null);
+  const [roleChoisi, setRoleChoisi] = useState(null);
+  const [contacts,  setContacts]  = useState(()=>getUser()?.demo ? DEMO_LOTS : []);
+  const [visites,   setVisites]   = useState(()=>getUser()?.demo ? DEMO_VISITES : []);
   const [toasts,    setToasts]    = useState([]);
   const [activeLot, setActiveLot] = useState(null);
   const [activeContact, setActiveContact] = useState(null);
@@ -10427,11 +13076,14 @@ export default function App() {
   const [operateurs, setOperateurs] = useState([]);
   const [showEtfModal,    setShowEtfModal]    = useState(false);
   const [showDelegVisite, setShowDelegVisite] = useState(false);
-  const [isDemoMode,   setIsDemoMode]   = useState(false);
-  const [reportings,   setReportings]   = useState([]);
-  const [transports,   setTransports]   = useState([]);
-  const [livraisons,   setLivraisons]   = useState([]);
-  const [dechiquetages,setDechiquetages] = useState([]);
+  const [isDemoMode,   setIsDemoMode]   = useState(()=>!!(getUser()?.demo));
+  const [reportings,   setReportings]   = useState(()=>getUser()?.demo ? DEMO_REPORTINGS : []);
+  const [transports,   setTransports]   = useState(()=>getUser()?.demo ? DEMO_TRANSPORTS : []);
+  const [livraisons,   setLivraisons]   = useState(()=>getUser()?.demo ? DEMO_LIVRAISONS : []);
+  const [dechiquetages,setDechiquetages] = useState(()=>getUser()?.demo ? DEMO_DECHIQUETAGES : []);
+  const [avisArrivee,  setAvisArrivee]   = useState(()=>{try{const s=sessionStorage.getItem("applitag_avis_arrivee");return s?JSON.parse(s):{}}catch{return{}}});
+  const [camionsPartis,setCamionsPartis] = useState(()=>{try{const s=sessionStorage.getItem("applitag_camions_partis");return s?JSON.parse(s):{}}catch{return{}}});
+  const [gpsChantier,  setGpsChantier]  = useState({}); // {[lotId]: {lat,lng,heure}}
   const entrepriseId = getEntrepriseId();
 
   // Bascule vers le tableau de bord desktop (admin) sur grand écran
@@ -10466,16 +13118,18 @@ export default function App() {
       .then(d=>{
         if(Array.isArray(d)) {
           try {
+            const deleted = deletedLotsGet();
+            const filtered = d.filter(c=>!deleted.includes(c.id));
             const local = JSON.parse(localStorage.getItem("applitag_contacts")||"[]");
             if(local.length>0) {
               const ordre = ["NOUVEAU","VISITE_PREVUE","VISITE_REALISEE","VALIDE_EXPLOITATION","EN_COURS_EXPLOITATION","BORD_ROUTE","A_DECHIQUETER","EN_COURS_DECHIQUETAGE","EN_LIVRAISON","LIVRE_CHAUFFERIE"];
-              const merged = d.map(c=>{
+              const merged = filtered.map(c=>{
                 const l = local.find(x=>x.id===c.id);
                 if(l && ordre.indexOf(l.statutLot)>ordre.indexOf(c.statutLot)) return {...c,statutLot:l.statutLot};
                 return c;
               });
               setContacts(merged);
-            } else { setContacts(d); }
+            } else { setContacts(filtered); }
           } catch { setContacts(d); }
         }
       })
@@ -10517,16 +13171,27 @@ export default function App() {
     try { localStorage.setItem("applitag_operateur", JSON.stringify(op)); } catch {}
   };
   const handleLoginDemo = (role) => {
-    const u = {...DEMO_USERS[role], demo:true};
-    setUser(u);
     setIsDemoMode(true);
-    // Charger données démo
     setContacts(DEMO_LOTS);
     setVisites(DEMO_VISITES);
     setReportings(DEMO_REPORTINGS);
     setTransports(DEMO_TRANSPORTS);
     setLivraisons(DEMO_LIVRAISONS);
     setDechiquetages(DEMO_DECHIQUETAGES);
+    if (role === "operateur") {
+      const demoOp = {
+        ...DEMO_USERS.operateur, demo:true,
+        assignations: [
+          {id:"demo-asgn-1", lotId:"demo-lot-1", lotNumero:"LOT-2026-06-89-001", typeOperation:"abattage"},
+          {id:"demo-asgn-2", lotId:"demo-lot-2", lotNumero:"LOT-2026-06-89-002", typeOperation:"debardage"},
+        ],
+      };
+      setOperateur(demoOp);
+      return;
+    }
+    const demoKey = role === "contact" ? "contact" : role;
+    const u = {...DEMO_USERS[demoKey], demo:true};
+    setUser(u);
     setAuth("demo-token", u, DEMO_ENTREPRISE_ID);
   };
   const handleLogoutOperateur = () => {
@@ -10535,6 +13200,7 @@ export default function App() {
   };
   const handleLogout = () => {
     clearAuth();
+    setRoleChoisi(null);
     setTransitioning(true);
     setTimeout(()=>window.location.reload(), 200);
   };
@@ -10580,8 +13246,96 @@ export default function App() {
     </div>
   );
 
+  // ── PICKER MULTI-RÔLES ──
+  const tousRoles = user?.roles?.length>1 ? user.roles : null;
+  const roleEffectif = roleChoisi || user?.role;
+  if (tousRoles && !roleChoisi) {
+    const ROLE_INFO = {
+      admin:        {icon:"⚙️", label:"Administration",      desc:"Gestion complète de l'application"},
+      manager:      {icon:"📊", label:"Manager",              desc:"Supervision et rapports"},
+      proprietaire: {icon:"🏠", label:"Espace Propriétaire",  desc:"Mes lots et suivis"},
+      mandataire:   {icon:"🤝", label:"Mandataire",           desc:"Visites terrain déléguées"},
+      operateur:    {icon:"👷", label:"Opérateur terrain",    desc:"Saisies et opérations"},
+      dechiquetage: {icon:"🔧", label:"Déchiquetage",         desc:"Chantiers à traiter"},
+      chauffeur:    {icon:"🚛", label:"Chauffeur",            desc:"Transports assignés"},
+      chaufferie:   {icon:"🏭", label:"Chaufferie",           desc:"Livraisons reçues"},
+    };
+    return (
+      <div style={{display:"flex",flexDirection:"column",height:"100dvh",fontFamily:FONT_BODY,
+        maxWidth:430,margin:"0 auto",boxShadow:"0 0 40px rgba(0,0,0,.15)",
+        background:C.sb,color:"#fff"}}>
+        <div style={{padding:"32px 24px 20px",textAlign:"center"}}>
+          <div style={{fontSize:40,marginBottom:10}}>🌲</div>
+          <div style={{fontSize:20,fontWeight:700,fontFamily:FONT_TITLE}}>APPLITAG</div>
+          <div style={{fontSize:13,opacity:.6,marginTop:6}}>
+            Bonjour {user.prenom||user.nom} — choisissez votre espace
+          </div>
+        </div>
+        <div style={{flex:1,overflowY:"auto",padding:"0 20px 40px"}}>
+          {tousRoles.map(r=>{
+            const info = ROLE_INFO[r]||{icon:"👤",label:r,desc:""};
+            return (
+              <button key={r} onClick={()=>setRoleChoisi(r)}
+                style={{width:"100%",padding:18,borderRadius:14,marginBottom:10,
+                  background:"rgba(255,255,255,.1)",border:"1.5px solid rgba(255,255,255,.25)",
+                  color:"#fff",fontFamily:"inherit",cursor:"pointer",
+                  display:"flex",alignItems:"center",gap:14,textAlign:"left",
+                  WebkitTapHighlightColor:"transparent"}}>
+                <span style={{fontSize:30}}>{info.icon}</span>
+                <div>
+                  <div style={{fontSize:15,fontWeight:600}}>{info.label}</div>
+                  <div style={{fontSize:12,opacity:.6,marginTop:2}}>{info.desc}</div>
+                </div>
+              </button>
+            );
+          })}
+          <button onClick={handleLogout}
+            style={{width:"100%",marginTop:8,padding:12,borderRadius:12,
+              background:"none",border:"1px solid rgba(255,255,255,.2)",
+              color:"rgba(255,255,255,.5)",fontFamily:"inherit",fontSize:13,cursor:"pointer",
+              WebkitTapHighlightColor:"transparent"}}>
+            ⎋ Se déconnecter
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   // Rôles simplifiés (non-admin)
-  if (user?.role==="proprietaire") return (
+  if (roleEffectif==="mandataire") return (
+    <div style={{display:"flex",flexDirection:"column",height:"100dvh",
+      fontFamily:FONT_BODY,maxWidth:430,margin:"0 auto",boxShadow:"0 0 40px rgba(0,0,0,.15)"}}>
+      <div style={{background:C.sb,color:"#fff",padding:"12px 16px 10px",flexShrink:0,
+        display:"flex",alignItems:"center",gap:10}}>
+        <div style={{flex:1}}>
+          <div style={{fontSize:15,fontWeight:600}}>🔭 Espace Mandataire</div>
+          <div style={{fontSize:11,opacity:.6}}>{user.prenom} {user.nom}</div>
+        </div>
+        <button onClick={handleLogout} style={{background:"rgba(255,255,255,.1)",
+          border:"none",color:"rgba(255,255,255,.6)",padding:"6px 10px",borderRadius:8,
+          fontSize:12,cursor:"pointer"}}>⎋</button>
+      </div>
+      {screen==="visite-form"&&activeLot ? (
+        <FormulaireVisite
+          lot={activeLot}
+          onBack={()=>{ setScreen("mandataire-lots"); setActiveLot(null); }}
+          onSaved={v=>{
+            setVisites(prev=>[v,...prev]);
+            setContacts(prev=>prev.map(c=>c.id===activeLot.id?{...c,statutLot:"VISITE_REALISEE"}:c));
+            fetch(`${API}/contacts/${activeLot.id}`,{method:"PATCH",headers:authHeaders(),body:JSON.stringify({statutLot:"VISITE_REALISEE"})}).catch(()=>{});
+            setScreen("mandataire-lots"); setActiveLot(null);
+            toast("Visite enregistrée ✓");
+          }}
+          toast={toast} entrepriseId={entrepriseId}/>
+      ) : (
+        <EcranRoleMandataire user={user} contacts={contacts} onSelectLot={lot=>{
+          setActiveLot(lot); setScreen("visite-form");
+        }}/>
+      )}
+    </div>
+  );
+
+  if (roleEffectif==="proprietaire") return (
     <div style={{display:"flex",flexDirection:"column",height:"100dvh",
       fontFamily:FONT_BODY,
       maxWidth:430,margin:"0 auto",boxShadow:"0 0 40px rgba(0,0,0,.15)"}}>
@@ -10600,7 +13354,7 @@ export default function App() {
     </div>
   );
 
-  if (user?.role==="chauffeur") return (
+  if (roleEffectif==="chauffeur") return (
     <div style={{display:"flex",flexDirection:"column",height:"100dvh",
       fontFamily:FONT_BODY,
       maxWidth:430,margin:"0 auto",boxShadow:"0 0 40px rgba(0,0,0,.15)"}}>
@@ -10614,29 +13368,56 @@ export default function App() {
           border:"none",color:"rgba(255,255,255,.6)",padding:"6px 10px",borderRadius:8,
           fontSize:12,cursor:"pointer"}}>⎋</button>
       </div>
-      <EcranRoleChauffeur user={user} transports={transports}/>
+      <EcranRoleChauffeur user={user} transports={transports} dechiquetages={dechiquetages}
+        gpsChantier={gpsChantier}
+        onValiderArrivee={(lotId,h,nomChauffeur,capaciteM3)=>setAvisArrivee(p=>{const next={...p,[lotId]:{heure:h,nomChauffeur:nomChauffeur.trim(),capaciteM3}};try{sessionStorage.setItem("applitag_avis_arrivee",JSON.stringify(next))}catch{}return next;})}
+        onValiderDepart={(lotId,info)=>setCamionsPartis(p=>{const next={...p,[lotId]:info};try{sessionStorage.setItem("applitag_camions_partis",JSON.stringify(next))}catch{}return next;})}/>
     </div>
   );
 
-  if (user?.role==="dechiquetage") return (
-    <div style={{display:"flex",flexDirection:"column",height:"100dvh",
-      fontFamily:FONT_BODY,
-      maxWidth:430,margin:"0 auto",boxShadow:"0 0 40px rgba(0,0,0,.15)"}}>
-      <div style={{background:"#D85A30",color:"#fff",padding:"12px 16px 10px",flexShrink:0,
-        display:"flex",alignItems:"center",gap:10}}>
-        <div style={{flex:1}}>
-          <div style={{fontSize:15,fontWeight:600}}>🪚 Espace Déchiquetage</div>
-          <div style={{fontSize:11,opacity:.6}}>{user.prenom} {user.nom}</div>
-        </div>
-        <button onClick={handleLogout} style={{background:"rgba(255,255,255,.1)",
-          border:"none",color:"rgba(255,255,255,.6)",padding:"6px 10px",borderRadius:8,
-          fontSize:12,cursor:"pointer"}}>⎋</button>
+  if (roleEffectif==="dechiquetage") {
+    if (activeLot) return (
+      <div style={{display:"flex",flexDirection:"column",height:"100dvh",
+        fontFamily:FONT_BODY,maxWidth:430,margin:"0 auto",boxShadow:"0 0 40px rgba(0,0,0,.15)"}}>
+        <EcranDechiquetage
+          lot={activeLot}
+          operateurs={operateurs}
+          onBack={()=>setActiveLot(null)}
+          onSaved={(newStatut)=>{
+            setContacts(prev=>prev.map(c=>c.id===activeLot.id?{...c,statutLot:newStatut}:c));
+            setActiveLot(null);
+            toast("Déchiquetage enregistré ✓");
+          }}
+          toast={toast}
+          entrepriseId={entrepriseId}
+          user={user}/>
       </div>
-      <EcranRoleDechiquetage user={user} contacts={contacts}/>
-    </div>
-  );
+    );
+    return (
+      <div style={{display:"flex",flexDirection:"column",height:"100dvh",
+        fontFamily:FONT_BODY,
+        maxWidth:430,margin:"0 auto",boxShadow:"0 0 40px rgba(0,0,0,.15)"}}>
+        <div style={{background:"#D85A30",color:"#fff",padding:"12px 16px 10px",flexShrink:0,
+          display:"flex",alignItems:"center",gap:10}}>
+          <div style={{flex:1}}>
+            <div style={{fontSize:15,fontWeight:600}}>🌀 Espace Déchiquetage</div>
+            <div style={{fontSize:11,opacity:.6}}>{user.prenom} {user.nom}</div>
+          </div>
+          <button onClick={handleLogout} style={{background:"rgba(255,255,255,.1)",
+            border:"none",color:"rgba(255,255,255,.6)",padding:"6px 10px",borderRadius:8,
+            fontSize:12,cursor:"pointer"}}>⎋</button>
+        </div>
+        <EcranRoleDechiquetage user={user} contacts={contacts}
+          onLaunchDechiquetage={lot=>setActiveLot(lot)}
+          avisArrivee={avisArrivee}
+          camionsPartis={camionsPartis}
+          toast={toast}
+          onArriveeChantier={(lotId,heure,coords)=>setGpsChantier(p=>({...p,[lotId]:{heure,coords}}))}/>
+      </div>
+    );
+  }
 
-  if (user?.role==="chaufferie") return (
+  if (roleEffectif==="chaufferie") return (
     <div style={{display:"flex",flexDirection:"column",height:"100dvh",
       fontFamily:FONT_BODY,
       maxWidth:430,margin:"0 auto",boxShadow:"0 0 40px rgba(0,0,0,.15)"}}>
@@ -10654,6 +13435,24 @@ export default function App() {
     </div>
   );
 
+  if (roleEffectif==="receptionnaire") return (
+    <div style={{display:"flex",flexDirection:"column",height:"100dvh",
+      fontFamily:FONT_BODY,
+      maxWidth:430,margin:"0 auto",boxShadow:"0 0 40px rgba(0,0,0,.15)"}}>
+      <div style={{background:"#1565C0",color:"#fff",padding:"12px 16px 10px",flexShrink:0,
+        display:"flex",alignItems:"center",gap:10}}>
+        <div style={{flex:1}}>
+          <div style={{fontSize:15,fontWeight:600}}>🏗️ Plateforme de stockage</div>
+          <div style={{fontSize:11,opacity:.6}}>{user.prenom} {user.nom}</div>
+        </div>
+        <button onClick={handleLogout} style={{background:"rgba(255,255,255,.1)",
+          border:"none",color:"rgba(255,255,255,.6)",padding:"6px 10px",borderRadius:8,
+          fontSize:12,cursor:"pointer"}}>⎋</button>
+      </div>
+      <EcranRoleReceptionnaire user={user} livraisons={livraisons} contacts={contacts} visites={visites} toast={toast}/>
+    </div>
+  );
+
   const screensFullPage = ["fiche0","fiche-lot","edit-contact","visite-form","validation-exploitation","cloture-exploitation","dechiquetage","transporteur","livraison","bon-commande","saisies","fin-chantier","red-declaration","delegations"];
   const isFullPage = screensFullPage.includes(screen);
 
@@ -10662,7 +13461,7 @@ export default function App() {
     {id:"lots",    label:"Lots",    icon:"🌲"},
     {id:"carte",   label:"Carte",   icon:"🗺️"},
     {id:"alertes", label:"Alertes", icon:"🔔", badge: notifications.length},
-    (user?.role==="admin"||user?.role==="manager")
+    (roleEffectif==="admin"||roleEffectif==="manager")
       ? {id:"saisies", label:"Saisies", icon:"📋"}
       : {id:"profil",  label:"Profil",  icon:"👤"},
   ].filter(Boolean);
@@ -10672,7 +13471,7 @@ export default function App() {
     alertes:"Alertes", profil:"Profil",
   };
 
-  if (user?.role==="admin" && isWideScreen) return (
+  if (roleEffectif==="admin" && isWideScreen) return (
     <EcranDashboardPC user={user} contacts={contacts} visites={visites}
       notifications={notifications} transports={transports} livraisons={livraisons}
       dechiquetages={dechiquetages} toasts={toasts} pendingSyncCount={pendingSyncCount}
@@ -10705,9 +13504,19 @@ export default function App() {
             <img src="/logo.png" alt="APPLITAG" style={{width:32,height:32,objectFit:"contain"}}/>
             <div style={{flex:1}}>
               <div style={{fontSize:16,fontWeight:600,fontFamily:FONT_TITLE}}>{SCREEN_TITLES[screen]||"APPLITAG"}</div>
-              <div style={{fontSize:11,opacity:.6}}>{user.prenom||user.nom} · {user.role}</div>
+              <div style={{fontSize:11,opacity:.6,display:"flex",alignItems:"center",gap:8}}>
+                {user.prenom||user.nom} · {roleEffectif}
+                {tousRoles&&(
+                  <button onClick={()=>setRoleChoisi(null)}
+                    style={{background:"rgba(255,255,255,.15)",border:"none",color:"rgba(255,255,255,.8)",
+                      padding:"2px 7px",borderRadius:6,fontSize:10,cursor:"pointer",
+                      WebkitTapHighlightColor:"transparent"}}>
+                    Changer
+                  </button>
+                )}
+              </div>
             </div>
-            {user.role==="admin"&&pendingSyncCount>0&&(
+            {roleEffectif==="admin"&&pendingSyncCount>0&&(
               <div title="Enregistrements en attente de synchronisation avec le serveur" style={{
                 background:C.amberL,color:C.amberD,padding:"6px 10px",borderRadius:8,
                 fontSize:11,fontWeight:600}}>📡 {pendingSyncCount}</div>
@@ -10735,7 +13544,8 @@ export default function App() {
             onNewLot={()=>setScreen("fiche0")}
             onGoLots={(f)=>{ setFiltreLotsInitial(f); setScreen("lots"); }}
             onGoAlertes={()=>setScreen("alertes")}
-            onGoDelegations={()=>setScreen("delegations")}/>
+            onGoDelegations={()=>setScreen("delegations")}
+            onAppelerContact={c=>{ setFiche0Prefill(c); setScreen("fiche0"); }}/>
         )}
         {screen==="delegations"&&(
           <EcranDelegations entrepriseId={entrepriseId} toast={toast}
@@ -10789,9 +13599,10 @@ export default function App() {
             onOpenLot={c=>{ setActiveContact(c); setScreen("fiche-lot"); }}/>
         )}
         {screen==="fiche0"&&(
-          <Fiche0 onBack={()=>setScreen("accueil")}
-            onSaved={c=>{ setContacts(prev=>[c,...prev]); setScreen("lots"); }}
-            toast={toast} contactCount={contacts.length} entrepriseId={entrepriseId}/>
+          <Fiche0 onBack={()=>{ setFiche0Prefill(null); setScreen("accueil"); }}
+            onSaved={c=>{ setFiche0Prefill(null); setContacts(prev=>[c,...prev]); setScreen("lots"); }}
+            toast={toast} contactCount={contacts.length} entrepriseId={entrepriseId}
+            prefill={fiche0Prefill} comptes={comptesLocalGet()}/>
         )}
         {screen==="fiche-lot"&&activeContact&&(
           <FicheLotCentrale
@@ -10810,7 +13621,18 @@ export default function App() {
             onLaunchFinChantier={()=>setScreen("fin-chantier")}
             onRedDeclaration={()=>setScreen("red-declaration")}
             onDeleguerVisite={()=>setShowDelegVisite(true)}
+            onDeleteLot={(user?.role==="admin"||user?.role==="manager")?async (lot)=>{
+              deletedLotsAdd(lot.id);
+              try {
+                await fetch(`${API}/contacts/${lot.id}`,{method:"DELETE",headers:authHeaders()});
+              } catch {}
+              setContacts(prev=>prev.filter(c=>c.id!==lot.id));
+              setActiveContact(null);
+              setScreen("lots");
+              toast(`Lot ${lot.lotNumero} supprimé`,"warn");
+            }:undefined}
             toast={toast}
+            user={user}
             entrepriseId={entrepriseId}/>
         )}
         {screen==="red-declaration"&&activeContact&&(
