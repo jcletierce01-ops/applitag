@@ -5,7 +5,10 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:demo": "cross-env VITE_APP_MODE=demo vite",
     "build": "vite build",
+    "build:prod": "cross-env VITE_APP_MODE=production vite build",
+    "build:demo": "cross-env VITE_APP_MODE=demo vite build",
     "lint": "eslint .",
     "preview": "vite preview"
   },
@@ -19,6 +22,7 @@
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^6.0.1",
+    "cross-env": "^10.1.0",
     "eslint": "^10.3.0",
     "eslint-plugin-react-hooks": "^7.1.1",
     "eslint-plugin-react-refresh": "^0.5.2",
