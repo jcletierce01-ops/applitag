@@ -5800,9 +5800,9 @@ const EcranOperateur = ({operateur, onLogout, toast, onUpdateOperateur}) => {
           setActiveLot(null);
           setScreen("lots");
           toast("Visite enregistrée ✓");
-          fetch(`${API}/contacts/${lotComplet.id}`,{
-            method:"PATCH",headers:{"Content-Type":"application/json"},
-            body:JSON.stringify({statutLot:"VISITE_REALISEE"}),
+          fetch(`${API}/contacts/${lotComplet.id}/transition-etf`,{
+            method:"POST",headers:{"Content-Type":"application/json"},
+            body:JSON.stringify({action:"validerVisite",operateurId:operateur.id}),
           }).catch(()=>{});
         }}
         toast={toast}/>
@@ -10468,7 +10468,7 @@ const FluxDechiquetageRole = ({lot, user, onFinChantier, onRetour, toast}) => {
     try {
       const r1 = await fetch(`${API}/dechiquetage`, { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(payload) });
       if (!r1.ok) throw new Error(`dechiquetage ${r1.status}`);
-      const r2 = await fetch(`${API}/contacts/${lot.id}`, { method:"PATCH", headers:{"Content-Type":"application/json"}, body:JSON.stringify({statutLot:"RECEPTION_A_EFFECTUER"}) });
+      const r2 = await fetch(`${API}/contacts/${lot.id}/transition`, { method:"POST", headers:authHeaders(), body:JSON.stringify({action:"terminerDechiquetage"}) });
       if (!r2.ok) throw new Error(`contacts ${r2.status}`);
       await fetch(`${API}/messages-admin`, { method:"POST", headers:{"Content-Type":"application/json"},
         body:JSON.stringify({ type:"fin_chantier_dechiquetage", lotId:lot.id, lotNumero:lot.lotNumero,
@@ -28390,7 +28390,7 @@ export default function App() {
           onSaved={v=>{
             setVisites(prev=>[v,...prev]);
             setContacts(prev=>prev.map(c=>c.id===activeLot.id?{...c,statutLot:"VISITE_REALISEE"}:c));
-            fetch(`${API}/contacts/${activeLot.id}`,{method:"PATCH",headers:authHeaders(),body:JSON.stringify({statutLot:"VISITE_REALISEE"})}).catch(()=>{});
+            fetch(`${API}/contacts/${activeLot.id}/transition`,{method:"POST",headers:authHeaders(),body:JSON.stringify({action:"validerVisite"})}).catch(()=>{});
             setScreen("mandataire-lots"); setActiveLot(null);
             toast("Visite enregistrée ✓");
           }}
@@ -28878,10 +28878,10 @@ export default function App() {
                 ?{...c,statutLot:"VISITE_REALISEE"}:c));
               setActiveContact(prev=>prev?.id===activeLot.id
                 ?{...prev,statutLot:"VISITE_REALISEE"}:prev);
-              // Persister côté API
-              fetch(`${API}/contacts/${activeLot.id}`,{
-                method:"PATCH",headers:authHeaders(),
-                body:JSON.stringify({statutLot:"VISITE_REALISEE"}),
+              // Persister côté API — transition métier validée serveur
+              fetch(`${API}/contacts/${activeLot.id}/transition`,{
+                method:"POST",headers:authHeaders(),
+                body:JSON.stringify({action:"validerVisite"}),
               }).catch(()=>{});
               setScreen("fiche-lot");
               toast("Visite enregistrée ✓");
