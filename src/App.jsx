@@ -469,12 +469,18 @@ const LoginScreen = ({onLogin, onLoginOperateur, onLoginDemo}) => {
     if (!ordreTrouve) return;
     setOrdreLoading(true);
     const updated = {...ordreTrouve, statut, dateValidation: nowISO()};
+    let syncOk = false;
     try {
-      await fetch(`${API}/ordres-exploitation/${ordreTrouve.id}`, {
+      const res = await fetch(`${API}/ordres-exploitation/${ordreTrouve.id}`, {
         method:"PATCH", headers:{"Content-Type":"application/json"},
         body:JSON.stringify({statut, dateValidation: updated.dateValidation}),
       });
-    } catch {}
+      syncOk = res.ok;
+      if (!res.ok) setOrdreErreur("Erreur serveur — validation sauvegardée localement uniquement");
+    } catch {
+      setOrdreErreur("Pas de connexion — validation sauvegardée localement uniquement");
+    }
+    updated.synced = syncOk;
     ordresExplLocalSave(ordresExplLocalGet().map(o=>o.code===updated.code?updated:o));
     setOrdreTrouve(updated);
     setOrdreLoading(false);
@@ -3298,7 +3304,7 @@ const FormulaireVisite = ({lot, onBack, onSaved, toast, entrepriseId, user}) => 
               style={{width:"100%",padding:"14px 12px",borderRadius:12,
                 border:`2px solid ${typeBiomasse?C.green:C.bd}`,
                 background:"#fff",fontFamily:"inherit",fontSize:16,
-                color:typeBiomasse?C.tx1:C.tx3,cursor:"pointer",outline:"none",
+                color:typeBiomasse?C.tx:C.tx3,cursor:"pointer",outline:"none",
                 appearance:"none",WebkitAppearance:"none",
                 backgroundImage:`url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24'%3E%3Cpath fill='%23999' d='M7 10l5 5 5-5z'/%3E%3C/svg%3E")`,
                 backgroundRepeat:"no-repeat",backgroundPosition:"right 12px center",
@@ -4323,7 +4329,7 @@ const FormulaireVisite = ({lot, onBack, onSaved, toast, entrepriseId, user}) => 
                     <div style={{width:16,height:16,borderRadius:"50%",flexShrink:0,marginTop:2,
                       border:`2px solid ${dispositifAide===val?"#7C3AED":"#D1D5DB"}`,
                       background:dispositifAide===val?"#7C3AED":"transparent"}}/>
-                    <span style={{fontSize:12,color:dispositifAide===val?"#4C1D95":C.tx1,
+                    <span style={{fontSize:12,color:dispositifAide===val?"#4C1D95":C.tx,
                       fontWeight:dispositifAide===val?600:400,lineHeight:1.4}}>{lbl}</span>
                   </div>
                 ))}
@@ -4348,7 +4354,7 @@ const FormulaireVisite = ({lot, onBack, onSaved, toast, entrepriseId, user}) => 
                       background:usagePrevu===v?(v==="be"?"#FEF3C7":v==="bo"?"#D1FAE5":"#DBEAFE"):"#F9FAFB",
                       WebkitTapHighlightColor:"transparent",textAlign:"center"}}>
                     <div style={{fontSize:20}}>{ico}</div>
-                    <div style={{fontSize:12,fontWeight:700,color:C.tx1}}>{lbl}</div>
+                    <div style={{fontSize:12,fontWeight:700,color:C.tx}}>{lbl}</div>
                     <div style={{fontSize:10,color:C.tx2}}>{sub}</div>
                   </div>
                 ))}
@@ -4667,13 +4673,15 @@ const EcranReleves = ({entrepriseId, user, toast, notifications=[], setNotificat
 
   const handleTraiterAnnonce = async (annonce, statut) => {
     try {
-      await fetch(`${API}/annonces/${annonce.id}`, {
+      const res = await fetch(`${API}/annonces/${annonce.id}`, {
         method:"PATCH", headers:authHeaders(), body:JSON.stringify({statut}),
       });
-    } catch {}
+      if (!res.ok) toast("Erreur serveur — statut mis à jour localement","warn");
+    } catch {
+      toast("Pas de connexion — statut mis à jour localement","warn");
+    }
     annoncesLocalSave(annoncesLocalGet().map(a=>a.id===annonce.id?{...a,statut}:a));
     setAnnonces(prev=>prev.map(a=>a.id===annonce.id?{...a,statut}:a));
-    toast(`Annonce → ${STATUTS_ANNONCE[statut]?.label||statut} ✓`);
   };
 
   const handleCreerLotDepuisAnnonce = async (annonce) => {
@@ -4688,8 +4696,10 @@ const EcranReleves = ({entrepriseId, user, toast, notifications=[], setNotificat
       const res = await fetch(`${API}/contacts`, {
         method:"POST", headers:authHeaders(), body:JSON.stringify(contact),
       });
-      if (!res.ok) throw new Error();
-    } catch {}
+      if (!res.ok) { toast("Échec création fiche — réessayez","warn"); return; }
+    } catch {
+      toast("Pas de connexion — fiche non créée","warn"); return;
+    }
     await handleTraiterAnnonce(annonce, "valide");
     toast(`Fiche contact créée pour ${annonce.nom} ✓`);
   };
@@ -5414,11 +5424,11 @@ const Fiche0Edit = ({contact, onBack, onSaved, toast, user, onLaunchVisite, onLa
                 showLivraison && {icon:"📦",label:"Livraison", bg:C.greenL, bd:C.green,  color:C.greenD,  action:onLaunchLivraison},
               ].filter(Boolean);
               if (!btns.length) return null;
-              const cols = actionsVisible.length <= 3 ? actionsVisible.length : 4;
+              const cols = btns.length <= 3 ? btns.length : 4;
               return (
                 <div style={{display:"grid",gridTemplateColumns:`repeat(${cols},1fr)`,
                   gap:8,marginBottom:16}}>
-                  {actionsVisible.map((b,i)=>(
+                  {btns.map((b,i)=>(
                     <button key={i} onClick={b.action} style={{
                       height:60,borderRadius:12,background:b.bg,
                       border:`1.5px solid ${b.bd}`,color:b.color,
@@ -7111,12 +7121,15 @@ const ModalDelegationVisite = ({lot, operateurs, onDeleguee, onIgnorer}) => {
     setSaving(true);
     const code = Math.random().toString(36).slice(2,8).toUpperCase();
     try {
-      await fetch(`${API}/acces-lot`,{
+      const res = await fetch(`${API}/acces-lot`,{
         method:"POST", headers:{"Content-Type":"application/json"},
         body:JSON.stringify({lotId:lot.id,lotNumero:lot.lotNumero,
           nomDelegue,telDelegue,qualiteDelegue,code,expiresAt:dateExpiry,type:"visite"}),
       });
-    } catch {}
+      if (!res.ok) { setSaving(false); alert("Erreur serveur — délégation non enregistrée"); return; }
+    } catch {
+      setSaving(false); alert("Pas de connexion — délégation non enregistrée"); return;
+    }
     setCodeGenere(code); setSaving(false);
     onDeleguee&&onDeleguee({nomDelegue,code});
   };
@@ -10437,8 +10450,10 @@ const FluxDechiquetageRole = ({lot, user, onFinChantier, onRetour, toast}) => {
       dateJour: new Date().toISOString().slice(0,10),
     };
     try {
-      await fetch(`${API}/dechiquetage`, { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(payload) });
-      await fetch(`${API}/contacts/${lot.id}`, { method:"PATCH", headers:{"Content-Type":"application/json"}, body:JSON.stringify({statutLot:"RECEPTION_A_EFFECTUER"}) });
+      const r1 = await fetch(`${API}/dechiquetage`, { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(payload) });
+      if (!r1.ok) throw new Error(`dechiquetage ${r1.status}`);
+      const r2 = await fetch(`${API}/contacts/${lot.id}`, { method:"PATCH", headers:{"Content-Type":"application/json"}, body:JSON.stringify({statutLot:"RECEPTION_A_EFFECTUER"}) });
+      if (!r2.ok) throw new Error(`contacts ${r2.status}`);
       await fetch(`${API}/messages-admin`, { method:"POST", headers:{"Content-Type":"application/json"},
         body:JSON.stringify({ type:"fin_chantier_dechiquetage", lotId:lot.id, lotNumero:lot.lotNumero,
           operateurDechiquetage:operateurNom, machine,
@@ -10446,7 +10461,11 @@ const FluxDechiquetageRole = ({lot, user, onFinChantier, onRetour, toast}) => {
           tonnageTotal:payload.tonnageTotal.toFixed(1),
           message:`Chantier de déchiquetage terminé sur le lot ${lot.lotNumero}. ${chargements.length} camion(s) chargé(s), ${payload.tonnageTotal.toFixed(1)} t au total. Réception à effectuer.`,
           date:new Date().toISOString() }) });
-    } catch {}
+    } catch(e) {
+      toast&&toast(`Erreur enregistrement chantier — ${e.message||"vérifiez la connexion"}`, "warn");
+      setSaving(false);
+      return;
+    }
     setSaving(false);
     setPhase("cloture");
     onFinChantier&&onFinChantier(lot.id);
@@ -11910,7 +11929,7 @@ const EcranCarte = ({contacts, visites, onOpenLot}) => {
         .bindPopup(popup,{maxWidth:240,className:"aplt-popup"});
 
       markersRef.current.push(marker);
-      bounds.push([v.gps.lat,v.gps.lng]);
+      bounds.push([gps.lat, gps.lng]);
       count++;
     });
 
@@ -14766,7 +14785,7 @@ const SectionAbonnements = () => {
   return (
     <div style={{maxWidth:900,margin:"0 auto"}}>
       <div style={{marginBottom:20}}>
-        <div style={{fontSize:20,fontWeight:800,color:C.tx1,marginBottom:4}}>💳 Suivi des abonnements</div>
+        <div style={{fontSize:20,fontWeight:800,color:C.tx,marginBottom:4}}>💳 Suivi des abonnements</div>
         <div style={{fontSize:13,color:C.tx2}}>Gestion des licences et des renouvellements</div>
       </div>
 
@@ -14840,7 +14859,7 @@ const SectionAbonnements = () => {
                     style={{borderBottom:`1px solid ${C.bd}`,cursor:"pointer",
                       background:selected?.id===a.id?"#F0FDF4":i%2===0?"#fff":"#FAFAFA"}}>
                     <td style={{padding:"10px 12px"}}>
-                      <div style={{fontWeight:700,color:C.tx1}}>{a.org}</div>
+                      <div style={{fontWeight:700,color:C.tx}}>{a.org}</div>
                       <div style={{fontSize:10,color:C.tx2}}>{a.contact}</div>
                     </td>
                     <td style={{padding:"10px 12px"}}>
@@ -14857,7 +14876,7 @@ const SectionAbonnements = () => {
                       fontWeight:700,color:daysLeft<0?"#991B1B":daysLeft<60?"#B45309":"#065F46"}}>
                       {daysLeft<0?"Expiré":`J-${daysLeft}`}
                     </td>
-                    <td style={{padding:"10px 12px",fontWeight:600,color:C.tx1}}>
+                    <td style={{padding:"10px 12px",fontWeight:600,color:C.tx}}>
                       {a.prix===0?"Gratuit":`${a.prix} €`}
                     </td>
                     <td style={{padding:"10px 12px"}}>
@@ -14907,7 +14926,7 @@ const SectionAbonnements = () => {
                 <div key={k} style={{background:"#fff",borderRadius:8,padding:"8px 12px",
                   border:`1px solid ${C.bd}`}}>
                   <div style={{fontSize:10,color:C.tx2,marginBottom:2}}>{k}</div>
-                  <div style={{fontWeight:600,color:C.tx1}}>{v}</div>
+                  <div style={{fontWeight:600,color:C.tx}}>{v}</div>
                 </div>
               ))}
             </div>
@@ -15148,7 +15167,7 @@ const SectionDemoScenario = () => {
     <div style={{maxWidth:960,margin:"0 auto"}}>
       <div style={{marginBottom:20,display:"flex",justifyContent:"space-between",alignItems:"flex-start",flexWrap:"wrap",gap:12}}>
         <div>
-          <div style={{fontSize:20,fontWeight:800,color:C.tx1,marginBottom:4}}>🎬 Démo scénario complet</div>
+          <div style={{fontSize:20,fontWeight:800,color:C.tx,marginBottom:4}}>🎬 Démo scénario complet</div>
           <div style={{fontSize:13,color:C.tx2}}>Parcours A→Z du lot LOT-2026-042 — Forêt de M. Bernard (12 ha, Tronçais)</div>
         </div>
         <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
@@ -15254,7 +15273,7 @@ const SectionDemoScenario = () => {
             </div>
           </div>
           <div style={{padding:"16px 20px"}}>
-            <div style={{fontSize:13,fontWeight:600,color:C.tx1,marginBottom:8,
+            <div style={{fontSize:13,fontWeight:600,color:C.tx,marginBottom:8,
               padding:"10px 12px",background:cur.bg,borderRadius:8,borderLeft:`3px solid ${cur.color}`}}>
               {cur.resume}
             </div>
@@ -15276,7 +15295,7 @@ const SectionDemoScenario = () => {
                 <div style={{display:"flex",flexWrap:"wrap",gap:6}}>
                   {cur.docs.map((d,i)=>(
                     <span key={i} style={{fontSize:11,padding:"5px 10px",borderRadius:7,
-                      background:"#F9FAFB",border:`1px solid ${C.bd}`,color:C.tx1,fontWeight:500}}>
+                      background:"#F9FAFB",border:`1px solid ${C.bd}`,color:C.tx,fontWeight:500}}>
                       {d}
                     </span>
                   ))}
@@ -15512,7 +15531,7 @@ const SectionModulesFuturs = () => {
       <div style={{marginBottom:20}}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",flexWrap:"wrap",gap:12,marginBottom:16}}>
           <div>
-            <div style={{fontSize:20,fontWeight:900,color:C.tx1,marginBottom:4}}>
+            <div style={{fontSize:20,fontWeight:900,color:C.tx,marginBottom:4}}>
               🗂️ Architecture fonctionnelle APPLITAG
             </div>
             <div style={{fontSize:13,color:C.tx2}}>7 modules commerciaux · 36 sous-modules · classification officielle</div>
@@ -15542,7 +15561,7 @@ const SectionModulesFuturs = () => {
                   boxShadow:isActive?`0 0 0 3px ${m.bg}`:"none",
                   transition:"all .2s",textAlign:"center"}}>
                 <div style={{fontSize:26,marginBottom:6}}>{m.icon}</div>
-                <div style={{fontSize:10,fontWeight:800,color:isActive?m.couleur:C.tx1,lineHeight:1.2,marginBottom:6}}>
+                <div style={{fontSize:10,fontWeight:800,color:isActive?m.couleur:C.tx,lineHeight:1.2,marginBottom:6}}>
                   {m.nom.replace("APPLITAG ","")}
                 </div>
                 <div style={{height:4,borderRadius:2,background:"#E5E7EB",overflow:"hidden",marginBottom:5}}>
@@ -15719,7 +15738,7 @@ const _UNUSED_SectionModulesFutursOld = () => {
           padding:"4px 14px",fontSize:11,fontWeight:700,color:"#92400E",marginBottom:12}}>
           🚀 APPLITAG VISION 2027
         </div>
-        <div style={{fontSize:24,fontWeight:900,color:C.tx1,marginBottom:6}}>Modules à venir</div>
+        <div style={{fontSize:24,fontWeight:900,color:C.tx,marginBottom:6}}>Modules à venir</div>
         <div style={{fontSize:14,color:C.tx2,maxWidth:560,margin:"0 auto",lineHeight:1.6}}>
           APPLITAG se développe pour couvrir l'ensemble de la chaîne de valeur bois énergie. Voici ce qui arrive.
         </div>
@@ -15778,7 +15797,7 @@ const _UNUSED_SectionModulesFutursOld = () => {
                 <span style={{fontSize:9,padding:"2px 7px",borderRadius:10,fontWeight:700,
                   background:ss.bg,color:ss.color}}>{m.statutLabel}</span>
               </div>
-              <div style={{fontSize:13,fontWeight:800,color:isActive?m.couleur:C.tx1,marginBottom:3}}>
+              <div style={{fontSize:13,fontWeight:800,color:isActive?m.couleur:C.tx,marginBottom:3}}>
                 {m.nom.replace("APPLITAG ","")}
               </div>
               <div style={{fontSize:11,color:C.tx2,lineHeight:1.4}}>{m.tagline}</div>
@@ -15839,7 +15858,7 @@ const _UNUSED_SectionModulesFutursOld = () => {
                     </div>
                     <div>
                       <div style={{fontSize:10,color:C.tx2}}>{r.q}</div>
-                      <div style={{fontSize:11,fontWeight:600,color:r.done?mod.couleur:C.tx1}}>{r.label}</div>
+                      <div style={{fontSize:11,fontWeight:600,color:r.done?mod.couleur:C.tx}}>{r.label}</div>
                     </div>
                   </div>
                 ))}
@@ -15849,7 +15868,7 @@ const _UNUSED_SectionModulesFutursOld = () => {
             {/* Tarification */}
             <div style={{background:mod.bg,borderRadius:14,border:`1px solid ${mod.couleur}33`,padding:16}}>
               <div style={{fontSize:11,fontWeight:700,color:mod.couleur,marginBottom:6}}>Tarification</div>
-              <div style={{fontSize:12,color:C.tx1,lineHeight:1.5}}>{mod.prix}</div>
+              <div style={{fontSize:12,color:C.tx,lineHeight:1.5}}>{mod.prix}</div>
             </div>
 
             {/* CTA */}
@@ -15869,7 +15888,7 @@ const _UNUSED_SectionModulesFutursOld = () => {
                     background:"#F9FAFB",border:`1px solid ${C.bd}`}}>
                   <span style={{fontSize:20}}>{m2.icon}</span>
                   <div>
-                    <div style={{fontSize:11,fontWeight:700,color:C.tx1}}>{m2.nom.replace("APPLITAG ","")}</div>
+                    <div style={{fontSize:11,fontWeight:700,color:C.tx}}>{m2.nom.replace("APPLITAG ","")}</div>
                     <div style={{fontSize:9,color:C.tx2}}>{m2.statutLabel}</div>
                   </div>
                 </div>
@@ -16250,7 +16269,7 @@ const SectionFinancements = () => {
             padding:"3px 12px",fontSize:10,fontWeight:800,color:"#92400E",marginBottom:8}}>
             📢 ANNONCE GOUVERNEMENTALE — 21 juillet 2026
           </div>
-          <div style={{fontSize:20,fontWeight:900,color:C.tx1,marginBottom:4}}>
+          <div style={{fontSize:20,fontWeight:900,color:C.tx,marginBottom:4}}>
             💶 Financements & Restauration forestière
           </div>
           <div style={{fontSize:12,color:C.tx2}}>
@@ -16309,7 +16328,7 @@ const SectionFinancements = () => {
                 <div key={k.label} style={{background:"#fff",borderRadius:12,border:`1px solid ${C.bd}`,padding:14}}>
                   <div style={{fontSize:22,marginBottom:6}}>{k.icon}</div>
                   <div style={{fontSize:22,fontWeight:900,color:k.col}}>{k.val}</div>
-                  <div style={{fontSize:11,fontWeight:700,color:C.tx1,marginBottom:2}}>{k.label}</div>
+                  <div style={{fontSize:11,fontWeight:700,color:C.tx,marginBottom:2}}>{k.label}</div>
                   <div style={{fontSize:10,color:C.tx2}}>{k.sub}</div>
                 </div>
               ))}
@@ -16317,7 +16336,7 @@ const SectionFinancements = () => {
 
             {/* Contrôles automatiques */}
             <div style={{background:"#fff",borderRadius:14,border:`1px solid ${C.bd}`,padding:16}}>
-              <div style={{fontSize:12,fontWeight:800,color:C.tx1,marginBottom:12}}>🤖 Moteur de contrôles automatiques — Dossier DOS-2026-001</div>
+              <div style={{fontSize:12,fontWeight:800,color:C.tx,marginBottom:12}}>🤖 Moteur de contrôles automatiques — Dossier DOS-2026-001</div>
               <div style={{display:"flex",flexDirection:"column",gap:6}}>
                 {CONTROLES_AUTO.map((c,i)=>{
                   const cfg = c.statut==="ok"
@@ -16345,7 +16364,7 @@ const SectionFinancements = () => {
 
             {/* Alertes dossier */}
             <div style={{background:"#fff",borderRadius:14,border:`1px solid ${C.bd}`,padding:16}}>
-              <div style={{fontSize:12,fontWeight:800,color:C.tx1,marginBottom:12}}>🔔 Alertes — DOS-2026-001</div>
+              <div style={{fontSize:12,fontWeight:800,color:C.tx,marginBottom:12}}>🔔 Alertes — DOS-2026-001</div>
               {DEMO_DOSSIER.alertes.map((a,i)=>{
                 const cfg = a.type==="warning"
                   ? {col:"#92400E",bg:"#FFFBEB",icon:"⚠️"}
@@ -16381,7 +16400,7 @@ const SectionFinancements = () => {
                       <span style={{fontSize:28,flexShrink:0}}>{p.icon}</span>
                       <div style={{flex:1}}>
                         <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap",marginBottom:4}}>
-                          <span style={{fontSize:14,fontWeight:800,color:isActive?p.couleur:C.tx1}}>{p.nom}</span>
+                          <span style={{fontSize:14,fontWeight:800,color:isActive?p.couleur:C.tx}}>{p.nom}</span>
                           <span style={{fontSize:9,padding:"2px 8px",borderRadius:10,fontWeight:700,
                             background:sr.bg,color:sr.color}}>{sr.label}</span>
                           <span style={{fontSize:9,color:C.tx2,background:"#F3F4F6",
@@ -16401,7 +16420,7 @@ const SectionFinancements = () => {
                     </div>
                     <div style={{textAlign:"right",flexShrink:0}}>
                       <div style={{fontSize:10,color:C.tx2}}>Annoncé le</div>
-                      <div style={{fontSize:11,fontWeight:700,color:C.tx1}}>{p.dateAnnonce}</div>
+                      <div style={{fontSize:11,fontWeight:700,color:C.tx}}>{p.dateAnnonce}</div>
                       <div style={{fontSize:10,color:C.tx2,marginTop:4}}>Ouverture</div>
                       <div style={{fontSize:11,fontWeight:700,color:p.dateOuverture?"#0369A1":"#9CA3AF"}}>
                         {p.dateOuverture||"Non précisée"}
@@ -16424,13 +16443,13 @@ const SectionFinancements = () => {
                       </div>
                       <div style={{display:"flex",gap:8,marginTop:10,flexWrap:"wrap"}}>
                         <div style={{fontSize:10,color:C.tx2}}>Texte de référence :</div>
-                        <div style={{fontSize:10,color:C.tx1,fontWeight:600}}>{p.texteRef}</div>
+                        <div style={{fontSize:10,color:C.tx,fontWeight:600}}>{p.texteRef}</div>
                       </div>
                       <div style={{display:"flex",gap:8,marginTop:4}}>
                         <div style={{fontSize:10,color:C.tx2}}>Version :</div>
-                        <div style={{fontSize:10,color:C.tx1,fontWeight:600}}>{p.version}</div>
+                        <div style={{fontSize:10,color:C.tx,fontWeight:600}}>{p.version}</div>
                         <div style={{fontSize:10,color:C.tx2,marginLeft:12}}>Vérif. :</div>
-                        <div style={{fontSize:10,color:C.tx1,fontWeight:600}}>{p.derniereVerif}</div>
+                        <div style={{fontSize:10,color:C.tx,fontWeight:600}}>{p.derniereVerif}</div>
                       </div>
                     </div>
                   )}
@@ -16450,7 +16469,7 @@ const SectionFinancements = () => {
 
                 <div style={{fontSize:11,fontWeight:700,color:C.tx2,marginBottom:8}}>Bénéficiaires</div>
                 {prog.beneficiaires.map((b,i)=>(
-                  <div key={i} style={{fontSize:11,color:C.tx1,padding:"3px 0",
+                  <div key={i} style={{fontSize:11,color:C.tx,padding:"3px 0",
                     borderBottom:`1px solid ${C.bd}`,display:"flex",alignItems:"center",gap:6}}>
                     <span style={{color:prog.couleur}}>•</span>{b}
                   </div>
@@ -16458,7 +16477,7 @@ const SectionFinancements = () => {
 
                 <div style={{fontSize:11,fontWeight:700,color:C.tx2,marginTop:12,marginBottom:8}}>Opérations éligibles</div>
                 {prog.operationsEligibles.map((o,i)=>(
-                  <div key={i} style={{fontSize:11,color:C.tx1,padding:"3px 0",
+                  <div key={i} style={{fontSize:11,color:C.tx,padding:"3px 0",
                     borderBottom:`1px solid ${C.bd}`,display:"flex",alignItems:"center",gap:6}}>
                     <span style={{color:prog.couleur}}>✓</span>{o}
                   </div>
@@ -16476,7 +16495,7 @@ const SectionFinancements = () => {
                     <div key={k} style={{display:"flex",justifyContent:"space-between",
                       fontSize:10,padding:"3px 0",borderBottom:`1px solid ${C.bd}`}}>
                       <span style={{color:C.tx2}}>{k}</span>
-                      <span style={{fontWeight:700,color:v==="Non publié"?"#9CA3AF":C.tx1}}>{v}</span>
+                      <span style={{fontWeight:700,color:v==="Non publié"?"#9CA3AF":C.tx}}>{v}</span>
                     </div>
                   ))}
                 </div>
@@ -16492,11 +16511,11 @@ const SectionFinancements = () => {
           {/* Liste dossiers */}
           <div>
             <div style={{background:"#fff",borderRadius:12,border:`1px solid ${C.bd}`,padding:12,marginBottom:10}}>
-              <div style={{fontSize:11,fontWeight:800,color:C.tx1,marginBottom:10}}>Dossiers actifs</div>
+              <div style={{fontSize:11,fontWeight:800,color:C.tx,marginBottom:10}}>Dossiers actifs</div>
               <div style={{background:"#EFF6FF",borderRadius:10,padding:"12px 14px",
                 border:"2px solid #0369A1",cursor:"pointer"}}>
                 <div style={{fontSize:11,fontWeight:800,color:"#0369A1",marginBottom:4}}>{DEMO_DOSSIER.id}</div>
-                <div style={{fontSize:11,color:C.tx1,marginBottom:3}}>{DEMO_DOSSIER.proprietaire}</div>
+                <div style={{fontSize:11,color:C.tx,marginBottom:3}}>{DEMO_DOSSIER.proprietaire}</div>
                 <div style={{fontSize:10,color:C.tx2,marginBottom:6}}>{DEMO_DOSSIER.parcelle}</div>
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
                   <span style={{fontSize:9,fontWeight:700,color:"#0369A1",
@@ -16511,7 +16530,7 @@ const SectionFinancements = () => {
             </div>
             {/* Pièces */}
             <div style={{background:"#fff",borderRadius:12,border:`1px solid ${C.bd}`,padding:14}}>
-              <div style={{fontSize:11,fontWeight:800,color:C.tx1,marginBottom:10}}>📎 Pièces justificatives</div>
+              <div style={{fontSize:11,fontWeight:800,color:C.tx,marginBottom:10}}>📎 Pièces justificatives</div>
               <div style={{fontSize:10,fontWeight:700,color:"#065F46",marginBottom:6}}>Fournies</div>
               {DEMO_DOSSIER.piecesOk.map((p,i)=>(
                 <div key={i} style={{display:"flex",alignItems:"center",gap:6,
@@ -16532,7 +16551,7 @@ const SectionFinancements = () => {
           {/* Détail dossier */}
           <div style={{display:"flex",flexDirection:"column",gap:12}}>
             <div style={{background:"#fff",borderRadius:14,border:`1px solid ${C.bd}`,padding:16}}>
-              <div style={{fontSize:14,fontWeight:900,color:C.tx1,marginBottom:4}}>
+              <div style={{fontSize:14,fontWeight:900,color:C.tx,marginBottom:4}}>
                 📂 {DEMO_DOSSIER.id} — {DEMO_DOSSIER.proprietaire}
               </div>
               <div style={{fontSize:12,color:C.tx2,marginBottom:12}}>{DEMO_DOSSIER.parcelle} · {DEMO_DOSSIER.surface} ha</div>
@@ -16547,7 +16566,7 @@ const SectionFinancements = () => {
                   <div key={k} style={{padding:"8px 12px",borderRadius:8,background:"#F9FAFB",
                     border:`1px solid ${C.bd}`}}>
                     <div style={{fontSize:10,color:C.tx2,marginBottom:2}}>{k}</div>
-                    <div style={{fontSize:12,fontWeight:700,color:C.tx1}}>{v}</div>
+                    <div style={{fontSize:12,fontWeight:700,color:C.tx}}>{v}</div>
                   </div>
                 ))}
               </div>
@@ -16573,7 +16592,7 @@ const SectionFinancements = () => {
                 ))}
                 <div style={{display:"flex",justifyContent:"space-between",fontSize:12,fontWeight:800,
                   borderTop:`2px solid ${C.bd}`,paddingTop:6,marginTop:4}}>
-                  <span style={{color:C.tx1}}>Total indicatif</span>
+                  <span style={{color:C.tx}}>Total indicatif</span>
                   <span style={{color:"#0369A1"}}>96 000 €</span>
                 </div>
               </div>
@@ -16592,7 +16611,7 @@ const SectionFinancements = () => {
         <div>
           <div style={{background:"#fff",borderRadius:14,border:`1px solid ${C.bd}`,
             padding:14,marginBottom:14}}>
-            <div style={{fontSize:12,fontWeight:800,color:C.tx1,marginBottom:12}}>
+            <div style={{fontSize:12,fontWeight:800,color:C.tx,marginBottom:12}}>
               🔄 Workflow — 24 étapes — DOS-2026-001 (étape {wfStep}/24)
             </div>
             {/* Mini stepper horizontal */}
@@ -16643,7 +16662,7 @@ const SectionFinancements = () => {
                     </div>
                   </div>
                   <div style={{padding:"16px 18px"}}>
-                    <div style={{fontSize:13,color:C.tx1,lineHeight:1.7,marginBottom:14}}>{cur.desc}</div>
+                    <div style={{fontSize:13,color:C.tx,lineHeight:1.7,marginBottom:14}}>{cur.desc}</div>
                     {isCur&&(
                       <div style={{background:"#EFF6FF",border:"1px solid #93C5FD",borderRadius:8,
                         padding:"10px 14px",fontSize:11,color:"#0369A1"}}>
@@ -16716,7 +16735,7 @@ const SectionFinancements = () => {
         <div style={{display:"flex",flexDirection:"column",gap:12}}>
           <div style={{background:"#fff",borderRadius:14,border:`1px solid ${C.bd}`,
             padding:"12px 16px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-            <div style={{fontSize:13,fontWeight:800,color:C.tx1}}>⚖️ Veille réglementaire — Financements forestiers</div>
+            <div style={{fontSize:13,fontWeight:800,color:C.tx}}>⚖️ Veille réglementaire — Financements forestiers</div>
             <div style={{fontSize:11,color:C.tx2}}>Dernière mise à jour : 21 juillet 2026</div>
           </div>
 
@@ -16740,7 +16759,7 @@ const SectionFinancements = () => {
                 </div>
               </div>
               <div style={{padding:"14px 16px"}}>
-                <div style={{fontSize:12,color:C.tx1,lineHeight:1.7,marginBottom:10}}>{v.contenu}</div>
+                <div style={{fontSize:12,color:C.tx,lineHeight:1.7,marginBottom:10}}>{v.contenu}</div>
                 <div style={{background:"#F9FAFB",border:`1px solid ${C.bd}`,borderRadius:8,
                   padding:"8px 12px",fontSize:11,color:C.tx2}}>
                   <strong style={{color:v.color}}>Impact APPLITAG :</strong> {v.impact}
@@ -16751,7 +16770,7 @@ const SectionFinancements = () => {
 
           {/* Statuts réglementaires */}
           <div style={{background:"#fff",borderRadius:12,border:`1px solid ${C.bd}`,padding:16}}>
-            <div style={{fontSize:12,fontWeight:800,color:C.tx1,marginBottom:12}}>
+            <div style={{fontSize:12,fontWeight:800,color:C.tx,marginBottom:12}}>
               Statuts réglementaires APPLITAG
             </div>
             <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(200px,1fr))",gap:8}}>
@@ -21868,7 +21887,7 @@ const SectionParcelleTravaux = () => {
   const renderDiagnostic = () => (
     <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16}}>
       <div style={{background:"#fff",borderRadius:12,border:`1px solid ${C.bd}`,padding:16}}>
-        <div style={{fontWeight:700,color:C.tx1,marginBottom:12,fontSize:13}}>🔍 Diagnostic initial</div>
+        <div style={{fontWeight:700,color:C.tx,marginBottom:12,fontSize:13}}>🔍 Diagnostic initial</div>
         <div style={{display:"flex",flexDirection:"column",gap:8}}>
           {[
             ["Date","📅 "+new Date(p.diagnostic.date).toLocaleDateString("fr-FR")],
@@ -21881,7 +21900,7 @@ const SectionParcelleTravaux = () => {
             <div key={k} style={{display:"flex",justifyContent:"space-between",padding:"7px 10px",
               borderRadius:7,background:"#F9FAFB",fontSize:12}}>
               <span style={{color:C.tx2}}>{k}</span>
-              <span style={{fontWeight:600,color:C.tx1}}>{v}</span>
+              <span style={{fontWeight:600,color:C.tx}}>{v}</span>
             </div>
           ))}
         </div>
@@ -21894,7 +21913,7 @@ const SectionParcelleTravaux = () => {
 
       <div style={{display:"flex",flexDirection:"column",gap:12}}>
         <div style={{background:"#fff",borderRadius:12,border:`1px solid ${C.bd}`,padding:16}}>
-          <div style={{fontWeight:700,color:C.tx1,marginBottom:10,fontSize:13}}>⚠️ Risques identifiés</div>
+          <div style={{fontWeight:700,color:C.tx,marginBottom:10,fontSize:13}}>⚠️ Risques identifiés</div>
           {p.diagnostic.risques.map((r,i)=>(
             <div key={i} style={{display:"flex",gap:8,marginBottom:7,fontSize:12,
               padding:"7px 10px",borderRadius:7,background:"#FEF2F2",border:"1px solid #FECACA"}}>
@@ -21904,7 +21923,7 @@ const SectionParcelleTravaux = () => {
         </div>
 
         <div style={{background:"#fff",borderRadius:12,border:`1px solid ${C.bd}`,padding:16}}>
-          <div style={{fontWeight:700,color:C.tx1,marginBottom:10,fontSize:13}}>🌲 Peuplement</div>
+          <div style={{fontWeight:700,color:C.tx,marginBottom:10,fontSize:13}}>🌲 Peuplement</div>
           {[
             ["Essence principale",p.essencePrincipale],
             ["Essences secondaires",p.essencesSecondaires.join(", ")],
@@ -21916,7 +21935,7 @@ const SectionParcelleTravaux = () => {
             <div key={k} style={{display:"flex",justifyContent:"space-between",padding:"5px 8px",
               borderRadius:5,fontSize:11,borderBottom:`1px solid ${C.bd}`}}>
               <span style={{color:C.tx2}}>{k}</span>
-              <span style={{fontWeight:600,color:C.tx1,maxWidth:200,textAlign:"right"}}>{v}</span>
+              <span style={{fontWeight:600,color:C.tx,maxWidth:200,textAlign:"right"}}>{v}</span>
             </div>
           ))}
         </div>
@@ -21939,7 +21958,7 @@ const SectionParcelleTravaux = () => {
                 📷
               </div>
               <div style={{padding:"8px 10px"}}>
-                <div style={{fontSize:11,fontWeight:600,color:C.tx1,marginBottom:4}}>{ph.label}</div>
+                <div style={{fontSize:11,fontWeight:600,color:C.tx,marginBottom:4}}>{ph.label}</div>
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
                   <span style={{fontSize:9,padding:"2px 6px",borderRadius:4,
                     background:tagBg,color:tagColor,fontWeight:600}}>
@@ -21970,7 +21989,7 @@ const SectionParcelleTravaux = () => {
         <div key={i} style={{background:"#fff",borderRadius:12,border:`1px solid ${C.bd}`,padding:16}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:10}}>
             <div>
-              <span style={{fontSize:13,fontWeight:700,color:C.tx1}}>{pr.type}</span>
+              <span style={{fontSize:13,fontWeight:700,color:C.tx}}>{pr.type}</span>
               <span style={{fontSize:11,color:C.tx2,marginLeft:10}}>{pr.surface} ha</span>
             </div>
             <span style={{fontSize:10,padding:"2px 8px",borderRadius:5,fontWeight:700,
@@ -21988,7 +22007,7 @@ const SectionParcelleTravaux = () => {
               <div key={k} style={{background:"#F9FAFB",borderRadius:7,padding:"8px 10px",
                 fontSize:11,gridColumn:k.includes("Objectif")?"1/-1":undefined}}>
                 <div style={{fontWeight:700,color:C.tx2,marginBottom:3}}>{k}</div>
-                <div style={{color:C.tx1,lineHeight:1.5}}>{v}</div>
+                <div style={{color:C.tx,lineHeight:1.5}}>{v}</div>
               </div>
             ))}
           </div>
@@ -22003,7 +22022,7 @@ const SectionParcelleTravaux = () => {
         <div key={i} style={{background:"#fff",borderRadius:12,border:`1px solid ${C.bd}`,padding:16}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:10}}>
             <div>
-              <div style={{fontSize:13,fontWeight:700,color:C.tx1}}>{e.nom}</div>
+              <div style={{fontSize:13,fontWeight:700,color:C.tx}}>{e.nom}</div>
               <div style={{fontSize:10,color:C.tx2}}>SIRET : {e.siret}</div>
             </div>
             {e.certif&&(
@@ -22016,15 +22035,15 @@ const SectionParcelleTravaux = () => {
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8,fontSize:11}}>
             <div style={{background:"#F9FAFB",borderRadius:7,padding:"8px 10px"}}>
               <div style={{fontWeight:700,color:C.tx2,marginBottom:2}}>🏗️ Rôle</div>
-              <div style={{color:C.tx1}}>{e.role}</div>
+              <div style={{color:C.tx}}>{e.role}</div>
             </div>
             <div style={{background:"#F9FAFB",borderRadius:7,padding:"8px 10px"}}>
               <div style={{fontWeight:700,color:C.tx2,marginBottom:2}}>📅 Intervention</div>
-              <div style={{color:C.tx1}}>{new Date(e.dateIntervention).toLocaleDateString("fr-FR")}</div>
+              <div style={{color:C.tx}}>{new Date(e.dateIntervention).toLocaleDateString("fr-FR")}</div>
             </div>
             <div style={{background:"#F9FAFB",borderRadius:7,padding:"8px 10px"}}>
               <div style={{fontWeight:700,color:C.tx2,marginBottom:2}}>📐 Surface</div>
-              <div style={{color:C.tx1}}>{e.surface} ha</div>
+              <div style={{color:C.tx}}>{e.surface} ha</div>
             </div>
           </div>
           {e.materiel.length>0&&(
@@ -22043,7 +22062,7 @@ const SectionParcelleTravaux = () => {
   const renderSurfaces = () => (
     <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16}}>
       <div style={{background:"#fff",borderRadius:12,border:`1px solid ${C.bd}`,padding:16}}>
-        <div style={{fontWeight:700,color:C.tx1,marginBottom:12,fontSize:13}}>📐 Surfaces par intervention</div>
+        <div style={{fontWeight:700,color:C.tx,marginBottom:12,fontSize:13}}>📐 Surfaces par intervention</div>
         {[
           ["Coupe sanitaire","#DC2626","#FEE2E2",p.surfaces.coupeSanitaire],
           ["Éclaircie","#1E5B3A","#D1FAE5",p.surfaces.eclaircie],
@@ -22053,7 +22072,7 @@ const SectionParcelleTravaux = () => {
           <div key={label} style={{marginBottom:10}}>
             <div style={{display:"flex",justifyContent:"space-between",marginBottom:3,fontSize:12}}>
               <span style={{color:col,fontWeight:600}}>{label}</span>
-              <span style={{fontWeight:700,color:C.tx1}}>{val} ha</span>
+              <span style={{fontWeight:700,color:C.tx}}>{val} ha</span>
             </div>
             <div style={{height:6,borderRadius:3,background:"#E5E7EB",overflow:"hidden"}}>
               <div style={{height:"100%",borderRadius:3,background:col,
@@ -22064,12 +22083,12 @@ const SectionParcelleTravaux = () => {
         <div style={{marginTop:10,padding:"8px 10px",background:"#F9FAFB",borderRadius:7,
           display:"flex",justifyContent:"space-between",fontSize:12}}>
           <span style={{fontWeight:700,color:C.tx2}}>Total parcelle</span>
-          <span style={{fontWeight:800,color:C.tx1}}>{p.surfaces.total} ha</span>
+          <span style={{fontWeight:800,color:C.tx}}>{p.surfaces.total} ha</span>
         </div>
       </div>
 
       <div style={{background:"#fff",borderRadius:12,border:`1px solid ${C.bd}`,padding:16}}>
-        <div style={{fontWeight:700,color:C.tx1,marginBottom:12,fontSize:13}}>💶 Budget travaux</div>
+        <div style={{fontWeight:700,color:C.tx,marginBottom:12,fontSize:13}}>💶 Budget travaux</div>
         {[
           ["Exploitation forestière",p.couts.exploitation],
           ["Déchiquetage",p.couts.dechiquetage],
@@ -22080,11 +22099,11 @@ const SectionParcelleTravaux = () => {
           <div key={k} style={{display:"flex",justifyContent:"space-between",padding:"5px 0",
             borderBottom:`1px solid ${C.bd}`,fontSize:12}}>
             <span style={{color:C.tx2}}>{k}</span>
-            <span style={{fontWeight:600,color:C.tx1}}>{v.toLocaleString("fr-FR")} €</span>
+            <span style={{fontWeight:600,color:C.tx}}>{v.toLocaleString("fr-FR")} €</span>
           </div>
         ))}
         <div style={{display:"flex",justifyContent:"space-between",padding:"8px 0",fontSize:13,
-          fontWeight:800,color:C.tx1,borderTop:`2px solid ${C.bd}`,marginTop:4}}>
+          fontWeight:800,color:C.tx,borderTop:`2px solid ${C.bd}`,marginTop:4}}>
           <span>Total travaux</span>
           <span>{p.couts.total.toLocaleString("fr-FR")} €</span>
         </div>
@@ -22115,7 +22134,7 @@ const SectionParcelleTravaux = () => {
       <div>
         {/* Banner usage matière vs énergie */}
         <div style={{background:"#fff",borderRadius:12,border:`1px solid ${C.bd}`,padding:16,marginBottom:16}}>
-          <div style={{fontWeight:700,color:C.tx1,marginBottom:12,fontSize:13}}>
+          <div style={{fontWeight:700,color:C.tx,marginBottom:12,fontSize:13}}>
             🔀 Répartition des flux bois mobilisés — {volTotalReel} m³ total
           </div>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:14}}>
@@ -22192,7 +22211,7 @@ const SectionParcelleTravaux = () => {
                     ].map(([k,v])=>(
                       <div key={k} style={{background:q.bg,borderRadius:7,padding:"8px 10px"}}>
                         <div style={{fontWeight:700,color:q.couleur,marginBottom:2,fontSize:10}}>{k}</div>
-                        <div style={{color:C.tx1,fontWeight:600}}>{v}</div>
+                        <div style={{color:C.tx,fontWeight:600}}>{v}</div>
                       </div>
                     ))}
                   </div>
@@ -22208,7 +22227,7 @@ const SectionParcelleTravaux = () => {
           {/* Rémanents */}
           <div style={{background:"#F9FAFB",borderRadius:10,border:`1px solid ${C.bd}`,
             padding:"10px 14px",fontSize:11}}>
-            <div style={{fontWeight:700,color:C.tx1,marginBottom:6}}>🍂 Rémanents & menu bois</div>
+            <div style={{fontWeight:700,color:C.tx,marginBottom:6}}>🍂 Rémanents & menu bois</div>
             <div style={{display:"flex",gap:16,flexWrap:"wrap"}}>
               <span style={{color:"#92400E"}}>🔥 Valorisés déchiquetage : <strong>{vols.remanents.utilises} m³</strong></span>
               <span style={{color:"#065F46"}}>🌿 Laissés au sol : <strong>{vols.remanents.laissesSol} m³</strong></span>
@@ -22225,7 +22244,7 @@ const SectionParcelleTravaux = () => {
     return (
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16}}>
         <div style={{background:"#fff",borderRadius:12,border:`1px solid ${C.bd}`,padding:16}}>
-          <div style={{fontWeight:700,color:C.tx1,marginBottom:12,fontSize:13}}>✅ Contrôle après travaux</div>
+          <div style={{fontWeight:700,color:C.tx,marginBottom:12,fontSize:13}}>✅ Contrôle après travaux</div>
           {[
             ["Date",new Date(ctrl.date).toLocaleDateString("fr-FR")],
             ["Contrôleur",ctrl.auteur],
@@ -22235,7 +22254,7 @@ const SectionParcelleTravaux = () => {
             <div key={k} style={{display:"flex",justifyContent:"space-between",padding:"6px 8px",
               borderBottom:`1px solid ${C.bd}`,fontSize:12}}>
               <span style={{color:C.tx2}}>{k}</span>
-              <span style={{fontWeight:600,color:C.tx1}}>{v}</span>
+              <span style={{fontWeight:600,color:C.tx}}>{v}</span>
             </div>
           ))}
 
@@ -22252,7 +22271,7 @@ const SectionParcelleTravaux = () => {
         </div>
 
         <div style={{background:"#fff",borderRadius:12,border:`1px solid ${C.bd}`,padding:16}}>
-          <div style={{fontWeight:700,color:C.tx1,marginBottom:10,fontSize:13}}>📋 Points de contrôle</div>
+          <div style={{fontWeight:700,color:C.tx,marginBottom:10,fontSize:13}}>📋 Points de contrôle</div>
           {ctrl.observations.map((o,i)=>(
             <div key={i} style={{display:"flex",gap:8,marginBottom:7,fontSize:11,
               padding:"6px 10px",borderRadius:7,
@@ -22272,7 +22291,7 @@ const SectionParcelleTravaux = () => {
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16}}>
         <div style={{display:"flex",flexDirection:"column",gap:12}}>
           <div style={{background:"#fff",borderRadius:12,border:`1px solid ${C.bd}`,padding:16}}>
-            <div style={{fontWeight:700,color:C.tx1,marginBottom:10,fontSize:13}}>🌱 Plan de régénération</div>
+            <div style={{fontWeight:700,color:C.tx,marginBottom:10,fontSize:13}}>🌱 Plan de régénération</div>
             {[
               ["Type",reg.typeRegeneration],
               ["Date plantation",new Date(reg.datePlantation).toLocaleDateString("fr-FR")],
@@ -22283,17 +22302,17 @@ const SectionParcelleTravaux = () => {
               <div key={k} style={{display:"flex",justifyContent:"space-between",padding:"6px 8px",
                 borderBottom:`1px solid ${C.bd}`,fontSize:12}}>
                 <span style={{color:C.tx2}}>{k}</span>
-                <span style={{fontWeight:600,color:C.tx1,maxWidth:200,textAlign:"right"}}>{v}</span>
+                <span style={{fontWeight:600,color:C.tx,maxWidth:200,textAlign:"right"}}>{v}</span>
               </div>
             ))}
           </div>
 
           <div style={{background:"#fff",borderRadius:12,border:`1px solid ${C.bd}`,padding:16}}>
-            <div style={{fontWeight:700,color:C.tx1,marginBottom:10,fontSize:13}}>🌿 Essences plantées</div>
+            <div style={{fontWeight:700,color:C.tx,marginBottom:10,fontSize:13}}>🌿 Essences plantées</div>
             {reg.essencesPlantees.map(e=>(
               <div key={e.essence} style={{marginBottom:10}}>
                 <div style={{display:"flex",justifyContent:"space-between",marginBottom:3,fontSize:12}}>
-                  <span style={{fontWeight:600,color:C.tx1}}>{e.essence}</span>
+                  <span style={{fontWeight:600,color:C.tx}}>{e.essence}</span>
                   <span style={{color:"#1E5B3A",fontWeight:700}}>{e.plants} plants ({e.pourcent}%)</span>
                 </div>
                 <div style={{height:6,borderRadius:3,background:"#E5E7EB",overflow:"hidden"}}>
@@ -22307,7 +22326,7 @@ const SectionParcelleTravaux = () => {
         </div>
 
         <div style={{background:"#fff",borderRadius:12,border:`1px solid ${C.bd}`,padding:16}}>
-          <div style={{fontWeight:700,color:C.tx1,marginBottom:10,fontSize:13}}>📅 Calendrier de suivi</div>
+          <div style={{fontWeight:700,color:C.tx,marginBottom:10,fontSize:13}}>📅 Calendrier de suivi</div>
           <div style={{position:"relative"}}>
             <div style={{position:"absolute",left:14,top:0,bottom:0,width:2,background:"#E5E7EB"}}/>
             {reg.suivi.map((s,i)=>{
@@ -22323,7 +22342,7 @@ const SectionParcelleTravaux = () => {
                   </div>
                   <div style={{paddingTop:3}}>
                     <div style={{fontSize:10,color:C.tx2}}>{new Date(s.date).toLocaleDateString("fr-FR")}</div>
-                    <div style={{fontSize:12,fontWeight:600,color:done?C.tx1:"#9CA3AF"}}>{s.type}</div>
+                    <div style={{fontSize:12,fontWeight:600,color:done?C.tx:"#9CA3AF"}}>{s.type}</div>
                     {s.resultat&&<div style={{fontSize:11,color:C.tx2,fontStyle:"italic"}}>{s.resultat}</div>}
                     {!done&&<span style={{fontSize:9,background:"#FEF3C7",color:"#92400E",
                       padding:"1px 5px",borderRadius:3,fontWeight:600}}>À planifier</span>}
@@ -22364,7 +22383,7 @@ const SectionParcelleTravaux = () => {
             <span style={{fontSize:10,padding:"2px 8px",borderRadius:5,fontWeight:700,
               background:"#FEE2E2",color:"#991B1B"}}>⚠️ Urgence haute</span>
           </div>
-          <div style={{fontSize:17,fontWeight:800,color:C.tx1,marginTop:4}}>{p.nom}</div>
+          <div style={{fontSize:17,fontWeight:800,color:C.tx,marginTop:4}}>{p.nom}</div>
           <div style={{fontSize:12,color:C.tx2}}>
             📍 {p.commune} · {p.surface} ha · {p.essencePrincipale.split(" ")[0]} · {p.proprietaire}
           </div>
@@ -22377,7 +22396,7 @@ const SectionParcelleTravaux = () => {
           ].map(k=>(
             <div key={k.lbl} style={{background:"#F9FAFB",borderRadius:8,padding:"8px 12px"}}>
               <div style={{fontSize:16}}>{k.icon}</div>
-              <div style={{fontSize:14,fontWeight:800,color:C.tx1}}>{k.val}</div>
+              <div style={{fontSize:14,fontWeight:800,color:C.tx}}>{k.val}</div>
               <div style={{fontSize:9,color:C.tx2}}>{k.lbl}</div>
             </div>
           ))}
@@ -23204,7 +23223,7 @@ const SectionVeilleReglementaire = () => {
       {/* En-tête */}
       <div style={{marginBottom:16,display:"flex",justifyContent:"space-between",alignItems:"flex-start",flexWrap:"wrap",gap:10}}>
         <div>
-          <div style={{fontSize:20,fontWeight:800,color:C.tx1,marginBottom:4}}>⚖️ Veille réglementaire</div>
+          <div style={{fontSize:20,fontWeight:800,color:C.tx,marginBottom:4}}>⚖️ Veille réglementaire</div>
           <div style={{fontSize:13,color:C.tx2}}>Versionnement des textes · Snapshots par dossier · Alertes de conformité</div>
         </div>
         <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
@@ -23299,7 +23318,7 @@ const SectionVeilleReglementaire = () => {
                           background:"#FEE2E2",color:"#991B1B",fontWeight:700}}>🚨 Alerte</span>}
                         <span style={{fontSize:10,color:C.tx2}}>Mis à jour {new Date(t.dateStatut).toLocaleDateString("fr-FR")}</span>
                       </div>
-                      <div style={{fontSize:13,fontWeight:700,color:C.tx1}}>{t.dispositif}</div>
+                      <div style={{fontSize:13,fontWeight:700,color:C.tx}}>{t.dispositif}</div>
                       <div style={{fontSize:11,color:C.tx2,marginTop:2}}>{t.texteRef}</div>
                     </div>
                     <div style={{display:"flex",alignItems:"center",gap:8,flexShrink:0}}>
@@ -23326,7 +23345,7 @@ const SectionVeilleReglementaire = () => {
                             <div key={k} style={{display:"flex",gap:8,padding:"5px 8px",
                               borderBottom:`1px solid ${C.bd}`,fontSize:11}}>
                               <span style={{color:C.tx2,minWidth:120,flexShrink:0}}>{k}</span>
-                              <span style={{color:C.tx1,fontWeight:500}}>{v}</span>
+                              <span style={{color:C.tx,fontWeight:500}}>{v}</span>
                             </div>
                           ))}
                         </div>
@@ -23418,7 +23437,7 @@ const SectionVeilleReglementaire = () => {
                         </span>
                         <span style={{fontSize:10,color:C.tx2,fontFamily:"monospace"}}>{snap.dossierId}</span>
                       </div>
-                      <div style={{fontSize:13,fontWeight:700,color:C.tx1}}>{snap.dossierNom}</div>
+                      <div style={{fontSize:13,fontWeight:700,color:C.tx}}>{snap.dossierNom}</div>
                       <div style={{fontSize:11,color:C.tx2,marginTop:2}}>
                         Préparé le {new Date(snap.datePreparation).toLocaleDateString("fr-FR")} par {snap.auteur}
                         {snap.clauseReserveApposee&&<span style={{marginLeft:8,color:"#7C3AED",fontWeight:600}}>· ✓ Clause réserve apposée</span>}
@@ -23450,7 +23469,7 @@ const SectionVeilleReglementaire = () => {
                               alignItems:"center",padding:"7px 10px",borderRadius:7,
                               background:"#fff",border:`1px solid ${C.bd}`,fontSize:11}}>
                               <div>
-                                <span style={{fontWeight:600,color:C.tx1}}>{ts.ref}</span>
+                                <span style={{fontWeight:600,color:C.tx}}>{ts.ref}</span>
                                 <span style={{color:C.tx2,marginLeft:8}}>{ts.version}</span>
                               </div>
                               <div style={{display:"flex",alignItems:"center",gap:8}}>
@@ -23794,7 +23813,7 @@ const SectionLivraisons = () => {
   return (
     <div style={{maxWidth:1000,margin:"0 auto"}}>
       <div style={{marginBottom:14}}>
-        <div style={{fontSize:20,fontWeight:800,color:C.tx1}}>📦 Livraisons & réceptions</div>
+        <div style={{fontSize:20,fontWeight:800,color:C.tx}}>📦 Livraisons & réceptions</div>
         <div style={{fontSize:13,color:C.tx2}}>Réception chaufferie, pesée, qualité, conformité</div>
       </div>
 
@@ -23841,7 +23860,7 @@ const SectionLivraisons = () => {
                 <div style={{display:"flex",gap:10,alignItems:"flex-start"}}>
                   <div style={{flex:1}}>
                     <div style={{display:"flex",gap:8,alignItems:"center",marginBottom:3}}>
-                      <span style={{fontSize:12,fontWeight:800,color:C.tx1}}>{l.id}</span>
+                      <span style={{fontSize:12,fontWeight:800,color:C.tx}}>{l.id}</span>
                       <span style={{fontSize:9,fontWeight:700,padding:"2px 7px",borderRadius:20,
                         background:st.bg,color:st.col}}>{st.icon} {st.label}</span>
                     </div>
@@ -23874,7 +23893,7 @@ const SectionLivraisons = () => {
           <div style={{background:"#fff",borderRadius:14,
             border:`2px solid ${lv.refus?"#DC2626":"#1E5B3A"}`,padding:16,position:"sticky",top:0}}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:12}}>
-              <div style={{fontSize:13,fontWeight:800,color:C.tx1}}>{lv.id}</div>
+              <div style={{fontSize:13,fontWeight:800,color:C.tx}}>{lv.id}</div>
               <button onClick={()=>setSelected(null)}
                 style={{background:"transparent",border:"none",cursor:"pointer",fontSize:18,color:C.tx3}}>✕</button>
             </div>
@@ -23899,7 +23918,7 @@ const SectionLivraisons = () => {
               ].map(([k,v])=>(
                 <div key={k} style={{display:"flex",gap:8,borderBottom:`1px solid ${C.bd}`,paddingBottom:5}}>
                   <span style={{color:C.tx3,minWidth:120,flexShrink:0}}>{k}</span>
-                  <span style={{fontWeight:600,color:C.tx1}}>{v}</span>
+                  <span style={{fontWeight:600,color:C.tx}}>{v}</span>
                 </div>
               ))}
             </div>
@@ -24727,7 +24746,7 @@ const SectionChaufferies = () => {
   return (
     <div style={{maxWidth:1000,margin:"0 auto"}}>
       <div style={{marginBottom:14}}>
-        <div style={{fontSize:20,fontWeight:800,color:C.tx1}}>🔥 Chaufferies</div>
+        <div style={{fontSize:20,fontWeight:800,color:C.tx}}>🔥 Chaufferies</div>
         <div style={{fontSize:13,color:C.tx2}}>Suivi des stocks, livraisons et consommations — France métropolitaine, Corse & Outre-mer</div>
       </div>
 
@@ -24785,7 +24804,7 @@ const SectionChaufferies = () => {
               <div style={{display:"flex",gap:10,alignItems:"flex-start",marginBottom:10}}>
                 <div style={{fontSize:24}}>🔥</div>
                 <div style={{flex:1}}>
-                  <div style={{fontSize:13,fontWeight:800,color:C.tx1}}>{d.nom}</div>
+                  <div style={{fontSize:13,fontWeight:800,color:C.tx}}>{d.nom}</div>
                   <div style={{fontSize:11,color:C.tx2}}>{d.commune} · {d.puissanceMW} MW</div>
                 </div>
                 {d.alertes>0&&<span style={{fontSize:9,fontWeight:700,padding:"2px 7px",
@@ -24822,7 +24841,7 @@ const SectionChaufferies = () => {
           <div style={{background:"#fff",borderRadius:14,border:"2px solid #B45309",
             padding:16,position:"sticky",top:0}}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:12}}>
-              <div style={{fontSize:13,fontWeight:800,color:C.tx1}}>{ch.nom}</div>
+              <div style={{fontSize:13,fontWeight:800,color:C.tx}}>{ch.nom}</div>
               <button onClick={()=>setSelected(null)}
                 style={{background:"transparent",border:"none",cursor:"pointer",fontSize:18,color:C.tx3}}>✕</button>
             </div>
@@ -24849,7 +24868,7 @@ const SectionChaufferies = () => {
               ].map(([k,v])=>(
                 <div key={k} style={{display:"flex",gap:8,borderBottom:`1px solid ${C.bd}`,paddingBottom:5}}>
                   <span style={{color:C.tx3,minWidth:140,flexShrink:0}}>{k}</span>
-                  <span style={{fontWeight:600,color:C.tx1}}>{v}</span>
+                  <span style={{fontWeight:600,color:C.tx}}>{v}</span>
                 </div>
               ))}
             </div>
@@ -24908,14 +24927,14 @@ const SectionRapports = () => {
   return (
     <div style={{maxWidth:1000,margin:"0 auto"}}>
       <div style={{marginBottom:14}}>
-        <div style={{fontSize:20,fontWeight:800,color:C.tx1}}>📑 Rapports</div>
+        <div style={{fontSize:20,fontWeight:800,color:C.tx}}>📑 Rapports</div>
         <div style={{fontSize:13,color:C.tx2}}>Génération de rapports par période · client · territoire · lot</div>
       </div>
 
       <div style={{display:"grid",gridTemplateColumns:"1fr 300px",gap:14,alignItems:"start"}}>
         <div>
           {/* Catalogue */}
-          <div style={{fontSize:12,fontWeight:700,color:C.tx1,marginBottom:8}}>📚 Catalogue des rapports disponibles</div>
+          <div style={{fontSize:12,fontWeight:700,color:C.tx,marginBottom:8}}>📚 Catalogue des rapports disponibles</div>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:16}}>
             {RAPPORTS_TYPES.map(r=>(
               <div key={r.id} onClick={()=>setActiveRpt(activeRpt===r.id?null:r.id)}
@@ -24925,7 +24944,7 @@ const SectionRapports = () => {
                 <div style={{display:"flex",gap:7,alignItems:"flex-start",marginBottom:5}}>
                   <span style={{fontSize:20}}>{r.icon}</span>
                   <div style={{flex:1}}>
-                    <div style={{fontSize:11,fontWeight:800,color:C.tx1}}>{r.label}</div>
+                    <div style={{fontSize:11,fontWeight:800,color:C.tx}}>{r.label}</div>
                     <div style={{fontSize:9,padding:"1px 5px",borderRadius:3,display:"inline-block",
                       background:r.col+"15",color:r.col,fontWeight:700,marginTop:2}}>{r.delai}</div>
                   </div>
@@ -24939,7 +24958,7 @@ const SectionRapports = () => {
           </div>
 
           {/* Rapports récents */}
-          <div style={{fontSize:12,fontWeight:700,color:C.tx1,marginBottom:8}}>🕐 Rapports récents</div>
+          <div style={{fontSize:12,fontWeight:700,color:C.tx,marginBottom:8}}>🕐 Rapports récents</div>
           <div style={{background:"#fff",borderRadius:12,border:`1px solid ${C.bd}`,overflow:"hidden"}}>
             {RAPPORTS_RECENTS.map((r,i)=>{
               const type = RAPPORTS_TYPES.find(t=>t.id===r.type);
@@ -24949,7 +24968,7 @@ const SectionRapports = () => {
                   background:i%2===0?"#fff":"#FAFAFA"}}>
                   <span style={{fontSize:18}}>{type?.icon||"📄"}</span>
                   <div style={{flex:1}}>
-                    <div style={{fontSize:11,fontWeight:700,color:C.tx1}}>{r.label}</div>
+                    <div style={{fontSize:11,fontWeight:700,color:C.tx}}>{r.label}</div>
                     <div style={{fontSize:10,color:C.tx3}}>{new Date(r.date).toLocaleDateString("fr-FR")} · {r.format} · {r.taille}</div>
                   </div>
                   <button style={{padding:"4px 10px",borderRadius:6,fontSize:10,fontWeight:600,
@@ -24974,7 +24993,7 @@ const SectionRapports = () => {
               <div style={{display:"flex",gap:8,alignItems:"flex-start",marginBottom:12}}>
                 <span style={{fontSize:22}}>{rpt.icon}</span>
                 <div>
-                  <div style={{fontSize:13,fontWeight:800,color:C.tx1}}>{rpt.label}</div>
+                  <div style={{fontSize:13,fontWeight:800,color:C.tx}}>{rpt.label}</div>
                   <div style={{fontSize:10,color:C.tx2,marginTop:2}}>{rpt.desc}</div>
                 </div>
               </div>
@@ -24984,7 +25003,7 @@ const SectionRapports = () => {
                   <div style={{fontSize:10,fontWeight:700,color:C.tx2,marginBottom:4}}>Période</div>
                   <select value={periode} onChange={e=>setPeriode(e.target.value)}
                     style={{width:"100%",padding:"6px 8px",borderRadius:7,border:`1px solid ${C.bd}`,
-                      fontSize:11,fontFamily:"inherit",background:C.bg1,color:C.tx1}}>
+                      fontSize:11,fontFamily:"inherit",background:C.bg1,color:C.tx}}>
                     <option value="2026-05">Mai 2026</option>
                     <option value="2026-04">Avril 2026</option>
                     <option value="2026-03">Mars 2026</option>
@@ -24998,7 +25017,7 @@ const SectionRapports = () => {
                     <div style={{fontSize:10,fontWeight:700,color:C.tx2,marginBottom:4}}>Axe d'analyse</div>
                     <select value={axe} onChange={e=>setAxe(e.target.value)}
                       style={{width:"100%",padding:"6px 8px",borderRadius:7,border:`1px solid ${C.bd}`,
-                        fontSize:11,fontFamily:"inherit",background:C.bg1,color:C.tx1}}>
+                        fontSize:11,fontFamily:"inherit",background:C.bg1,color:C.tx}}>
                       <option value="">— Tous —</option>
                       {rpt.axes.map(a=><option key={a} value={a}>{a}</option>)}
                     </select>
@@ -25019,7 +25038,7 @@ const SectionRapports = () => {
               {/* Aperçu contenu */}
               <div style={{background:"#F9FAFB",borderRadius:8,padding:10,
                 border:`1px solid ${C.bd}`,marginBottom:12,fontSize:10}}>
-                <div style={{fontWeight:700,color:C.tx1,marginBottom:6}}>Contenu inclus :</div>
+                <div style={{fontWeight:700,color:C.tx,marginBottom:6}}>Contenu inclus :</div>
                 {[
                   "En-tête ALTEGAD + logo APPLITAG",
                   `Période : ${periode}${axe?" · Axe : "+axe:""}`,
@@ -25128,7 +25147,7 @@ const SectionReseau = () => {
   return (
     <div style={{maxWidth:1000,margin:"0 auto"}}>
       <div style={{marginBottom:14}}>
-        <div style={{fontSize:20,fontWeight:800,color:C.tx1}}>🤝 Réseau & Offres</div>
+        <div style={{fontSize:20,fontWeight:800,color:C.tx}}>🤝 Réseau & Offres</div>
         <div style={{fontSize:13,color:C.tx2}}>Annonces de la filière — bois disponible, recherches, prestations, transport, stockage</div>
       </div>
 
@@ -25179,7 +25198,7 @@ const SectionReseau = () => {
               <div style={{fontSize:10,fontWeight:700,color:C.tx2,marginBottom:4}}>Type d'annonce</div>
               <select value={newType} onChange={e=>setNewType(e.target.value)}
                 style={{width:"100%",padding:"7px 9px",borderRadius:7,border:`1px solid ${C.bd}`,
-                  fontSize:11,fontFamily:"inherit",background:C.bg1,color:C.tx1}}>
+                  fontSize:11,fontFamily:"inherit",background:C.bg1,color:C.tx}}>
                 {Object.entries(TYPE_OFFRE).map(([k,t])=>
                   <option key={k} value={k}>{t.icon} {t.label}</option>)}
               </select>
@@ -25189,7 +25208,7 @@ const SectionReseau = () => {
               <input value={newCommune} onChange={e=>setNewCommune(e.target.value)}
                 placeholder="Ex : Moulins (03000)"
                 style={{width:"100%",padding:"7px 9px",borderRadius:7,border:`1px solid ${C.bd}`,
-                  fontSize:11,fontFamily:"inherit",background:C.bg1,color:C.tx1,outline:"none"}}/>
+                  fontSize:11,fontFamily:"inherit",background:C.bg1,color:C.tx,outline:"none"}}/>
             </div>
           </div>
           <div style={{marginBottom:10}}>
@@ -25197,14 +25216,14 @@ const SectionReseau = () => {
             <input value={newTitre} onChange={e=>setNewTitre(e.target.value)}
               placeholder="Ex : Lot 150 m³ chêne disponible…"
               style={{width:"100%",padding:"7px 9px",borderRadius:7,border:`1px solid ${C.bd}`,
-                fontSize:11,fontFamily:"inherit",background:C.bg1,color:C.tx1,outline:"none"}}/>
+                fontSize:11,fontFamily:"inherit",background:C.bg1,color:C.tx,outline:"none"}}/>
           </div>
           <div style={{marginBottom:12}}>
             <div style={{fontSize:10,fontWeight:700,color:C.tx2,marginBottom:4}}>Description</div>
             <textarea value={newDesc} onChange={e=>setNewDesc(e.target.value)} rows={3}
               placeholder="Détails : volume, qualité, humidité, prix, conditions, contact…"
               style={{width:"100%",padding:"7px 9px",borderRadius:7,border:`1px solid ${C.bd}`,
-                fontSize:11,fontFamily:"inherit",background:C.bg1,color:C.tx1,
+                fontSize:11,fontFamily:"inherit",background:C.bg1,color:C.tx,
                 outline:"none",resize:"vertical"}}/>
           </div>
           <div style={{display:"flex",gap:8,alignItems:"center"}}>
@@ -25236,7 +25255,7 @@ const SectionReseau = () => {
                   <div style={{fontSize:24,flexShrink:0}}>{t.icon}</div>
                   <div style={{flex:1}}>
                     <div style={{display:"flex",gap:7,alignItems:"center",marginBottom:3,flexWrap:"wrap"}}>
-                      <span style={{fontSize:12,fontWeight:800,color:C.tx1}}>{o.titre}</span>
+                      <span style={{fontSize:12,fontWeight:800,color:C.tx}}>{o.titre}</span>
                       <span style={{fontSize:9,fontWeight:700,padding:"2px 7px",borderRadius:20,
                         background:t.bg,color:t.col}}>{t.label}</span>
                     </div>
@@ -25280,7 +25299,7 @@ const SectionReseau = () => {
                   style={{background:"transparent",border:"none",cursor:"pointer",fontSize:18,color:C.tx3}}>✕</button>
               </div>
 
-              <div style={{fontSize:12,fontWeight:800,color:C.tx1,marginBottom:6,lineHeight:1.3}}>
+              <div style={{fontSize:12,fontWeight:800,color:C.tx,marginBottom:6,lineHeight:1.3}}>
                 {off.titre}
               </div>
               <div style={{fontSize:11,color:C.tx2,lineHeight:1.5,marginBottom:12}}>{off.desc}</div>
@@ -25301,7 +25320,7 @@ const SectionReseau = () => {
                 ].map(([k,v])=>(
                   <div key={k} style={{display:"flex",gap:8,borderBottom:`1px solid ${C.bd}`,paddingBottom:4}}>
                     <span style={{color:C.tx3,minWidth:110,flexShrink:0}}>{k}</span>
-                    <span style={{fontWeight:600,color:C.tx1}}>{v}</span>
+                    <span style={{fontWeight:600,color:C.tx}}>{v}</span>
                   </div>
                 ))}
               </div>
@@ -25354,7 +25373,7 @@ const SectionParametres = () => {
   return (
     <div style={{maxWidth:800,margin:"0 auto"}}>
       <div style={{marginBottom:14}}>
-        <div style={{fontSize:20,fontWeight:800,color:C.tx1}}>⚙️ Paramètres</div>
+        <div style={{fontSize:20,fontWeight:800,color:C.tx}}>⚙️ Paramètres</div>
         <div style={{fontSize:13,color:C.tx2}}>Configuration de l'entreprise, seuils d'alerte et préférences</div>
       </div>
 
@@ -25385,7 +25404,7 @@ const SectionParametres = () => {
                 <div style={{fontSize:11,fontWeight:700,color:C.tx2,marginBottom:4}}>{label}</div>
                 <input type={type} value={val} onChange={e=>setter(e.target.value)}
                   style={{width:"100%",padding:"7px 10px",borderRadius:7,border:`1px solid ${C.bd}`,
-                    fontSize:12,fontFamily:"inherit",background:C.bg1,color:C.tx1,outline:"none"}}/>
+                    fontSize:12,fontFamily:"inherit",background:C.bg1,color:C.tx,outline:"none"}}/>
               </div>
             ))}
             <div>
@@ -25412,7 +25431,7 @@ const SectionParametres = () => {
             ].map(s=>(
               <div key={s.label} style={{padding:"12px 14px",borderRadius:10,
                 border:`1px solid ${s.col}33`,background:s.col+"08"}}>
-                <div style={{fontSize:12,fontWeight:700,color:C.tx1,marginBottom:2}}>{s.label}</div>
+                <div style={{fontSize:12,fontWeight:700,color:C.tx,marginBottom:2}}>{s.label}</div>
                 <div style={{fontSize:10,color:C.tx2,marginBottom:8}}>{s.desc}</div>
                 <div style={{display:"flex",alignItems:"center",gap:10}}>
                   <input type="range" min={0} max={s.unit==="%"?100:30}
@@ -25440,7 +25459,7 @@ const SectionParametres = () => {
                 <div style={{fontSize:11,fontWeight:700,color:C.tx2,marginBottom:4}}>{label}</div>
                 <textarea defaultValue={defVal} rows={2}
                   style={{width:"100%",padding:"7px 10px",borderRadius:7,border:`1px solid ${C.bd}`,
-                    fontSize:11,fontFamily:"inherit",background:C.bg1,color:C.tx1,
+                    fontSize:11,fontFamily:"inherit",background:C.bg1,color:C.tx,
                     outline:"none",resize:"vertical"}}/>
               </div>
             ))}
@@ -25460,7 +25479,7 @@ const SectionParametres = () => {
               padding:"12px 14px",display:"flex",gap:12,alignItems:"center"}}>
               <span style={{fontSize:24}}>{s.ico}</span>
               <div style={{flex:1}}>
-                <div style={{fontSize:12,fontWeight:700,color:C.tx1}}>{s.label}</div>
+                <div style={{fontSize:12,fontWeight:700,color:C.tx}}>{s.label}</div>
                 <div style={{fontSize:10,color:C.tx2}}>{s.desc}</div>
               </div>
               <button style={{padding:"6px 14px",borderRadius:7,fontSize:11,fontWeight:700,
@@ -25563,7 +25582,7 @@ const SectionChantiers = () => {
   return (
     <div style={{maxWidth:1000,margin:"0 auto"}}>
       <div style={{marginBottom:14}}>
-        <div style={{fontSize:20,fontWeight:800,color:C.tx1}}>🌲 Chantiers forestiers</div>
+        <div style={{fontSize:20,fontWeight:800,color:C.tx}}>🌲 Chantiers forestiers</div>
         <div style={{fontSize:13,color:C.tx2}}>Déclaration, suivi terrain et clôture des chantiers</div>
       </div>
 
@@ -25614,7 +25633,7 @@ const SectionChantiers = () => {
                 <div style={{display:"flex",gap:10,alignItems:"flex-start"}}>
                   <div style={{flex:1}}>
                     <div style={{display:"flex",gap:8,alignItems:"center",marginBottom:3}}>
-                      <span style={{fontSize:12,fontWeight:800,color:C.tx1}}>{c.label}</span>
+                      <span style={{fontSize:12,fontWeight:800,color:C.tx}}>{c.label}</span>
                       <span style={{fontSize:9,fontWeight:700,padding:"2px 7px",borderRadius:20,
                         background:st.bg,color:st.col}}>{st.icon} {st.label}</span>
                       {c.alertes>0&&<span style={{fontSize:9,fontWeight:700,padding:"2px 7px",
@@ -25648,7 +25667,7 @@ const SectionChantiers = () => {
               padding:16,position:"sticky",top:0}}>
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:12}}>
                 <div>
-                  <div style={{fontSize:13,fontWeight:800,color:C.tx1}}>{ch.id}</div>
+                  <div style={{fontSize:13,fontWeight:800,color:C.tx}}>{ch.id}</div>
                   <span style={{fontSize:10,fontWeight:700,padding:"2px 7px",borderRadius:20,
                     background:st.bg,color:st.col}}>{st.icon} {st.label}</span>
                 </div>
@@ -25686,7 +25705,7 @@ const SectionChantiers = () => {
                   ].map(([k,v])=>(
                     <div key={k} style={{display:"flex",gap:8,borderBottom:`1px solid ${C.bd}`,paddingBottom:5}}>
                       <span style={{color:C.tx3,minWidth:130,flexShrink:0}}>{k}</span>
-                      <span style={{fontWeight:600,color:C.tx1}}>{v}</span>
+                      <span style={{fontWeight:600,color:C.tx}}>{v}</span>
                     </div>
                   ))}
                 </div>
@@ -25705,12 +25724,12 @@ const SectionChantiers = () => {
                   <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginTop:4}}>
                     <div style={{background:"#F9FAFB",borderRadius:8,padding:10,textAlign:"center"}}>
                       <div style={{fontSize:18}}>📷</div>
-                      <div style={{fontSize:16,fontWeight:800,color:C.tx1}}>{ch.photos}</div>
+                      <div style={{fontSize:16,fontWeight:800,color:C.tx}}>{ch.photos}</div>
                       <div style={{fontSize:10,color:C.tx3}}>Photos</div>
                     </div>
                     <div style={{background:"#F9FAFB",borderRadius:8,padding:10,textAlign:"center"}}>
                       <div style={{fontSize:18}}>📄</div>
-                      <div style={{fontSize:16,fontWeight:800,color:C.tx1}}>{ch.docs}</div>
+                      <div style={{fontSize:16,fontWeight:800,color:C.tx}}>{ch.docs}</div>
                       <div style={{fontSize:10,color:C.tx3}}>Documents</div>
                     </div>
                   </div>
@@ -25723,7 +25742,7 @@ const SectionChantiers = () => {
                     <div key={i} style={{background:"#F9FAFB",borderRadius:8,padding:"9px 12px",
                       border:`1px solid ${C.bd}`,fontSize:11,display:"flex",gap:8,alignItems:"center"}}>
                       <span style={{fontSize:18}}>🚜</span>
-                      <span style={{fontWeight:600,color:C.tx1}}>{m}</span>
+                      <span style={{fontWeight:600,color:C.tx}}>{m}</span>
                     </div>
                   ))}
                   <div style={{marginTop:8,padding:10,background:"#EDE9FE",borderRadius:8,
@@ -25821,7 +25840,7 @@ const SectionTransports = () => {
   return (
     <div style={{maxWidth:1000,margin:"0 auto"}}>
       <div style={{marginBottom:14}}>
-        <div style={{fontSize:20,fontWeight:800,color:C.tx1}}>🚛 Transports</div>
+        <div style={{fontSize:20,fontWeight:800,color:C.tx}}>🚛 Transports</div>
         <div style={{fontSize:13,color:C.tx2}}>Planification, suivi et traçabilité des enlèvements</div>
       </div>
 
@@ -25872,7 +25891,7 @@ const SectionTransports = () => {
                 <div style={{display:"flex",gap:10,alignItems:"flex-start"}}>
                   <div style={{flex:1}}>
                     <div style={{display:"flex",gap:8,alignItems:"center",marginBottom:3}}>
-                      <span style={{fontSize:12,fontWeight:800,color:C.tx1}}>{t.id}</span>
+                      <span style={{fontSize:12,fontWeight:800,color:C.tx}}>{t.id}</span>
                       <span style={{fontSize:9,fontWeight:700,padding:"2px 7px",borderRadius:20,
                         background:st.bg,color:st.col}}>{st.icon} {st.label}</span>
                       {t.alertes>0&&<span style={{fontSize:9,fontWeight:700,padding:"2px 7px",
@@ -25927,7 +25946,7 @@ const SectionTransports = () => {
               padding:16,position:"sticky",top:0}}>
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:10}}>
                 <div>
-                  <div style={{fontSize:13,fontWeight:800,color:C.tx1}}>{tr.id}</div>
+                  <div style={{fontSize:13,fontWeight:800,color:C.tx}}>{tr.id}</div>
                   <span style={{fontSize:10,fontWeight:700,padding:"2px 7px",borderRadius:20,
                     background:st.bg,color:st.col}}>{st.icon} {st.label}</span>
                 </div>
@@ -25976,7 +25995,7 @@ const SectionTransports = () => {
                 ].map(([k,v])=>(
                   <div key={k} style={{display:"flex",gap:8,borderBottom:`1px solid ${C.bd}`,paddingBottom:5}}>
                     <span style={{color:C.tx3,minWidth:110,flexShrink:0}}>{k}</span>
-                    <span style={{fontWeight:600,color:C.tx1}}>{v}</span>
+                    <span style={{fontWeight:600,color:C.tx}}>{v}</span>
                   </div>
                 ))}
               </div>
@@ -26160,7 +26179,7 @@ const SectionAnalyses = () => {
     <div style={{maxWidth:1000,margin:"0 auto"}}>
       {/* En-tête */}
       <div style={{marginBottom:16}}>
-        <div style={{fontSize:20,fontWeight:800,color:C.tx1,marginBottom:4}}>📊 APPLITAG Analyses</div>
+        <div style={{fontSize:20,fontWeight:800,color:C.tx,marginBottom:4}}>📊 APPLITAG Analyses</div>
         <div style={{fontSize:13,color:C.tx2}}>Rentabilité, coûts et performance par lot · chantier · client</div>
       </div>
 
@@ -26214,7 +26233,7 @@ const SectionAnalyses = () => {
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
           {/* Décomposition des coûts */}
           <div style={{background:"#fff",borderRadius:12,border:`1px solid ${C.bd}`,padding:16}}>
-            <div style={{fontSize:12,fontWeight:700,color:C.tx1,marginBottom:12}}>⚙️ Décomposition des coûts (€/tonne moyen)</div>
+            <div style={{fontSize:12,fontWeight:700,color:C.tx,marginBottom:12}}>⚙️ Décomposition des coûts (€/tonne moyen)</div>
             {[
               {label:"Achat bois",key:"coutAchat",col:"#1E5B3A"},
               {label:"Travaux chantier",key:"coutChantier",col:"#0369A1"},
@@ -26227,7 +26246,7 @@ const SectionAnalyses = () => {
                 <div key={item.key} style={{marginBottom:8}}>
                   <div style={{display:"flex",justifyContent:"space-between",fontSize:11,marginBottom:3}}>
                     <span style={{color:C.tx2}}>{item.label}</span>
-                    <span style={{fontWeight:700,color:C.tx1}}>{moy} €/t <span style={{color:C.tx3,fontWeight:400}}>({pct}%)</span></span>
+                    <span style={{fontWeight:700,color:C.tx}}>{moy} €/t <span style={{color:C.tx3,fontWeight:400}}>({pct}%)</span></span>
                   </div>
                   <div style={{height:8,borderRadius:4,background:"#F3F4F6",overflow:"hidden"}}>
                     <div style={{height:"100%",width:`${pct}%`,background:item.col,borderRadius:4}}/>
@@ -26238,7 +26257,7 @@ const SectionAnalyses = () => {
             <div style={{marginTop:10,paddingTop:8,borderTop:`1px solid ${C.bd}`,
               display:"flex",justifyContent:"space-between",fontSize:11}}>
               <span style={{color:C.tx2,fontWeight:700}}>Total coûts</span>
-              <span style={{fontWeight:900,color:C.tx1}}>{coutMoyTonne} €/t</span>
+              <span style={{fontWeight:900,color:C.tx}}>{coutMoyTonne} €/t</span>
             </div>
             <div style={{display:"flex",justifyContent:"space-between",fontSize:11,marginTop:4}}>
               <span style={{color:"#059669",fontWeight:700}}>Marge brute</span>
@@ -26248,7 +26267,7 @@ const SectionAnalyses = () => {
 
           {/* Évolution mensuelle CA + Marge */}
           <div style={{background:"#fff",borderRadius:12,border:`1px solid ${C.bd}`,padding:16}}>
-            <div style={{fontSize:12,fontWeight:700,color:C.tx1,marginBottom:8}}>📅 Évolution mensuelle CA / Marge</div>
+            <div style={{fontSize:12,fontWeight:700,color:C.tx,marginBottom:8}}>📅 Évolution mensuelle CA / Marge</div>
             <div style={{display:"flex",gap:10,marginBottom:8}}>
               <div style={{display:"flex",gap:4,alignItems:"center",fontSize:10}}>
                 <div style={{width:10,height:10,borderRadius:2,background:"#1E5B3A"}}/>CA
@@ -26282,13 +26301,13 @@ const SectionAnalyses = () => {
 
           {/* Top clients par marge */}
           <div style={{background:"#fff",borderRadius:12,border:`1px solid ${C.bd}`,padding:16}}>
-            <div style={{fontSize:12,fontWeight:700,color:C.tx1,marginBottom:10}}>👥 Clients — Classement par marge</div>
+            <div style={{fontSize:12,fontWeight:700,color:C.tx,marginBottom:10}}>👥 Clients — Classement par marge</div>
             {clientsData.sort((a,b)=>b.margePct-a.margePct).map((cl,i)=>(
               <div key={cl.client} style={{display:"flex",gap:10,alignItems:"center",
                 padding:"7px 0",borderBottom:i<clientsData.length-1?`1px solid ${C.bd}`:"none"}}>
                 <JaugeMarge pct={cl.margePct}/>
                 <div style={{flex:1}}>
-                  <div style={{fontSize:12,fontWeight:700,color:C.tx1}}>{cl.client}</div>
+                  <div style={{fontSize:12,fontWeight:700,color:C.tx}}>{cl.client}</div>
                   <div style={{fontSize:10,color:C.tx2}}>
                     {cl.lots} lots · {cl.tonne} t · CA {fmt(cl.caTotal)}
                   </div>
@@ -26303,7 +26322,7 @@ const SectionAnalyses = () => {
 
           {/* Alertes financières */}
           <div style={{background:"#fff",borderRadius:12,border:`1px solid ${C.bd}`,padding:16}}>
-            <div style={{fontSize:12,fontWeight:700,color:C.tx1,marginBottom:10}}>⚠️ Points d'attention financiers</div>
+            <div style={{fontSize:12,fontWeight:700,color:C.tx,marginBottom:10}}>⚠️ Points d'attention financiers</div>
             {[
               {icon:"🔴",msg:"LOT-2026-028 (Chaufferie St-Amand) : humidité 36% — risque de refus ou décote",type:"qualité"},
               {icon:"🟠",msg:"LOT-2026-035 (Lycée agricole) : marge 25% — coût transport élevé (10 €/t)",type:"coût"},
@@ -26340,7 +26359,7 @@ const SectionAnalyses = () => {
               borderBottom:i<lotsFiltres.length-1?`1px solid ${C.bd}`:"none",
               background:i%2===0?"#fff":"#FAFAFA"}}>
               <div>
-                <div style={{fontSize:11,fontWeight:700,color:C.tx1}}>{l.label}</div>
+                <div style={{fontSize:11,fontWeight:700,color:C.tx}}>{l.label}</div>
                 <div style={{fontSize:10,color:C.tx2}}>{l.client} · {l.mois.slice(0,7)}</div>
                 <div style={{fontSize:9,color:C.tx3}}>{l.essences} · H={l.humidite}%</div>
               </div>
@@ -26384,7 +26403,7 @@ const SectionAnalyses = () => {
                   borderBottom:`1px solid ${C.bd}`}}>
                   <JaugeMarge pct={cl.margePct} size={52}/>
                   <div style={{flex:1}}>
-                    <div style={{fontSize:14,fontWeight:800,color:C.tx1}}>{cl.client}</div>
+                    <div style={{fontSize:14,fontWeight:800,color:C.tx}}>{cl.client}</div>
                     <div style={{fontSize:11,color:C.tx2,marginTop:2}}>
                       {cl.lots} lots · {cl.tonne} tonnes · CA {fmt(cl.caTotal)}
                     </div>
@@ -26399,7 +26418,7 @@ const SectionAnalyses = () => {
                     {lotsClient.map(l=>(
                       <div key={l.id} style={{background:"#F9FAFB",borderRadius:8,padding:"8px 10px",
                         border:`1px solid ${C.bd}`,fontSize:10}}>
-                        <div style={{fontWeight:700,color:C.tx1,marginBottom:2}}>{l.label.slice(-6)}</div>
+                        <div style={{fontWeight:700,color:C.tx,marginBottom:2}}>{l.label.slice(-6)}</div>
                         <div style={{color:C.tx3}}>{l.mois.slice(0,7)}</div>
                         <div style={{color:C.tx2}}>{l.tonne} t</div>
                         <div style={{fontWeight:700,color:l.margePct>=25?"#059669":"#D97706"}}>
@@ -26419,7 +26438,7 @@ const SectionAnalyses = () => {
       {vue==="mensuel"&&(
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
           <div style={{background:"#fff",borderRadius:12,border:`1px solid ${C.bd}`,padding:16}}>
-            <div style={{fontSize:12,fontWeight:700,color:C.tx1,marginBottom:10}}>
+            <div style={{fontSize:12,fontWeight:700,color:C.tx,marginBottom:10}}>
               💶 CA mensuel (€)
             </div>
             <BarChart
@@ -26428,7 +26447,7 @@ const SectionAnalyses = () => {
             />
           </div>
           <div style={{background:"#fff",borderRadius:12,border:`1px solid ${C.bd}`,padding:16}}>
-            <div style={{fontSize:12,fontWeight:700,color:C.tx1,marginBottom:10}}>
+            <div style={{fontSize:12,fontWeight:700,color:C.tx,marginBottom:10}}>
               💰 Marge brute mensuelle (€)
             </div>
             <BarChart
@@ -26437,7 +26456,7 @@ const SectionAnalyses = () => {
             />
           </div>
           <div style={{background:"#fff",borderRadius:12,border:`1px solid ${C.bd}`,padding:16,gridColumn:"1/-1"}}>
-            <div style={{fontSize:12,fontWeight:700,color:C.tx1,marginBottom:10}}>📅 Synthèse mensuelle</div>
+            <div style={{fontSize:12,fontWeight:700,color:C.tx,marginBottom:10}}>📅 Synthèse mensuelle</div>
             <div style={{overflowX:"auto"}}>
               <table style={{width:"100%",borderCollapse:"collapse",fontSize:11}}>
                 <thead>
@@ -26609,7 +26628,7 @@ const SectionDocuments = () => {
   return (
     <div style={{maxWidth:1000,margin:"0 auto"}}>
       <div style={{marginBottom:16}}>
-        <div style={{fontSize:20,fontWeight:800,color:C.tx1,marginBottom:4}}>📄 APPLITAG Documents</div>
+        <div style={{fontSize:20,fontWeight:800,color:C.tx,marginBottom:4}}>📄 APPLITAG Documents</div>
         <div style={{fontSize:13,color:C.tx2}}>Génération, classement et archivage des documents métier</div>
       </div>
 
@@ -26650,7 +26669,7 @@ const SectionDocuments = () => {
               value={searchQ} onChange={e=>setSearchQ(e.target.value)}
               placeholder="Rechercher un document…"
               style={{marginLeft:"auto",padding:"5px 10px",borderRadius:7,border:`1px solid ${C.bd}`,
-                fontSize:11,fontFamily:"inherit",background:C.bg1,color:C.tx1,outline:"none",minWidth:180}}
+                fontSize:11,fontFamily:"inherit",background:C.bg1,color:C.tx,outline:"none",minWidth:180}}
             />
           </div>
 
@@ -26665,7 +26684,7 @@ const SectionDocuments = () => {
                 <div style={{display:"flex",gap:8,alignItems:"flex-start",marginBottom:8}}>
                   <div style={{fontSize:22,lineHeight:1}}>{doc.icon}</div>
                   <div style={{flex:1}}>
-                    <div style={{fontSize:12,fontWeight:800,color:C.tx1,marginBottom:2}}>{doc.label}</div>
+                    <div style={{fontSize:12,fontWeight:800,color:C.tx,marginBottom:2}}>{doc.label}</div>
                     <div style={{fontSize:9,fontWeight:600,padding:"2px 6px",borderRadius:4,display:"inline-block",
                       background:doc.couleur+"15",color:doc.couleur}}>
                       {doc.cat}
@@ -26692,7 +26711,7 @@ const SectionDocuments = () => {
               <div style={{display:"flex",gap:12,alignItems:"flex-start",marginBottom:14}}>
                 <div style={{fontSize:32}}>{docPreview.icon}</div>
                 <div style={{flex:1}}>
-                  <div style={{fontSize:15,fontWeight:800,color:C.tx1}}>{docPreview.label}</div>
+                  <div style={{fontSize:15,fontWeight:800,color:C.tx}}>{docPreview.label}</div>
                   <div style={{fontSize:12,color:C.tx2,marginTop:2}}>{docPreview.desc}</div>
                 </div>
                 <button onClick={()=>setDocPreview(null)}
@@ -26702,7 +26721,7 @@ const SectionDocuments = () => {
               <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16}}>
                 {/* Champs inclus */}
                 <div>
-                  <div style={{fontSize:11,fontWeight:700,color:C.tx1,marginBottom:8}}>📌 Champs inclus</div>
+                  <div style={{fontSize:11,fontWeight:700,color:C.tx,marginBottom:8}}>📌 Champs inclus</div>
                   <div style={{display:"flex",flexDirection:"column",gap:4}}>
                     {docPreview.champs.map((ch,i)=>(
                       <div key={i} style={{display:"flex",alignItems:"center",gap:6,fontSize:11,
@@ -26716,7 +26735,7 @@ const SectionDocuments = () => {
 
                 {/* Simulation de contenu */}
                 <div>
-                  <div style={{fontSize:11,fontWeight:700,color:C.tx1,marginBottom:8}}>📄 Aperçu du document</div>
+                  <div style={{fontSize:11,fontWeight:700,color:C.tx,marginBottom:8}}>📄 Aperçu du document</div>
                   <div style={{background:"#F9FAFB",borderRadius:10,border:`1px solid ${C.bd}`,
                     padding:14,fontFamily:"Georgia,serif",fontSize:10,color:"#374151",lineHeight:1.6}}>
                     <div style={{textAlign:"center",marginBottom:10,borderBottom:`1px solid ${C.bd}`,paddingBottom:8}}>
@@ -26771,7 +26790,7 @@ const SectionDocuments = () => {
           <div style={{background:"#fff",borderRadius:12,border:`1px solid ${C.bd}`,overflow:"hidden"}}>
             <div style={{padding:"10px 14px",borderBottom:`1px solid ${C.bd}`,
               display:"flex",gap:12,alignItems:"center",background:"#F9FAFB"}}>
-              <div style={{fontSize:12,fontWeight:700,color:C.tx1,flex:1}}>
+              <div style={{fontSize:12,fontWeight:700,color:C.tx,flex:1}}>
                 Documents générés et archivés
               </div>
               <div style={{fontSize:10,color:C.tx3}}>Triés par date décroissante</div>
@@ -26787,7 +26806,7 @@ const SectionDocuments = () => {
                   background:i%2===0?"#fff":"#FAFAFA"}}>
                   <div style={{fontSize:20,textAlign:"center"}}>{type?.icon||"📄"}</div>
                   <div>
-                    <div style={{fontSize:12,fontWeight:700,color:C.tx1}}>{doc.ref}</div>
+                    <div style={{fontSize:12,fontWeight:700,color:C.tx}}>{doc.ref}</div>
                     <div style={{display:"flex",gap:8,marginTop:2,flexWrap:"wrap"}}>
                       <span style={{fontSize:10,color:C.tx3}}>
                         {new Date(doc.date).toLocaleDateString("fr-FR")}
@@ -26941,7 +26960,7 @@ const SectionTerritoire = () => {
     <div style={{maxWidth:1000,margin:"0 auto"}}>
       {/* En-tête */}
       <div style={{marginBottom:16}}>
-        <div style={{fontSize:20,fontWeight:800,color:C.tx1,marginBottom:4}}>🗺️ Double lecture territoire</div>
+        <div style={{fontSize:20,fontWeight:800,color:C.tx,marginBottom:4}}>🗺️ Double lecture territoire</div>
         <div style={{fontSize:13,color:C.tx2}}>
           Données publiques CARTOFOB · Données terrain APPLITAG · Ne pas confondre les deux registres
         </div>
@@ -27089,7 +27108,7 @@ const SectionTerritoire = () => {
 
           {/* Ratio volume sécurisé */}
           <div style={{background:"#fff",borderRadius:12,border:`1px solid ${C.bd}`,padding:16,marginBottom:14}}>
-            <div style={{fontSize:12,fontWeight:700,color:C.tx1,marginBottom:10}}>
+            <div style={{fontSize:12,fontWeight:700,color:C.tx,marginBottom:10}}>
               Volume bois énergie : potentiel statistique vs volume sécurisé APPLITAG
             </div>
             <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:6}}>
@@ -27126,7 +27145,7 @@ const SectionTerritoire = () => {
 
           {/* Chaufferies locales */}
           <div style={{background:"#fff",borderRadius:12,border:`1px solid ${C.bd}`,padding:16}}>
-            <div style={{fontSize:12,fontWeight:700,color:C.tx1,marginBottom:10}}>
+            <div style={{fontSize:12,fontWeight:700,color:C.tx,marginBottom:10}}>
               🔥 Chaufferies et bassins d'approvisionnement — {T.nom}
             </div>
             <div style={{display:"grid",gridTemplateColumns:"repeat(2,1fr)",gap:8}}>
