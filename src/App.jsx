@@ -2052,8 +2052,6 @@ const Fiche0 = ({onBack, onSaved, toast, contactCount, entrepriseId, prefill=nul
   const handleSave = async () => {
     if (!validate()) { toast("Compléter les champs obligatoires","warn"); return; }
     setSaving(true);
-    const seq = (contactCount||0) + 1;
-    const lotNumero = genLotNumero(codePostal, seq);
     const contact = {
       nom, prenom, telephone, email,
       adressePostale, complementAdresse, cpProprietaire, villeProprietaire, commune, adresseParcelle,
@@ -2061,8 +2059,10 @@ const Fiche0 = ({onBack, onSaved, toast, contactCount, entrepriseId, prefill=nul
       refCadastrale, typeContact, origine, nomApporteur, dateContact,
       statut, potentiel: typeRessource==="mixte"
         ? `mixte:${mixteDetails.join(",")}`
-        : typeRessource, commentaire, lotNumero,
+        : typeRessource, commentaire,
+      codePostal,
       entrepriseId, redacteur, conclusion, exploitationAutorisee,
+      // lotNumero omis volontairement : généré côté serveur (P0.5)
     };
     try {
       const res = await fetch(`${API}/contacts`, {
@@ -2072,6 +2072,7 @@ const Fiche0 = ({onBack, onSaved, toast, contactCount, entrepriseId, prefill=nul
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const saved = await res.json();
+      const lotNumero = saved.lotNumero;
       toast(`Fiche créée — ${lotNumero}`);
       const html = buildCompteRenduContactHTML(saved);
       generatePdfFromHtml(html, `CompteRenduContact_${lotNumero}.pdf`, toast);
@@ -2279,11 +2280,12 @@ const Fiche0 = ({onBack, onSaved, toast, contactCount, entrepriseId, prefill=nul
           <div style={{background:C.greenL,borderRadius:12,padding:14,marginTop:4,
             border:`1.5px solid ${C.green}`}}>
             <div style={{fontSize:12,color:C.greenD,fontWeight:600,marginBottom:4}}>
-              🏷 Numéro de lot généré
+              🏷 Numéro de lot (attribué à l'enregistrement)
             </div>
-            <div style={{fontFamily:"monospace",fontSize:18,fontWeight:700,color:C.greenD}}>
-              {genLotNumero(codePostal,(contactCount||0)+1)}
+            <div style={{fontFamily:"monospace",fontSize:14,fontWeight:600,color:C.greenD,opacity:0.7,letterSpacing:1}}>
+              LOT-{new Date().getFullYear()}-{String(new Date().getMonth()+1).padStart(2,"0")}-{(codePostal||"00").slice(0,2)}-<span style={{opacity:0.5}}>NNN</span>
             </div>
+            <div style={{fontSize:10,color:C.tx3,marginTop:2}}>Le numéro séquentiel est attribué par le serveur à la création.</div>
           </div>
         )}
       </div>
