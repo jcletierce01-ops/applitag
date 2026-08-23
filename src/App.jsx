@@ -42,23 +42,30 @@ const INPUT_H = 52;
 const FONT_INPUT = 16;
 const PADDING = 16;
 
-const uid = () => Math.random().toString(36).slice(2,9);
+const uid = () => crypto.randomUUID();
 const nowISO = () => new Date().toISOString();
 const todayS = () => new Date().toISOString().slice(0,10);
 // Code à usage unique (ordre d'exploitation) — 8 caractères, alphabet sans caractères ambigus (0/O, 1/I/L).
 const genCode = () => {
   const alphabet = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
-  let out = "";
-  for (let i=0; i<8; i++) out += alphabet[Math.floor(Math.random()*alphabet.length)];
-  return out;
+  const bytes = crypto.getRandomValues(new Uint8Array(8));
+  return Array.from(bytes, b => alphabet[b % alphabet.length]).join("");
 };
 const genCodeAPT = () => {
   const alpha = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
-  const part = (n) => Array.from({length:n},()=>alpha[Math.floor(Math.random()*alpha.length)]).join("");
-  return `APT-${part(4)}-${part(4)}`;
+  const b = crypto.getRandomValues(new Uint8Array(8));
+  const part = (s, n) => Array.from(b.slice(s, s+n), x => alpha[x % alpha.length]).join("");
+  return `APT-${part(0,4)}-${part(4,4)}`;
 };
-// PIN opérateur — 6 chiffres (au lieu de 4) pour plus de robustesse.
-const genPin4 = () => String(Math.floor(100000 + Math.random()*900000));
+// PIN opérateur — 6 chiffres générés côté serveur (crypto.randomInt).
+const genPin4 = async () => {
+  const r = await fetch(`${API}/operateurs/generate-pin`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${localStorage.getItem("applitag_jwt")}` },
+  });
+  if (!r.ok) throw new Error("Génération PIN échouée");
+  return (await r.json()).pin;
+};
 
 // Stockage de repli pour les ordres d'exploitation, tant que l'API /ordres-exploitation
 // n'est pas garantie disponible — permet la validation par code sans dépendre du backend.
@@ -2478,11 +2485,18 @@ const GpsWidget = ({value,onChange,required}) => {
       navigator.geolocation.getCurrentPosition(
         pos => { onChange({lat:pos.coords.latitude,lng:pos.coords.longitude,
           accuracy:pos.coords.accuracy,source:"gps"}); setLoading(false); },
-        () => { onChange({lat:47.98+(Math.random()-.5)*.02,
-          lng:3.09+(Math.random()-.5)*.02,source:"sim"}); setLoading(false); },
+        () => {
+          if (IS_DEMO_BUILD) {
+            onChange({lat:47.98+(Math.random()-.5)*.02,lng:3.09+(Math.random()-.5)*.02,source:"sim"});
+          }
+          setLoading(false);
+        },
         {enableHighAccuracy:true,timeout:10000}
       );
-    } else { onChange({lat:47.98,lng:3.09,source:"sim"}); setLoading(false); }
+    } else {
+      if (IS_DEMO_BUILD) onChange({lat:47.98,lng:3.09,source:"sim"});
+      setLoading(false);
+    }
   };
   if (value) return (
     <div style={{background:C.greenL,borderRadius:12,padding:"14px",
@@ -4901,7 +4915,7 @@ const EcranReleves = ({entrepriseId, user, toast, notifications=[], setNotificat
                     padding:"0 14px",borderRadius:12,border:`1.5px solid ${C.bd}`,background:C.bg2}}>
                     <span style={{flex:1,fontFamily:"monospace",fontSize:20,fontWeight:700,
                       letterSpacing:6,color:C.tx}}>{opPin}</span>
-                    <button onClick={()=>setOpPin(genPin4())} style={{
+                    <button onClick={async()=>{ try{setOpPin(await genPin4());}catch{toast("Erreur génération PIN — réessayez","warn");} }} style={{
                       background:C.greenL,border:`1px solid ${C.green}`,color:C.greenD,
                       borderRadius:8,padding:"6px 10px",fontSize:12,fontWeight:600,
                       cursor:"pointer",WebkitTapHighlightColor:"transparent"}}>🔄 Régénérer</button>
@@ -5223,7 +5237,7 @@ const EcranReleves = ({entrepriseId, user, toast, notifications=[], setNotificat
 
       {sousOnglet==="operateurs"&&!showNew&&!selOp&&(
         <div style={{padding:"12px 16px 24px",flexShrink:0}}>
-          <BigBtn onClick={()=>{ setOpPin(genPin4()); setShowNew(true); }} bg={C.green} icon="👷">Nouvel opérateur</BigBtn>
+          <BigBtn onClick={async()=>{ try{const p=await genPin4();setOpPin(p);setShowNew(true);}catch{toast("Erreur génération PIN — réessayez","warn");} }} bg={C.green} icon="👷">Nouvel opérateur</BigBtn>
         </div>
       )}
       {sousOnglet==="notifs"&&(
@@ -7119,19 +7133,19 @@ const ModalDelegationVisite = ({lot, operateurs, onDeleguee, onIgnorer}) => {
   const handleDelegueer = async () => {
     if (!nomDelegue) { return; }
     setSaving(true);
-    const code = Math.random().toString(36).slice(2,8).toUpperCase();
     try {
       const res = await fetch(`${API}/acces-lot`,{
-        method:"POST", headers:{"Content-Type":"application/json"},
+        method:"POST", headers:authHeaders(),
         body:JSON.stringify({lotId:lot.id,lotNumero:lot.lotNumero,
-          nomDelegue,telDelegue,qualiteDelegue,code,expiresAt:dateExpiry,type:"visite"}),
+          nomDelegue,telDelegue,qualiteDelegue,expiresAt:dateExpiry,type:"visite"}),
       });
       if (!res.ok) { setSaving(false); alert("Erreur serveur — délégation non enregistrée"); return; }
+      const created = await res.json();
+      setCodeGenere(created.code); setSaving(false);
+      onDeleguee&&onDeleguee({nomDelegue,code:created.code});
     } catch {
       setSaving(false); alert("Pas de connexion — délégation non enregistrée"); return;
     }
-    setCodeGenere(code); setSaving(false);
-    onDeleguee&&onDeleguee({nomDelegue,code});
   };
 
   return (
