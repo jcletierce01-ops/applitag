@@ -20,7 +20,7 @@ import { C, FONT_TITLE, FONT_BODY, BTN_H, INPUT_H, FONT_INPUT, PADDING } from ".
 import { uid, nowISO, todayS, genCode, genCodeAPT } from "./shared/utils.js";
 import { getToken, getUser, getEntrepriseId, setAuth, clearAuth, authHeaders } from "./services/auth.service.js";
 import { fmtNum } from "./shared/format.js";
-import { INDICES_ESSENCE } from "./metier/formules.js";
+import { INDICES_ESSENCE, calculerPoidsAjuste as poidsAjusteHumidite, indicesPonderes } from "./metier/formules.js";
 
 const API = API_BASE_URL;
 // PIN opérateur — 6 chiffres générés côté serveur (crypto.randomInt).
@@ -2550,30 +2550,8 @@ const LISTE_ESSENCES_ITEBE = [
 // Indices ITEBE importés depuis src/metier/formules.js (source unique ITEBE 2004)
 const INDICES_ESSENCE_ITEBE = INDICES_ESSENCE;
 
-// Indices pondérés par la composition réelle du lot (% par essence) — résultat plus proche de la réalité
-// qu'un calcul sur la seule essence dominante.
-const indicesPonderes = (essences) => {
-  if (!essences?.length) return INDICES_ESSENCE_ITEBE.melange;
-  const total = essences.reduce((s,e)=>s+e.pct,0) || 100;
-  const get = id => INDICES_ESSENCE_ITEBE[id] || INDICES_ESSENCE_ITEBE.melange;
-  return {
-    densite:     essences.reduce((s,e)=>s+get(e.id).densite*e.pct,0)/total,
-    pci:         essences.reduce((s,e)=>s+get(e.id).pci*e.pct,0)/total,
-    foisonnement:essences.reduce((s,e)=>s+get(e.id).foisonnement*e.pct,0)/total,
-    hauteurMoy:  essences.reduce((s,e)=>s+get(e.id).hauteurMoy*e.pct,0)/total,
-  };
-};
-
-// La "densité verte" ITEBE est calibrée pour du bois fraîchement abattu, à une humidité de
-// référence d'env. 50% (sur brut). Le poids réel d'un lot dépend de son humidité mesurée à la
-// réception (le bois ressuyé sur plateforme pèse moins, à volume égal, qu'un bois vert) :
-// poids(H) = volume × densité_verte × (1 − H_réf/100) / (1 − H_mesurée/100)
-const HUMIDITE_REF_ITEBE = 50;
-const poidsAjusteHumidite = (volumeM3, densite, humiditePct) => {
-  const h = Math.min(95, Math.max(0, parseFloat(humiditePct)));
-  const facteur = (1 - HUMIDITE_REF_ITEBE/100) / (1 - h/100);
-  return volumeM3 * densite * facteur / 1000;
-};
+// indicesPonderes et poidsAjusteHumidite importés depuis src/metier/formules.js
+const HUMIDITE_REF_ITEBE = 50; // valeur numérique pour affichage (référence ITEBE 2004)
 
 const EssenceEditor = ({essences,onChange}) => {
   const LISTE = LISTE_ESSENCES_ITEBE;

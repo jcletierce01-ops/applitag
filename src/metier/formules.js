@@ -255,3 +255,28 @@ estimerVolumeParHa.meta = {
   },
   uniteSortie: UNITES.TONNE,
 };
+
+/**
+ * Indices pondérés par la composition réelle du lot (tableau {id, pct}).
+ * Retourne les indices du mélange par défaut si le tableau est vide.
+ * Source : ITEBE 2004.
+ */
+export const indicesPonderes = (essences) => {
+  if (!essences?.length) return INDICES_ESSENCE.melange;
+  const total = essences.reduce((s, e) => s + e.pct, 0) || 100;
+  const get = id => INDICES_ESSENCE[id] || INDICES_ESSENCE.melange;
+  return {
+    densite:      essences.reduce((s, e) => s + get(e.id).densite * e.pct, 0) / total,
+    pci:          essences.reduce((s, e) => s + get(e.id).pci * e.pct, 0) / total,
+    foisonnement: essences.reduce((s, e) => s + get(e.id).foisonnement * e.pct, 0) / total,
+    hauteurMoy:   essences.reduce((s, e) => s + get(e.id).hauteurMoy * e.pct, 0) / total,
+  };
+};
+indicesPonderes.meta = {
+  id: 'FORMULE_INDICES_PONDERES',
+  version: '1.0.0',
+  statut: STATUT.VALIDEE,
+  source: 'ITEBE 2004 — pondération par surface terrière de chaque essence',
+  uniteEntree: { essences: 'tableau [{id, pct}]' },
+  uniteSortie: 'IndiceEssence',
+};
