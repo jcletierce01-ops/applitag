@@ -18,6 +18,8 @@ import {
 } from "./demo/demoData.js";
 import { C, FONT_TITLE, FONT_BODY, BTN_H, INPUT_H, FONT_INPUT, PADDING } from "./design-system/tokens.js";
 import { uid, nowISO, todayS, genCode, genCodeAPT } from "./shared/utils.js";
+import { getToken, getUser, getEntrepriseId, setAuth, clearAuth, authHeaders } from "./services/auth.service.js";
+import { fmtNum } from "./shared/format.js";
 
 const API = API_BASE_URL;
 // PIN opérateur — 6 chiffres générés côté serveur (crypto.randomInt).
@@ -104,12 +106,7 @@ const STATUTS_ANNONCE = {
   archive:     {label:"Archivé",     color:C.tx3,    bg:C.bg2},
 };
 const ORDRE_STATUTS_ANNONCE = ["recu","a_qualifier","valide","publie","archive"];
-// Formate un nombre avec séparateur de milliers (espace) et virgule décimale
-const fmtNum = (n, decimals=0) => {
-  const num = parseFloat(n);
-  if (isNaN(num)) return n;
-  return num.toLocaleString("fr-FR", {minimumFractionDigits:decimals, maximumFractionDigits:decimals});
-};
+// fmtNum importé depuis src/shared/format.js
 
 const genLotNumero = (codePostal, seq) => {
   const now = new Date();
@@ -120,24 +117,7 @@ const genLotNumero = (codePostal, seq) => {
   return `LOT-${annee}-${mois}-${dept}-${seqStr}`;
 };
 
-// Auth helpers
-const getToken = () => localStorage.getItem("applitag_token");
-const getUser  = () => { try { return JSON.parse(localStorage.getItem("applitag_user")||"null"); } catch { return null; } };
-const getEntrepriseId = () => localStorage.getItem("applitag_entreprise_id");
-const setAuth  = (token, user, entrepriseId) => {
-  localStorage.setItem("applitag_token", token);
-  localStorage.setItem("applitag_user", JSON.stringify(user));
-  localStorage.setItem("applitag_entreprise_id", entrepriseId);
-};
-const clearAuth = () => {
-  localStorage.removeItem("applitag_token");
-  localStorage.removeItem("applitag_user");
-  localStorage.removeItem("applitag_entreprise_id");
-};
-const authHeaders = () => ({
-  "Content-Type":"application/json",
-  "Authorization":`Bearer ${getToken()}`,
-});
+// Auth helpers importés depuis src/services/auth.service.js
 
 const ORIGINE_OPTS = [
   ["appel_entrant","📞","Appel entrant"],
