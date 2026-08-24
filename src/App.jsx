@@ -2898,7 +2898,8 @@ const STEPS = [
 
 const DRAFT_KEY = "applitag_visite_draft";
 
-// Cubage π/4 × D² × H par tige, × nb tiges/ha × surface, converti en tonnes via densité essence
+// ⚠ NON_VALIDEE (formules.js:FORMULE_CUBAGE_CYLINDRE) — formule cylindrique sans coefficient de forme Vf ;
+// surestime le volume réel de 40-150%. Utiliser tarifs de cubage INRAE pour usage probant.
 const calcVolumeParHa = (popParHa, diametreMoyenCm, surfaceHa, indices) => {
   const nbTigesHa = parseFloat(popParHa)||0;
   const dM = (parseFloat(diametreMoyenCm)||0)/100;
@@ -5694,6 +5695,7 @@ const EcranOperateur = ({operateur, onLogout, toast, onUpdateOperateur}) => {
       date: dateHeure,
       nbTas, longueur, largeur, hauteur,
       essence: essenceVisite,
+      // ⚠ NON_VALIDEE (formules.js:FORMULE_HUMIDITE_DEPUIS_FOISONNEMENT) — relation non validée ; remplacer par mesure humidimètre
       humidite: Math.round((1 - foisonnement) * 100),
       meteo, incident, temps,
       heureDebut: heureDebAb, heureFin: heureFinAb,
@@ -7342,7 +7344,7 @@ const TasDimensionsInput = ({nbTas, foisonnement, onFoisonnementChange, essence=
   const volApparent = L * la * H * (nbTas||1);
   const volReel     = volApparent * indices.foisonnement;
   const tonnage     = volReel * indices.densite / 1000;
-  const energie     = tonnage * indices.pci / 1000;
+  const energie     = tonnage * indices.pci; // MWh = t × MWh/t (source: ITEBE 2004)
 
   useEffect(()=>{ ready && onChange&&onChange({longueur:L,largeur:la,hauteur:H,volApparent,volReel,tonnage,energie}); },
     [longueur,largeur,hauteur,nbTas]);
