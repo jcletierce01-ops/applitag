@@ -472,10 +472,8 @@ const LoginScreen = ({onLogin, onLoginOperateur, onLoginDemo}) => {
       consentNetwork:champ==="network"?valeur:compteSession.consentNetwork};
     localStorage.setItem(COMPTE_SESSION_KEY, JSON.stringify(session));
     setCompteSession(session);
-    fetch(`${API}/comptes-contact/${compteSession.id}`,{method:"PATCH",
-      headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({consentActus:champ==="actus"?valeur:compteSession.consentActus,
-        consentNetwork:champ==="network"?valeur:compteSession.consentNetwork})}).catch(()=>{});
+    apiPatch(`/comptes-contact/${compteSession.id}`, {consentActus:champ==="actus"?valeur:compteSession.consentActus,
+      consentNetwork:champ==="network"?valeur:compteSession.consentNetwork}).catch(()=>{});
   };
 
   const mesAnnonces = compteSession
@@ -488,9 +486,9 @@ const LoginScreen = ({onLogin, onLoginOperateur, onLoginDemo}) => {
     setSuiviOps(null);
     const today = todayS();
     Promise.all([
-      fetch(`${API}/contacts`).then(r=>r.json()).catch(()=>[]),
-      fetch(`${API}/dechiquetage`).then(r=>r.json()).catch(()=>[]),
-      fetch(`${API}/activites`).then(r=>r.json()).catch(()=>[]),
+      apiGet(`/contacts`).catch(()=>[]),
+      apiGet(`/dechiquetage`).catch(()=>[]),
+      apiGet(`/activites`).catch(()=>[]),
     ]).then(([lots, dechiqList, activites]) => {
       const tel = compteSession.telephone;
       const mesLots = Array.isArray(lots) ? lots.filter(l=>l.telephone===tel) : [];
@@ -2899,8 +2897,8 @@ const FormulaireVisite = ({lot, onBack, onSaved, toast, entrepriseId, user}) => 
           dateAlerte,
           message:`⚠️ Rappel autorisation coupe — lot ${lot.lotNumero||lot.numero} (${lot.commune||""}) : l'autorisation de coupe est attendue le ${new Date(dateAutorisationPrevue).toLocaleDateString("fr-FR",{day:"numeric",month:"long",year:"numeric"})}. Vérifiez l'obtention de l'autorisation.`,
         };
-        fetch(`${API}/messages-admin`,{method:"POST",headers:authHeaders(),body:JSON.stringify(msgAlerte)}).catch(()=>{});
-        fetch(`${API}/notifications`,{method:"POST",headers:authHeaders(),body:JSON.stringify({...msgAlerte,destinataire:"missionne"})}).catch(()=>{});
+        apiPost(`/messages-admin`, msgAlerte).catch(()=>{});
+        apiPost(`/notifications`, {...msgAlerte,destinataire:"missionne"}).catch(()=>{});
       }
       toast("Visite validée ✓");
       onSaved(saved);
@@ -4400,14 +4398,10 @@ const EcranReleves = ({entrepriseId, user, toast, notifications=[], setNotificat
   );
 
   useEffect(()=>{
-    fetch(`${API}/operateurs/entreprise/${entrepriseId}`,{headers:authHeaders()})
-      .then(r=>r.json()).then(d=>{ if(Array.isArray(d)) setOperateurs(d); }).catch(()=>{});
-    fetch(`${API}/acces-lot/entreprise/${entrepriseId}`,{headers:authHeaders()})
-      .then(r=>r.json()).then(d=>{ if(Array.isArray(d)) setAcces(d); }).catch(()=>{});
-    fetch(`${API}/contacts`,{headers:authHeaders()})
-      .then(r=>r.json()).then(d=>{ if(Array.isArray(d)) setContacts(d); }).catch(()=>{});
-    fetch(`${API}/entreprises/entreprise/${entrepriseId}`,{headers:authHeaders()})
-      .then(r=>r.json()).then(d=>{ if(Array.isArray(d)) setEntreprises(d); }).catch(()=>{});
+    apiGet(`/operateurs/entreprise/${entrepriseId}`).then(d=>{ if(Array.isArray(d)) setOperateurs(d); }).catch(()=>{});
+    apiGet(`/acces-lot/entreprise/${entrepriseId}`).then(d=>{ if(Array.isArray(d)) setAcces(d); }).catch(()=>{});
+    apiGet(`/contacts`).then(d=>{ if(Array.isArray(d)) setContacts(d); }).catch(()=>{});
+    apiGet(`/entreprises/entreprise/${entrepriseId}`).then(d=>{ if(Array.isArray(d)) setEntreprises(d); }).catch(()=>{});
     (async () => {
       let fromApi = [];
       try {
@@ -5043,8 +5037,8 @@ const Fiche0Edit = ({contact, onBack, onSaved, toast, user, onLaunchVisite, onLa
 
   useEffect(()=>{
     if (showHistorique) {
-      fetch(`${API}/contacts/${contact.id}/historique`, {headers:authHeaders()})
-        .then(r=>r.json()).then(d=>{ if(Array.isArray(d)) setHistorique(d); }).catch(()=>{});
+      apiGet(`/contacts/${contact.id}/historique`)
+        .then(d=>{ if(Array.isArray(d)) setHistorique(d); }).catch(()=>{});
     }
   },[showHistorique]);
 
@@ -5298,8 +5292,7 @@ const EcranOperateur = ({operateur, onLogout, toast, onUpdateOperateur}) => {
   // Rafraîchit le statut réel des lots assignés, pour ne jamais bloquer
   // l'accès à la saisie tant que la clôture n'a pas eu lieu (et le couper après).
   useEffect(()=>{
-    fetch(`${API}/contacts`)
-      .then(r=>r.json())
+    apiGet(`/contacts`)
       .then(d=>{
         if (!Array.isArray(d)) return;
         const map = {};
@@ -5308,8 +5301,7 @@ const EcranOperateur = ({operateur, onLogout, toast, onUpdateOperateur}) => {
         setContactsFull(d);
       })
       .catch(()=>{}); // échec réseau → on n'affiche aucun statut, l'accès reste ouvert
-    fetch(`${API}/visites`)
-      .then(r=>r.json())
+    apiGet(`/visites`)
       .then(d=>{ if (Array.isArray(d)) setVisites(d); })
       .catch(()=>{});
   },[]);
@@ -6010,8 +6002,7 @@ const EcranAccueil = ({contacts, visites, notifications, user, onNewLot, onGoLot
   const [rapportTexte, setRapportTexte] = useState("");
 
   useEffect(()=>{
-    fetch(`${API}/comptes-contact`,{headers:authHeaders()})
-      .then(r=>r.json())
+    apiGet(`/comptes-contact`)
       .then(d=>{ if(Array.isArray(d)){
         const local = comptesLocalGet();
         const nonSynced = local.filter(c=>!c.synced && !d.some(a=>a.id===c.id));
@@ -6025,7 +6016,7 @@ const EcranAccueil = ({contacts, visites, notifications, user, onNewLot, onGoLot
     if (!rapportTexte.trim()) return;
     const updated = comptes.map(c=>c.id===compte.id?{...c,rapportAppel:rapportTexte,dateRapport:nowISO()}:c);
     setComptes(updated); comptesLocalSave(updated);
-    try { fetch(`${API}/comptes-contact/${compte.id}`,{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({rapportAppel:rapportTexte,dateRapport:nowISO()})}); } catch {}
+    apiPatch(`/comptes-contact/${compte.id}`, {rapportAppel:rapportTexte,dateRapport:nowISO()}).catch(()=>{});
     setFicheCompte(null); setRapportTexte(""); setShowInscrits(false);
   };
 
@@ -6382,10 +6373,10 @@ const EcranDelegations = ({entrepriseId, toast, onBack}) => {
 
   useEffect(()=>{
     try { const s=localStorage.getItem(`applitag_entreprises_${entrepriseId}`); if(s){ const p=JSON.parse(s); if(Array.isArray(p)) setEntreprises(p); } } catch{}
-    fetch(`${API}/entreprises/entreprise/${entrepriseId}`,{headers:authHeaders()})
-      .then(r=>r.json()).then(d=>{ if(Array.isArray(d)){ setEntreprises(d); try{localStorage.setItem(`applitag_entreprises_${entrepriseId}`,JSON.stringify(d));}catch{} } }).catch(()=>{});
-    fetch(`${API}/contacts`,{headers:authHeaders()})
-      .then(r=>r.json()).then(d=>{ if(Array.isArray(d)) setContacts(d); }).catch(()=>{});
+    apiGet(`/entreprises/entreprise/${entrepriseId}`)
+      .then(d=>{ if(Array.isArray(d)){ setEntreprises(d); try{localStorage.setItem(`applitag_entreprises_${entrepriseId}`,JSON.stringify(d));}catch{} } }).catch(()=>{});
+    apiGet(`/contacts`)
+      .then(d=>{ if(Array.isArray(d)) setContacts(d); }).catch(()=>{});
   },[entrepriseId]);
 
   const toggleType = v => setTypesProp(prev=>prev.includes(v)?prev.filter(x=>x!==v):[...prev,v]);
@@ -8828,8 +8819,8 @@ const EcranBonCommande = ({lot, visites, entrepriseId, onBack, onGoDelegations, 
   const [generating,      setGen]     = useState(false);
 
   useEffect(()=>{
-    fetch(`${API}/entreprises/entreprise/${entrepriseId}`)
-      .then(r=>r.json()).then(d=>{ if(Array.isArray(d)) setEntreprises(d); }).catch(()=>{});
+    apiGet(`/entreprises/entreprise/${entrepriseId}`)
+      .then(d=>{ if(Array.isArray(d)) setEntreprises(d); }).catch(()=>{});
   },[entrepriseId]);
 
   const entrepriseObj = entreprises.find(e=>e.id===selEntId)||null;
@@ -11740,9 +11731,9 @@ const FicheLotCentrale = ({
   useEffect(()=>{
     setLoading(true);
     Promise.all([
-      fetch(`${API}/relevés/lot/${lot.id}`,{headers:authHeaders()}).then(r=>r.json()).catch(()=>[]),
-      fetch(`${API}/transports/lot/${lot.id}`,{headers:authHeaders()}).then(r=>r.json()).catch(()=>[]),
-      fetch(`${API}/livraisons/lot/${lot.id}`,{headers:authHeaders()}).then(r=>r.json()).catch(()=>[]),
+      apiGet(`/relevés/lot/${lot.id}`).catch(()=>[]),
+      apiGet(`/transports/lot/${lot.id}`).catch(()=>[]),
+      apiGet(`/livraisons/lot/${lot.id}`).catch(()=>[]),
     ]).then(([r,t,l])=>{
       if(Array.isArray(r)) setReleves(r);
       if(Array.isArray(t)) setTransports(t);
@@ -13156,8 +13147,8 @@ const EcranDechiquetage = ({lot, operateurs=[], onBack, onSaved, toast, entrepri
 
   // Ordres de mission transport déjà attribués à ce lot
   useEffect(()=>{
-    fetch(`${API}/transports/lot/${lot.id}`)
-      .then(r=>r.json()).then(d=>{ if(Array.isArray(d)) setMissionsTransport(d); }).catch(()=>{});
+    apiGet(`/transports/lot/${lot.id}`)
+      .then(d=>{ if(Array.isArray(d)) setMissionsTransport(d); }).catch(()=>{});
   },[lot.id]);
 
   // Opérateur délégué par l'entreprise prestataire missionnée sur ce lot → pré-rempli automatiquement
@@ -27826,8 +27817,7 @@ export default function App() {
 
   useEffect(()=>{
     if (!user || isDemoMode) return;
-    fetch(`${API}/contacts`, {headers:authHeaders()})
-      .then(r=>r.json())
+    apiGet(`/contacts`)
       .then(d=>{
         if(Array.isArray(d)) {
           try {
@@ -27849,20 +27839,13 @@ export default function App() {
       .catch(()=>{
         try { const c=JSON.parse(localStorage.getItem("applitag_contacts")||"[]"); if(c.length>0) setContacts(c); } catch {}
       });
-    fetch(`${API}/visites`, {headers:authHeaders()})
-      .then(r=>r.json()).then(d=>{ if(Array.isArray(d)) setVisites(d); }).catch(()=>{});
-    fetch(`${API}/notifications/${entrepriseId}`, {headers:authHeaders()})
-      .then(r=>r.json()).then(d=>{ if(Array.isArray(d)) setNotifications(d); }).catch(()=>{});
-    fetch(`${API}/operateurs/entreprise/${entrepriseId}`, {headers:authHeaders()})
-      .then(r=>r.json()).then(d=>{ if(Array.isArray(d)) setOperateurs(d); }).catch(()=>{});
-    fetch(`${API}/reportings`, {headers:authHeaders()})
-      .then(r=>r.json()).then(d=>{ if(Array.isArray(d)) setReportings(d); }).catch(()=>{});
-    fetch(`${API}/transports`, {headers:authHeaders()})
-      .then(r=>r.json()).then(d=>{ if(Array.isArray(d)) setTransports(d); }).catch(()=>{});
-    fetch(`${API}/livraisons`, {headers:authHeaders()})
-      .then(r=>r.json()).then(d=>{ if(Array.isArray(d)) setLivraisons(d); }).catch(()=>{});
-    fetch(`${API}/dechiquetage`, {headers:authHeaders()})
-      .then(r=>r.json()).then(d=>{ if(Array.isArray(d)) setDechiquetages(d); }).catch(()=>{});
+    apiGet(`/visites`).then(d=>{ if(Array.isArray(d)) setVisites(d); }).catch(()=>{});
+    apiGet(`/notifications/${entrepriseId}`).then(d=>{ if(Array.isArray(d)) setNotifications(d); }).catch(()=>{});
+    apiGet(`/operateurs/entreprise/${entrepriseId}`).then(d=>{ if(Array.isArray(d)) setOperateurs(d); }).catch(()=>{});
+    apiGet(`/reportings`).then(d=>{ if(Array.isArray(d)) setReportings(d); }).catch(()=>{});
+    apiGet(`/transports`).then(d=>{ if(Array.isArray(d)) setTransports(d); }).catch(()=>{});
+    apiGet(`/livraisons`).then(d=>{ if(Array.isArray(d)) setLivraisons(d); }).catch(()=>{});
+    apiGet(`/dechiquetage`).then(d=>{ if(Array.isArray(d)) setDechiquetages(d); }).catch(()=>{});
   },[user]);
 
   const [transitioning, setTransitioning] = useState(false);
@@ -28036,7 +28019,7 @@ export default function App() {
           onSaved={v=>{
             setVisites(prev=>[v,...prev]);
             setContacts(prev=>prev.map(c=>c.id===activeLot.id?{...c,statutLot:"VISITE_REALISEE"}:c));
-            fetch(`${API}/contacts/${activeLot.id}/transition`,{method:"POST",headers:authHeaders(),body:JSON.stringify({action:"validerVisite"})}).catch(()=>{});
+            apiPost(`/contacts/${activeLot.id}/transition`, {action:"validerVisite"}).catch(()=>{});
             setScreen("mandataire-lots"); setActiveLot(null);
             toast("Visite enregistrée ✓");
           }}
@@ -28525,10 +28508,7 @@ export default function App() {
               setActiveContact(prev=>prev?.id===activeLot.id
                 ?{...prev,statutLot:"VISITE_REALISEE"}:prev);
               // Persister côté API — transition métier validée serveur
-              fetch(`${API}/contacts/${activeLot.id}/transition`,{
-                method:"POST",headers:authHeaders(),
-                body:JSON.stringify({action:"validerVisite"}),
-              }).catch(()=>{});
+              apiPost(`/contacts/${activeLot.id}/transition`, {action:"validerVisite"}).catch(()=>{});
               setScreen("fiche-lot");
               toast("Visite enregistrée ✓");
               if (operateurs.length>0) setShowEtfModal(true);
