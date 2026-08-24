@@ -24,73 +24,13 @@ import { INDICES_ESSENCE, calculerPoidsAjuste as poidsAjusteHumidite, indicesPon
 import { TYPES_PRESTATION_ANNONCE, STATUTS_ANNONCE, ORDRE_STATUTS_ANNONCE } from "./domains/connect/constants.js";
 import { ORIGINE_OPTS, TYPE_CONTACT_OPTS, TYPE_RESSOURCE_OPTS, PRIORITE_OPTS, STATUT_OPTS } from "./domains/contacts/constants.js";
 import { genLotNumero } from "./domains/lots/utils.js";
+import { deletedLotsGet, deletedLotsAdd } from "./domains/lots/local-storage.js";
+import { DEFAULT_ENTREPRISE_ID, COMPTE_SESSION_KEY, annoncesLocalGet, annoncesLocalSave, comptesLocalGet, comptesLocalSave } from "./domains/connect/local-storage.js";
+import { ordresExplLocalGet, ordresExplLocalSave } from "./domains/exploitation/local-storage.js";
+import { countPendingSync, resyncPendingRecords } from "./domains/sync/legacy-sync.js";
 
 const API = API_BASE_URL;
-// genPin4 importé depuis src/services/auth.service.js (corrigé : utilise getToken())
-
-// Stockage de repli pour les ordres d'exploitation, tant que l'API /ordres-exploitation
-// n'est pas garantie disponible — permet la validation par code sans dépendre du backend.
-const ORDRES_EXPL_KEY = "applitag_ordres_exploitation";
-const ordresExplLocalGet = () => { try { return JSON.parse(localStorage.getItem(ORDRES_EXPL_KEY)||"[]"); } catch { return []; } };
-const ordresExplLocalSave = (arr) => { try { localStorage.setItem(ORDRES_EXPL_KEY, JSON.stringify(arr)); } catch {} };
-
-// Entreprise par défaut de l'administrateur (instance mono-tenant), réutilisée pour les
-// annonces publiques déposées sans connexion.
-const DEFAULT_ENTREPRISE_ID = "c1b035b8-c2d5-4b84-a07e-2a3d503fb96c";
-
-// Stockage de repli pour les annonces publiques (gisements signalés, offres de service,
-// demandes de plaquettes), tant que l'API /annonces n'est pas garantie disponible.
-const ANNONCES_KEY = "applitag_annonces";
-const annoncesLocalGet = () => { try { return JSON.parse(localStorage.getItem(ANNONCES_KEY)||"[]"); } catch { return []; } };
-const annoncesLocalSave = (arr) => { try { localStorage.setItem(ANNONCES_KEY, JSON.stringify(arr)); } catch {} };
-
-// Comptes contact APPLITAG Connect — accès gratuit, sans aucune fonction sensible
-// (prix, marges, contrats, clients, données internes, documents confidentiels, suivi
-// opérationnel avancé). Stockage de repli tant que l'API /comptes-contact n'est pas
-// garantie disponible.
-const COMPTES_KEY = "applitag_comptes_contact";
-const comptesLocalGet = () => { try { return JSON.parse(localStorage.getItem(COMPTES_KEY)||"[]"); } catch { return []; } };
-const comptesLocalSave = (arr) => { try { localStorage.setItem(COMPTES_KEY, JSON.stringify(arr)); } catch {} };
-const COMPTE_SESSION_KEY = "applitag_compte_contact_session";
-const DELETED_LOTS_KEY = "applitag_deleted_lots";
-const deletedLotsGet = () => { try { return JSON.parse(localStorage.getItem(DELETED_LOTS_KEY)||"[]"); } catch { return []; } };
-const deletedLotsAdd = (id) => { try { const ids=[...new Set([...deletedLotsGet(),id])]; localStorage.setItem(DELETED_LOTS_KEY,JSON.stringify(ids)); } catch {} };
-
-// Sources locales à resynchroniser tant que les routes API correspondantes ne sont pas
-// garanties disponibles (notamment important sur iOS Safari, où le localStorage d'un
-// site non ajouté à l'écran d'accueil peut être purgé après une longue inactivité).
-const SYNC_SOURCES = [
-  {get:ordresExplLocalGet, save:ordresExplLocalSave, url:`${API}/ordres-exploitation`},
-  {get:annoncesLocalGet,   save:annoncesLocalSave,   url:`${API}/annonces`},
-  {get:comptesLocalGet,    save:comptesLocalSave,    url:`${API}/comptes-contact`},
-];
-
-const countPendingSync = () => SYNC_SOURCES.reduce((s,src)=>s+src.get().filter(r=>!r.synced).length,0);
-
-// Retente l'envoi de chaque enregistrement local non synchronisé. Appelé au chargement
-// de l'app admin — silencieux, ne bloque jamais l'utilisateur si l'API reste indisponible.
-const resyncPendingRecords = async () => {
-  for (const src of SYNC_SOURCES) {
-    const records = src.get();
-    let changed = false;
-    for (const r of records) {
-      if (r.synced) continue;
-      try {
-        const res = await fetch(src.url, {
-          method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(r),
-        });
-        if (res.ok) { r.synced = true; changed = true; }
-      } catch {}
-    }
-    if (changed) src.save(records);
-  }
-};
-
-// TYPES_PRESTATION_ANNONCE, STATUTS_ANNONCE, ORDRE_STATUTS_ANNONCE → src/domains/connect/constants.js
-// ORIGINE_OPTS, TYPE_CONTACT_OPTS, TYPE_RESSOURCE_OPTS, PRIORITE_OPTS, STATUT_OPTS → src/domains/contacts/constants.js
-// genLotNumero → src/domains/lots/utils.js
-// fmtNum importé depuis src/shared/format.js
-// Auth helpers importés depuis src/services/auth.service.js
+// Helpers importés depuis leurs modules domaine (voir imports ci-dessus)
 
 // ── ATOMS ─────────────────────────────────────────────────────
 const BigBtn = ({onClick,bg=C.green,color="#fff",children,disabled,icon,style={}}) => (
