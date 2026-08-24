@@ -28,6 +28,7 @@ import { deletedLotsGet, deletedLotsAdd } from "./domains/lots/local-storage.js"
 import { DEFAULT_ENTREPRISE_ID, COMPTE_SESSION_KEY, annoncesLocalGet, annoncesLocalSave, comptesLocalGet, comptesLocalSave } from "./domains/connect/local-storage.js";
 import { ordresExplLocalGet, ordresExplLocalSave } from "./domains/exploitation/local-storage.js";
 import { countPendingSync, resyncPendingRecords } from "./domains/sync/legacy-sync.js";
+import { apiGet, apiPost, apiPostPublic, apiPatch, apiDelete } from "./services/api.service.js";
 
 const API = API_BASE_URL;
 // Helpers importés depuis leurs modules domaine (voir imports ci-dessus)
@@ -4441,8 +4442,7 @@ const EcranReleves = ({entrepriseId, user, toast, notifications=[], setNotificat
     (async () => {
       let fromApi = [];
       try {
-        const r = await fetch(`${API}/annonces/entreprise/${entrepriseId}`,{headers:authHeaders()});
-        const d = await r.json();
+        const d = await apiGet(`/annonces/entreprise/${entrepriseId}`);
         if (Array.isArray(d)) fromApi = d;
       } catch {}
       const fromLocal = annoncesLocalGet().filter(a=>a.entrepriseId===entrepriseId);
@@ -4454,10 +4454,7 @@ const EcranReleves = ({entrepriseId, user, toast, notifications=[], setNotificat
 
   const handleTraiterAnnonce = async (annonce, statut) => {
     try {
-      const res = await fetch(`${API}/annonces/${annonce.id}`, {
-        method:"PATCH", headers:authHeaders(), body:JSON.stringify({statut}),
-      });
-      if (!res.ok) toast("Erreur serveur — statut mis à jour localement","warn");
+      await apiPatch(`/annonces/${annonce.id}`, { statut });
     } catch {
       toast("Pas de connexion — statut mis à jour localement","warn");
     }
@@ -4550,7 +4547,7 @@ const EcranReleves = ({entrepriseId, user, toast, notifications=[], setNotificat
 
   const handleDesactiver = async (id) => {
     try {
-      await fetch(`${API}/acces-lot/${id}/desactiver`,{method:"PATCH",headers:authHeaders()});
+      await apiPatch(`/acces-lot/${id}/desactiver`);
       setAcces(prev=>prev.map(a=>a.id===id?{...a,actif:false}:a));
       toast("Accès désactivé");
     } catch { toast("Erreur","warn"); }
@@ -5033,7 +5030,7 @@ const EcranReleves = ({entrepriseId, user, toast, notifications=[], setNotificat
                 )}
                 <div style={{fontSize:13,color:C.tx2,marginBottom:10}}>{n.message}</div>
                 <button onClick={async()=>{
-                  await fetch(`${API}/notifications/${n.id}/lu`,{method:"PATCH",headers:authHeaders()});
+                  await apiPatch(`/notifications/${n.id}/lu`);
                   setNotifications(prev=>prev.filter(x=>x.id!==n.id));
                 }} style={{width:"100%",height:36,borderRadius:8,
                   background:C.bg2,color:C.tx2,border:"none",
@@ -28507,7 +28504,7 @@ export default function App() {
             onDeleteLot={(user?.role==="admin"||user?.role==="manager")?async (lot)=>{
               deletedLotsAdd(lot.id);
               try {
-                await fetch(`${API}/contacts/${lot.id}`,{method:"DELETE",headers:authHeaders()});
+                await apiDelete(`/contacts/${lot.id}`);
               } catch {}
               setContacts(prev=>prev.filter(c=>c.id!==lot.id));
               setActiveContact(null);
