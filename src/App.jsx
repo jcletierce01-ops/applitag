@@ -20,6 +20,7 @@ import { C, FONT_TITLE, FONT_BODY, BTN_H, INPUT_H, FONT_INPUT, PADDING } from ".
 import { uid, nowISO, todayS, genCode, genCodeAPT } from "./shared/utils.js";
 import { getToken, getUser, getEntrepriseId, setAuth, clearAuth, authHeaders } from "./services/auth.service.js";
 import { fmtNum } from "./shared/format.js";
+import { INDICES_ESSENCE } from "./metier/formules.js";
 
 const API = API_BASE_URL;
 // PIN opérateur — 6 chiffres générés côté serveur (crypto.randomInt).
@@ -2546,33 +2547,8 @@ const LISTE_ESSENCES_ITEBE = [
   ["douglas","🌲","Douglas"],["melange","🌳","Mélange"],
 ];
 
-// INDICES DE CALCUL PAR ESSENCE (source : ITEBE 2004) — densité (kg/m³), PCI (MWh/t), foisonnement, hauteur moy. (m)
-const INDICES_ESSENCE_ITEBE = {
-  peuplier:      {densite:850, pci:2.4, foisonnement:0.40, hauteurMoy:25},
-  peupliers:     {densite:850, pci:2.4, foisonnement:0.40, hauteurMoy:25},
-  chene:         {densite:1000,pci:3.8, foisonnement:0.55, hauteurMoy:20},
-  hetre:         {densite:1000,pci:4.0, foisonnement:0.55, hauteurMoy:22},
-  charme:        {densite:1000,pci:4.2, foisonnement:0.55, hauteurMoy:15},
-  frene:         {densite:900, pci:3.9, foisonnement:0.52, hauteurMoy:20},
-  bouleau:       {densite:950, pci:3.7, foisonnement:0.50, hauteurMoy:15},
-  orme:          {densite:960, pci:3.8, foisonnement:0.52, hauteurMoy:18},
-  acacia:        {densite:1050,pci:4.1, foisonnement:0.55, hauteurMoy:15},
-  chataignier:   {densite:870, pci:3.5, foisonnement:0.50, hauteurMoy:18},
-  fruitiers:     {densite:950, pci:3.7, foisonnement:0.50, hauteurMoy:12},
-  erables:       {densite:950, pci:3.8, foisonnement:0.52, hauteurMoy:18},
-  tilleul:       {densite:800, pci:3.3, foisonnement:0.48, hauteurMoy:18},
-  aulne:         {densite:800, pci:3.3, foisonnement:0.48, hauteurMoy:18},
-  saule:         {densite:780, pci:3.0, foisonnement:0.42, hauteurMoy:15},
-  pin_sylvestre: {densite:830, pci:3.0, foisonnement:0.45, hauteurMoy:25},
-  pin_maritime:  {densite:830, pci:3.0, foisonnement:0.45, hauteurMoy:25},
-  sapin:         {densite:850, pci:2.8, foisonnement:0.45, hauteurMoy:28},
-  epicea:        {densite:850, pci:2.8, foisonnement:0.45, hauteurMoy:28},
-  meleze:        {densite:900, pci:3.0, foisonnement:0.46, hauteurMoy:26},
-  douglas:       {densite:870, pci:2.9, foisonnement:0.45, hauteurMoy:28},
-  resineux:      {densite:870, pci:2.8, foisonnement:0.45, hauteurMoy:25},
-  melange:       {densite:950, pci:3.5, foisonnement:0.50, hauteurMoy:20},
-  taillis:       {densite:900, pci:3.5, foisonnement:0.48, hauteurMoy:12},
-};
+// Indices ITEBE importés depuis src/metier/formules.js (source unique ITEBE 2004)
+const INDICES_ESSENCE_ITEBE = INDICES_ESSENCE;
 
 // Indices pondérés par la composition réelle du lot (% par essence) — résultat plus proche de la réalité
 // qu'un calcul sur la seule essence dominante.
