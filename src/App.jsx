@@ -16,47 +16,10 @@ import {
   DEMO_LIVRAISONS,
   DEMO_DECHIQUETAGES,
 } from "./demo/demoData.js";
+import { C, FONT_TITLE, FONT_BODY, BTN_H, INPUT_H, FONT_INPUT, PADDING } from "./design-system/tokens.js";
+import { uid, nowISO, todayS, genCode, genCodeAPT } from "./shared/utils.js";
 
 const API = API_BASE_URL;
-
-// Palette de marque APPLITAG (charte ALTEGAD SAS)
-const C = {
-  green:"#4CAF50", greenL:"#E8F5E9", greenD:"#1E5B3A",
-  greenPale:"#86C27D",
-  blue:"#185FA5",  blueL:"#E6F1FB",  blueD:"#042C53",
-  amber:"#BA7517", amberL:"#FAEEDA", amberD:"#412402",
-  red:"#A32D2D",   redL:"#FCEBEB",
-  purple:"#534AB7",purpleL:"#EEEDFE",purpleD:"#26215C",
-  brown:"#A66A2E", brownL:"#F3EBE0",
-  bg:"#F3F4F6", bg2:"#ECEAE6",
-  bd:"#DDDBD5", bd2:"#C8C5BE",
-  tx:"#333333", tx2:"#5A5955", tx3:"#9A9892",
-  sb:"#1E5B3A",
-};
-
-const FONT_TITLE = "'Montserrat',-apple-system,sans-serif";
-const FONT_BODY  = "'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif";
-
-const BTN_H = 56;
-const INPUT_H = 52;
-const FONT_INPUT = 16;
-const PADDING = 16;
-
-const uid = () => crypto.randomUUID();
-const nowISO = () => new Date().toISOString();
-const todayS = () => new Date().toISOString().slice(0,10);
-// Code à usage unique (ordre d'exploitation) — 8 caractères, alphabet sans caractères ambigus (0/O, 1/I/L).
-const genCode = () => {
-  const alphabet = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
-  const bytes = crypto.getRandomValues(new Uint8Array(8));
-  return Array.from(bytes, b => alphabet[b % alphabet.length]).join("");
-};
-const genCodeAPT = () => {
-  const alpha = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
-  const b = crypto.getRandomValues(new Uint8Array(8));
-  const part = (s, n) => Array.from(b.slice(s, s+n), x => alpha[x % alpha.length]).join("");
-  return `APT-${part(0,4)}-${part(4,4)}`;
-};
 // PIN opérateur — 6 chiffres générés côté serveur (crypto.randomInt).
 const genPin4 = async () => {
   const r = await fetch(`${API}/operateurs/generate-pin`, {
