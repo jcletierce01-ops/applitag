@@ -48,3 +48,16 @@ export const authHeaders = () => ({
   "Content-Type": "application/json",
   Authorization: `Bearer ${getToken()}`,
 });
+
+/**
+ * Génère un PIN opérateur 6 chiffres via l'API (crypto.randomInt côté serveur).
+ * Lève une erreur explicite — ne jamais masquer l'échec avec un catch silencieux.
+ */
+export const genPin4 = async (apiBase) => {
+  const r = await fetch(`${apiBase}/operateurs/generate-pin`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${getToken()}` },
+  });
+  if (!r.ok) throw new Error("Génération PIN échouée");
+  return (await r.json()).pin;
+};

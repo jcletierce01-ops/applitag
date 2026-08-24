@@ -18,20 +18,15 @@ import {
 } from "./demo/demoData.js";
 import { C, FONT_TITLE, FONT_BODY, BTN_H, INPUT_H, FONT_INPUT, PADDING } from "./design-system/tokens.js";
 import { uid, nowISO, todayS, genCode, genCodeAPT } from "./shared/utils.js";
-import { getToken, getUser, getEntrepriseId, setAuth, clearAuth, authHeaders } from "./services/auth.service.js";
+import { getToken, getUser, getEntrepriseId, setAuth, clearAuth, authHeaders, genPin4 } from "./services/auth.service.js";
 import { fmtNum } from "./shared/format.js";
 import { INDICES_ESSENCE, calculerPoidsAjuste as poidsAjusteHumidite, indicesPonderes } from "./metier/formules.js";
+import { TYPES_PRESTATION_ANNONCE, STATUTS_ANNONCE, ORDRE_STATUTS_ANNONCE } from "./domains/connect/constants.js";
+import { ORIGINE_OPTS, TYPE_CONTACT_OPTS, TYPE_RESSOURCE_OPTS, PRIORITE_OPTS, STATUT_OPTS } from "./domains/contacts/constants.js";
+import { genLotNumero } from "./domains/lots/utils.js";
 
 const API = API_BASE_URL;
-// PIN opérateur — 6 chiffres générés côté serveur (crypto.randomInt).
-const genPin4 = async () => {
-  const r = await fetch(`${API}/operateurs/generate-pin`, {
-    method: "POST",
-    headers: { Authorization: `Bearer ${localStorage.getItem("applitag_jwt")}` },
-  });
-  if (!r.ok) throw new Error("Génération PIN échouée");
-  return (await r.json()).pin;
-};
+// genPin4 importé depuis src/services/auth.service.js (corrigé : utilise getToken())
 
 // Stockage de repli pour les ordres d'exploitation, tant que l'API /ordres-exploitation
 // n'est pas garantie disponible — permet la validation par code sans dépendre du backend.
@@ -91,79 +86,11 @@ const resyncPendingRecords = async () => {
   }
 };
 
-const TYPES_PRESTATION_ANNONCE = [
-  ["abattage","🪓","Abattage"],
-  ["debardage","🚜","Débardage"],
-  ["dechiquetage","🌀","Déchiquetage"],
-  ["transport","🚛","Transport"],
-];
-
-// Statuts de modération APPLITAG Connect - Annonces, définis par l'administrateur
-const STATUTS_ANNONCE = {
-  recu:        {label:"Reçu",        color:C.blueD,  bg:C.blueL},
-  a_qualifier: {label:"À qualifier", color:C.amberD, bg:C.amberL},
-  valide:      {label:"Validé",      color:C.greenD, bg:C.greenL},
-  publie:      {label:"Publié",      color:C.purpleD,bg:C.purpleL},
-  archive:     {label:"Archivé",     color:C.tx3,    bg:C.bg2},
-};
-const ORDRE_STATUTS_ANNONCE = ["recu","a_qualifier","valide","publie","archive"];
+// TYPES_PRESTATION_ANNONCE, STATUTS_ANNONCE, ORDRE_STATUTS_ANNONCE → src/domains/connect/constants.js
+// ORIGINE_OPTS, TYPE_CONTACT_OPTS, TYPE_RESSOURCE_OPTS, PRIORITE_OPTS, STATUT_OPTS → src/domains/contacts/constants.js
+// genLotNumero → src/domains/lots/utils.js
 // fmtNum importé depuis src/shared/format.js
-
-const genLotNumero = (codePostal, seq) => {
-  const now = new Date();
-  const annee = now.getFullYear();
-  const mois = String(now.getMonth()+1).padStart(2,"0");
-  const dept = (codePostal||"00").toString().slice(0,2);
-  const seqStr = String(seq||1).padStart(3,"0");
-  return `LOT-${annee}-${mois}-${dept}-${seqStr}`;
-};
-
 // Auth helpers importés depuis src/services/auth.service.js
-
-const ORIGINE_OPTS = [
-  ["appel_entrant","📞","Appel entrant"],
-  ["appel_applitag","📲","Rappel APPLITAG Connect"],
-  ["visite_terrain","🔭","Visite terrain"],
-  ["recommandation","🤝","Recommandation"],
-  ["salon","🎪","Salon"],
-  ["email","📧","Email"],
-  ["site_internet","🌐","Site internet"],
-  ["reseau_applitag","🌲","Réseau APPLITAG"],
-  ["autre","…","Autre"],
-];
-const TYPE_CONTACT_OPTS = [
-  ["proprietaire_forestier","👤","Propriétaire forestier"],
-  ["cooperative","🌿","Coopérative"],
-  ["etf","⛏","ETF"],
-  ["transporteur","🚛","Transporteur"],
-  ["chaufferie","🏭","Chaufferie"],
-  ["plateforme","🏗️","Plateforme"],
-  ["negociant","💼","Négociant"],
-  ["collectivite","🏛️","Collectivité"],
-  ["prospect","🔍","Prospect"],
-];
-const TYPE_RESSOURCE_OPTS = [
-  ["bois_energie","🪵","Bois énergie"],
-  ["bois_oeuvre","🌲","Bois d'œuvre"],
-  ["bois_rond","🪨","Bois rond"],
-  ["bois_trituration","📄","Bois de trituration"],
-  ["bois_bord_route","🛣️","Bois bord de route"],
-  ["stock_plaquettes","🪣","Stock plaquettes"],
-  ["mixte","🌳","Mixte"],
-];
-const PRIORITE_OPTS = [
-  ["basse","⚪","Basse"],
-  ["moyenne","🟡","Moyenne"],
-  ["haute","🟠","Haute"],
-  ["immediate","🔴","Immédiate"],
-];
-const STATUT_OPTS = [
-  ["nouveau","🆕","Nouveau"],
-  ["a_rappeler","📞","À rappeler"],
-  ["qualifie","✅","Qualifié"],
-  ["visite_prevue","🔭","Visite prévue"],
-  ["perdu","❌","Perdu"],
-];
 
 // ── ATOMS ─────────────────────────────────────────────────────
 const BigBtn = ({onClick,bg=C.green,color="#fff",children,disabled,icon,style={}}) => (
@@ -4815,7 +4742,7 @@ const EcranReleves = ({entrepriseId, user, toast, notifications=[], setNotificat
                     padding:"0 14px",borderRadius:12,border:`1.5px solid ${C.bd}`,background:C.bg2}}>
                     <span style={{flex:1,fontFamily:"monospace",fontSize:20,fontWeight:700,
                       letterSpacing:6,color:C.tx}}>{opPin}</span>
-                    <button onClick={async()=>{ try{setOpPin(await genPin4());}catch{toast("Erreur génération PIN — réessayez","warn");} }} style={{
+                    <button onClick={async()=>{ try{setOpPin(await genPin4(API));}catch{toast("Erreur génération PIN — réessayez","warn");} }} style={{
                       background:C.greenL,border:`1px solid ${C.green}`,color:C.greenD,
                       borderRadius:8,padding:"6px 10px",fontSize:12,fontWeight:600,
                       cursor:"pointer",WebkitTapHighlightColor:"transparent"}}>🔄 Régénérer</button>
@@ -5137,7 +5064,7 @@ const EcranReleves = ({entrepriseId, user, toast, notifications=[], setNotificat
 
       {sousOnglet==="operateurs"&&!showNew&&!selOp&&(
         <div style={{padding:"12px 16px 24px",flexShrink:0}}>
-          <BigBtn onClick={async()=>{ try{const p=await genPin4();setOpPin(p);setShowNew(true);}catch{toast("Erreur génération PIN — réessayez","warn");} }} bg={C.green} icon="👷">Nouvel opérateur</BigBtn>
+          <BigBtn onClick={async()=>{ try{const p=await genPin4(API);setOpPin(p);setShowNew(true);}catch{toast("Erreur génération PIN — réessayez","warn");} }} bg={C.green} icon="👷">Nouvel opérateur</BigBtn>
         </div>
       )}
       {sousOnglet==="notifs"&&(
