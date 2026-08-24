@@ -275,8 +275,7 @@ const LoginScreen = ({onLogin, onLoginOperateur, onLoginDemo}) => {
     setOrdreLoading(true); setOrdreErreur(""); setOrdreTrouve(null);
     let found = null;
     try {
-      const res = await fetch(`${API}/ordres-exploitation/code/${code}`);
-      if (res.ok) found = await res.json();
+      found = await apiGet(`/ordres-exploitation/code/${code}`);
     } catch {}
     if (!found) found = ordresExplLocalGet().find(o=>o.code===code)||null;
     if (!found) setOrdreErreur("Code introuvable — vérifiez la saisie");
@@ -290,14 +289,10 @@ const LoginScreen = ({onLogin, onLoginOperateur, onLoginDemo}) => {
     const updated = {...ordreTrouve, statut, dateValidation: nowISO()};
     let syncOk = false;
     try {
-      const res = await fetch(`${API}/ordres-exploitation/${ordreTrouve.id}`, {
-        method:"PATCH", headers:{"Content-Type":"application/json"},
-        body:JSON.stringify({statut, dateValidation: updated.dateValidation}),
-      });
-      syncOk = res.ok;
-      if (!res.ok) setOrdreErreur("Erreur serveur — validation sauvegardée localement uniquement");
+      await apiPatch(`/ordres-exploitation/${ordreTrouve.id}`, {statut, dateValidation: updated.dateValidation});
+      syncOk = true;
     } catch {
-      setOrdreErreur("Pas de connexion — validation sauvegardée localement uniquement");
+      setOrdreErreur("Erreur — validation sauvegardée localement uniquement");
     }
     updated.synced = syncOk;
     ordresExplLocalSave(ordresExplLocalGet().map(o=>o.code===updated.code?updated:o));
@@ -363,10 +358,8 @@ const LoginScreen = ({onLogin, onLoginOperateur, onLoginDemo}) => {
       dateEnvoi: nowISO(), synced:false,
     };
     try {
-      const res = await fetch(`${API}/annonces`, {
-        method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(annonce),
-      });
-      if (res.ok) annonce.synced = true;
+      await apiPostPublic(`/annonces`, annonce);
+      annonce.synced = true;
     } catch {}
     annoncesLocalSave([annonce, ...annoncesLocalGet()]);
     setAnnonceEnvoyee(true);
@@ -421,14 +414,12 @@ const LoginScreen = ({onLogin, onLoginOperateur, onLoginDemo}) => {
       dateCreation: nowISO(), synced:false,
     };
     try {
-      const res = await fetch(`${API}/comptes-contact`, {
-        method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(compte),
-      });
-      if (res.ok) compte.synced = true;
+      await apiPostPublic(`/comptes-contact`, compte);
+      compte.synced = true;
     } catch {}
     try {
       const msg = `Bonjour ${compteNom}, votre compte APPLITAG Connect a été créé. Votre code d'accès personnel est : ${codeAPT}. Conservez-le précieusement, il vous sera demandé à chaque connexion.`;
-      await fetch(`${API}/sms`, { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({to: compteTel, message: msg}) });
+      await apiPostPublic(`/sms`, {to: compteTel, message: msg});
     } catch {}
     comptesLocalSave([compte, ...existants]);
     const session = {id:compte.id, nom:compte.nom, telephone:compte.telephone, email:compte.email,
@@ -574,13 +565,7 @@ const LoginScreen = ({onLogin, onLoginOperateur, onLoginDemo}) => {
     setLoading(true);
     setError("");
     try {
-      const res = await fetch(`${API}/auth/login`, {
-        method:"POST",
-        headers:{"Content-Type":"application/json"},
-        body:JSON.stringify({ entrepriseId, pin }),
-      });
-      if (!res.ok) throw new Error("PIN incorrect");
-      const data = await res.json();
+      const data = await apiPostPublic(`/auth/login`, { entrepriseId, pin });
       setAuth(data.access_token, data.utilisateur, entrepriseId);
       onLogin(data.utilisateur);
     } catch(e) {
@@ -595,16 +580,10 @@ const LoginScreen = ({onLogin, onLoginOperateur, onLoginDemo}) => {
     setLoading(true);
     setError("");
     try {
-      const res = await fetch(`${API}/operateurs/login`, {
-        method:"POST",
-        headers:{"Content-Type":"application/json"},
-        body:JSON.stringify({
-          entrepriseId: "c1b035b8-c2d5-4b84-a07e-2a3d503fb96c",
-          nom: opNom, pin: opPin
-        }),
+      const data = await apiPostPublic(`/operateurs/login`, {
+        entrepriseId: "c1b035b8-c2d5-4b84-a07e-2a3d503fb96c",
+        nom: opNom, pin: opPin,
       });
-      if (!res.ok) throw new Error("Identifiants incorrects");
-      const data = await res.json();
       onLoginOperateur(data);
     } catch(e) {
       setError("Nom ou PIN incorrect — réessayez");
@@ -1877,13 +1856,7 @@ const Fiche0 = ({onBack, onSaved, toast, contactCount, entrepriseId, prefill=nul
       // lotNumero omis volontairement : généré côté serveur (P0.5)
     };
     try {
-      const res = await fetch(`${API}/contacts`, {
-        method:"POST",
-        headers: authHeaders(),
-        body:JSON.stringify(contact),
-      });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const saved = await res.json();
+      const saved = await apiPost(`/contacts`, contact);
       const lotNumero = saved.lotNumero;
       toast(`Fiche créée — ${lotNumero}`);
       const html = buildCompteRenduContactHTML(saved);
@@ -2913,11 +2886,7 @@ const FormulaireVisite = ({lot, onBack, onSaved, toast, entrepriseId, user}) => 
       statut:"validee", entrepriseId,
     };
     try {
-      const res = await fetch(`${API}/visites`, {
-        method:"POST", headers:authHeaders(), body:JSON.stringify(visite),
-      });
-      if (!res.ok) throw new Error();
-      const saved = await res.json();
+      const saved = await apiPost(`/visites`, visite);
       localStorage.removeItem(DRAFT_KEY+lot.id);
       if (coupeAutorisee==="non"&&dateAutorisationPrevue) {
         const dateAlerte = new Date(new Date(dateAutorisationPrevue).getTime()-2*86400000).toISOString().slice(0,10);
@@ -4471,12 +4440,9 @@ const EcranReleves = ({entrepriseId, user, toast, notifications=[], setNotificat
       dateContact: todayS(), entrepriseId,
     };
     try {
-      const res = await fetch(`${API}/contacts`, {
-        method:"POST", headers:authHeaders(), body:JSON.stringify(contact),
-      });
-      if (!res.ok) { toast("Échec création fiche — réessayez","warn"); return; }
+      await apiPost(`/contacts`, contact);
     } catch {
-      toast("Pas de connexion — fiche non créée","warn"); return;
+      toast("Erreur — fiche non créée","warn"); return;
     }
     await handleTraiterAnnonce(annonce, "valide");
     toast(`Fiche contact créée pour ${annonce.nom} ✓`);
@@ -4491,13 +4457,8 @@ const EcranReleves = ({entrepriseId, user, toast, notifications=[], setNotificat
     setOpSaving(true);
     const entrepriseMandante = opMandate ? entreprises.find(e=>e.id===opEntrepriseMandanteId) : null;
     try {
-      const res = await fetch(`${API}/operateurs`,{
-        method:"POST",headers:authHeaders(),
-        body:JSON.stringify({nom:opNom,prenom:opPrenom,etfNom:entrepriseSel.nom,etfId:entrepriseSel.id,pin:opPin,roles:opRoles,profil:opProfil,
-          entrepriseMandanteId:entrepriseMandante?.id||null,entrepriseMandanteNom:entrepriseMandante?.nom||null,entrepriseId}),
-      });
-      if (!res.ok) throw new Error();
-      const saved = await res.json();
+      const saved = await apiPost(`/operateurs`, {nom:opNom,prenom:opPrenom,etfNom:entrepriseSel.nom,etfId:entrepriseSel.id,pin:opPin,roles:opRoles,profil:opProfil,
+          entrepriseMandanteId:entrepriseMandante?.id||null,entrepriseMandanteNom:entrepriseMandante?.nom||null,entrepriseId});
       setOperateurs(prev=>[{...saved,etfNom:entrepriseSel.nom,etfId:entrepriseSel.id,roles:opRoles,profil:opProfil,
         entrepriseMandanteId:entrepriseMandante?.id||null,entrepriseMandanteNom:entrepriseMandante?.nom||null,assignations:[]},...prev]);
       setShowNew(false);
@@ -4512,12 +4473,7 @@ const EcranReleves = ({entrepriseId, user, toast, notifications=[], setNotificat
     if (!assignLotId||!selOp) return;
     setAssignSaving(true);
     try {
-      const res = await fetch(`${API}/operateurs/${selOp.id}/assigner`,{
-        method:"POST",headers:authHeaders(),
-        body:JSON.stringify({lotId:assignLotId,lotNumero:assignLotNumero,typeOperation:assignType}),
-      });
-      if (!res.ok) throw new Error();
-      const saved = await res.json();
+      const saved = await apiPost(`/operateurs/${selOp.id}/assigner`, {lotId:assignLotId,lotNumero:assignLotNumero,typeOperation:assignType});
       setOperateurs(prev=>prev.map(op=>op.id===selOp.id?
         {...op,assignations:[...(op.assignations||[]),saved]}:op));
       setSelOp(null);
@@ -4531,12 +4487,7 @@ const EcranReleves = ({entrepriseId, user, toast, notifications=[], setNotificat
     if (!lotId||!etfNom) { toast("Sélectionnez un lot et saisissez l\'ETF","warn"); return; }
     setAccesSaving(true);
     try {
-      const res = await fetch(`${API}/acces-lot`,{
-        method:"POST",headers:authHeaders(),
-        body:JSON.stringify({lotId,lotNumero,entrepriseId,etfNom,etfContact,typeOperation}),
-      });
-      if (!res.ok) throw new Error();
-      const saved = await res.json();
+      const saved = await apiPost(`/acces-lot`, {lotId,lotNumero,entrepriseId,etfNom,etfContact,typeOperation});
       setAcces(prev=>[saved,...prev]);
       setShowNewAcces(false);
       setEtfNom(""); setEtfContact(""); setLotId(""); setLotNumero("");
@@ -5112,13 +5063,7 @@ const Fiche0Edit = ({contact, onBack, onSaved, toast, user, onLaunchVisite, onLa
       operateur: user?.nom || "inconnu",
     };
     try {
-      const res = await fetch(`${API}/contacts/${contact.id}`, {
-        method:"PATCH",
-        headers: authHeaders(),
-        body: JSON.stringify(data),
-      });
-      if (!res.ok) throw new Error();
-      const saved = await res.json();
+      const saved = await apiPatch(`/contacts/${contact.id}`, data);
       toast("Fiche mise à jour ✓");
       onSaved(saved);
     } catch {
@@ -5337,10 +5282,7 @@ const EcranOperateur = ({operateur, onLogout, toast, onUpdateOperateur}) => {
     if (pinNouveau!==pinNouveauConf) { setPinErreur("Les deux PIN ne correspondent pas"); return; }
     setPinSaving(true);
     try {
-      await fetch(`${API}/operateurs/${operateur.id}`, {
-        method:"PATCH", headers:{"Content-Type":"application/json"},
-        body:JSON.stringify({pin:pinNouveau}),
-      });
+      await apiPatch(`/operateurs/${operateur.id}`, {pin:pinNouveau});
     } catch {}
     const opMaj = {...operateur, pin:pinNouveau};
     onUpdateOperateur?.(opMaj);
@@ -5466,23 +5408,14 @@ const EcranOperateur = ({operateur, onLogout, toast, onUpdateOperateur}) => {
     };
     try {
       let res;
-      if (modeModif && releveExistantId) {
-        res = await fetch(`${API}${endpoint}/${releveExistantId}`, {
-          method:"PATCH",
-          headers:{"Content-Type":"application/json"},
-          body:JSON.stringify(payload),
-        });
-      } else {
-        res = await fetch(`${API}${endpoint}`, {
-          method:"POST",
-          headers:{"Content-Type":"application/json"},
-          body:JSON.stringify(payload),
-        });
-      }
-      if (!res.ok) {
-        const err = await res.json();
-        if (err.message && err.message.startsWith("DOUBLON:")) {
-          const id = err.message.split(":")[1];
+      try {
+        res = modeModif && releveExistantId
+          ? await apiPatch(`${endpoint}/${releveExistantId}`, payload)
+          : await apiPost(endpoint, payload);
+      } catch(apiErr) {
+        const msg = apiErr?.message || "";
+        if (msg.includes("DOUBLON:")) {
+          const id = msg.split("DOUBLON:")[1];
           setReleveExistantId(id);
           setDoublonDetecte(true);
           setSaving(false);
@@ -5492,13 +5425,7 @@ const EcranOperateur = ({operateur, onLogout, toast, onUpdateOperateur}) => {
       }
       // Débardeur → accumuler tonnage bord de route sur le lot
       if (isDebardeur && poidsTotalDeb>0) {
-        fetch(`${API}/contacts/${activeLot.lotId}`, {
-          method:"PATCH",
-          headers:{"Content-Type":"application/json"},
-          body:JSON.stringify({
-            tonnageBordRoute_increment: poidsTotalDeb,
-          }),
-        }).catch(()=>{});
+        apiPatch(`/contacts/${activeLot.lotId}`, { tonnageBordRoute_increment: poidsTotalDeb }).catch(()=>{});
       }
       relevesSoumis.current.add(`${activeLot.lotId}|${typeOp}`);
       toast("Relevé enregistré ✓");
@@ -5520,19 +5447,16 @@ const EcranOperateur = ({operateur, onLogout, toast, onUpdateOperateur}) => {
   const handleDemanderModification = async () => {
     setMsgModifEnvoi(true);
     try {
-      await fetch(`${API}/messages-admin`, {
-        method:"POST", headers:{"Content-Type":"application/json"},
-        body:JSON.stringify({
-          type:"demande_modification_releve",
-          operateur:`${operateur.prenom||""} ${operateur.nom}`.trim(),
-          etfNom: operateur.etfNom||"",
-          lotId: activeLot?.lotId,
-          lotNumero: activeLot?.lotNumero,
-          typeOperation: typeOp,
-          releveId: releveExistantId,
-          date: new Date().toISOString(),
-          message:`L'opérateur ${operateur.prenom||""} ${operateur.nom} demande une correction sur le relevé ${typeOp==="debardage"?"débardage":"abattage"} du lot ${activeLot?.lotNumero} (${new Date().toLocaleDateString("fr-FR")}).`,
-        }),
+      await apiPostPublic(`/messages-admin`, {
+        type:"demande_modification_releve",
+        operateur:`${operateur.prenom||""} ${operateur.nom}`.trim(),
+        etfNom: operateur.etfNom||"",
+        lotId: activeLot?.lotId,
+        lotNumero: activeLot?.lotNumero,
+        typeOperation: typeOp,
+        releveId: releveExistantId,
+        date: new Date().toISOString(),
+        message:`L'opérateur ${operateur.prenom||""} ${operateur.nom} demande une correction sur le relevé ${typeOp==="debardage"?"débardage":"abattage"} du lot ${activeLot?.lotNumero} (${new Date().toLocaleDateString("fr-FR")}).`,
       });
     } catch {}
     setMsgModifEnvoi(false);
@@ -5563,10 +5487,7 @@ const EcranOperateur = ({operateur, onLogout, toast, onUpdateOperateur}) => {
           setActiveLot(null);
           setScreen("lots");
           toast("Visite enregistrée ✓");
-          fetch(`${API}/contacts/${lotComplet.id}/transition-etf`,{
-            method:"POST",headers:{"Content-Type":"application/json"},
-            body:JSON.stringify({action:"validerVisite",operateurId:operateur.id}),
-          }).catch(()=>{});
+          apiPostPublic(`/contacts/${lotComplet.id}/transition-etf`, {action:"validerVisite",operateurId:operateur.id}).catch(()=>{});
         }}
         toast={toast}/>
     );
@@ -6478,11 +6399,7 @@ const EcranDelegations = ({entrepriseId, toast, onBack}) => {
       typesProposes, entrepriseId,
     };
     try {
-      const res = await fetch(`${API}/entreprises`, {
-        method:"POST", headers:authHeaders(), body:JSON.stringify(entreprise),
-      });
-      if (!res.ok) throw new Error();
-      const saved = await res.json();
+      const saved = await apiPost(`/entreprises`, entreprise);
       setEntreprises(prev=>{ const next=[saved,...prev]; try{localStorage.setItem(`applitag_entreprises_${entrepriseId}`,JSON.stringify(next));}catch{} return next; });
       toast(`Entreprise ${nom} créée ✓`);
     } catch {
@@ -6523,16 +6440,11 @@ const EcranDelegations = ({entrepriseId, toast, onBack}) => {
       dateEmission: nowISO(), synced:false,
     };
     try {
-      await fetch(`${API}/contacts/${missionLotId}`, {
-        method:"PATCH", headers:authHeaders(),
-        body:JSON.stringify({etfNom:ent.nom, etfId:ent.id, typeMission:missionType}),
-      });
+      await apiPatch(`/contacts/${missionLotId}`, {etfNom:ent.nom, etfId:ent.id, typeMission:missionType});
       setContacts(prev=>prev.map(c=>c.id===missionLotId?{...c,etfNom:ent.nom}:c));
       try {
-        const res = await fetch(`${API}/ordres-exploitation`, {
-          method:"POST", headers:authHeaders(), body:JSON.stringify(ordre),
-        });
-        if (res.ok) ordre.synced = true;
+        await apiPost(`/ordres-exploitation`, ordre);
+        ordre.synced = true;
       } catch {}
       const newOrdres = [ordre, ...ordresExplLocalGet()];
       ordresExplLocalSave(newOrdres);
@@ -6899,13 +6811,8 @@ const ModalDelegationVisite = ({lot, operateurs, onDeleguee, onIgnorer}) => {
     if (!nomDelegue) { return; }
     setSaving(true);
     try {
-      const res = await fetch(`${API}/acces-lot`,{
-        method:"POST", headers:authHeaders(),
-        body:JSON.stringify({lotId:lot.id,lotNumero:lot.lotNumero,
-          nomDelegue,telDelegue,qualiteDelegue,expiresAt:dateExpiry,type:"visite"}),
-      });
-      if (!res.ok) { setSaving(false); alert("Erreur serveur — délégation non enregistrée"); return; }
-      const created = await res.json();
+      const created = await apiPost(`/acces-lot`, {lotId:lot.id,lotNumero:lot.lotNumero,
+          nomDelegue,telDelegue,qualiteDelegue,expiresAt:dateExpiry,type:"visite"});
       setCodeGenere(created.code); setSaving(false);
       onDeleguee&&onDeleguee({nomDelegue,code:created.code});
     } catch {
@@ -7201,11 +7108,7 @@ const EcranValidationExploitation = ({lot, visites=[], operateurs, onBack, onSav
       statut:"EN_COURS_EXPLOITATION",
     };
     try {
-      await fetch(`${API}/validations`, {
-        method:"POST",
-        headers:{"Content-Type":"application/json"},
-        body:JSON.stringify(payload),
-      });
+      await apiPost(`/validations`, payload);
       toast("Reporting du jour enregistré ✓");
       onSaved({etfNom, tonnage:parseFloat(volumeJour)||0});
     } catch {
@@ -7492,10 +7395,7 @@ const EcranClotureExploitation = ({lot, visites=[], onBack, onSaved, toast, entr
       return;
     }
     try {
-      const res = await fetch(`${API}/clotures`, {
-        method:"POST",
-        headers:{"Content-Type":"application/json"},
-        body:JSON.stringify({
+      await apiPost(`/clotures`, {
           lotId: lot.id, lotNumero: lot.lotNumero,
           entrepriseId, nbTas, longueur, largeur, hauteur,
           tasDetails: nbTas>1 ? tasDetails : undefined,
@@ -7503,9 +7403,7 @@ const EcranClotureExploitation = ({lot, visites=[], onBack, onSaved, toast, entr
           poidsEstime, humiditeEstimee: humidite,
           photos: JSON.stringify(photos.map((_,i)=>`photo_${i+1}`)),
           anomalies, statut: "validee",
-        }),
       });
-      if (!res.ok) throw new Error();
       toast("Réception de fin d'exploitation enregistrée ✓");
       onSaved();
     } catch { toast("Erreur API","warn"); }
@@ -10229,17 +10127,14 @@ const FluxDechiquetageRole = ({lot, user, onFinChantier, onRetour, toast}) => {
       dateJour: new Date().toISOString().slice(0,10),
     };
     try {
-      const r1 = await fetch(`${API}/dechiquetage`, { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(payload) });
-      if (!r1.ok) throw new Error(`dechiquetage ${r1.status}`);
-      const r2 = await fetch(`${API}/contacts/${lot.id}/transition`, { method:"POST", headers:authHeaders(), body:JSON.stringify({action:"terminerDechiquetage"}) });
-      if (!r2.ok) throw new Error(`contacts ${r2.status}`);
-      await fetch(`${API}/messages-admin`, { method:"POST", headers:{"Content-Type":"application/json"},
-        body:JSON.stringify({ type:"fin_chantier_dechiquetage", lotId:lot.id, lotNumero:lot.lotNumero,
-          operateurDechiquetage:operateurNom, machine,
-          nbCamions:chargements.length,
-          tonnageTotal:payload.tonnageTotal.toFixed(1),
-          message:`Chantier de déchiquetage terminé sur le lot ${lot.lotNumero}. ${chargements.length} camion(s) chargé(s), ${payload.tonnageTotal.toFixed(1)} t au total. Réception à effectuer.`,
-          date:new Date().toISOString() }) });
+      await apiPost(`/dechiquetage`, payload);
+      await apiPost(`/contacts/${lot.id}/transition`, {action:"terminerDechiquetage"});
+      await apiPostPublic(`/messages-admin`, { type:"fin_chantier_dechiquetage", lotId:lot.id, lotNumero:lot.lotNumero,
+        operateurDechiquetage:operateurNom, machine,
+        nbCamions:chargements.length,
+        tonnageTotal:payload.tonnageTotal.toFixed(1),
+        message:`Chantier de déchiquetage terminé sur le lot ${lot.lotNumero}. ${chargements.length} camion(s) chargé(s), ${payload.tonnageTotal.toFixed(1)} t au total. Réception à effectuer.`,
+        date:new Date().toISOString() });
     } catch(e) {
       toast&&toast(`Erreur enregistrement chantier — ${e.message||"vérifiez la connexion"}`, "warn");
       setSaving(false);
@@ -12822,9 +12717,7 @@ const EcranFinChantier = ({lot, onBack, onSaved, toast, entrepriseId}) => {
   const handleSave = async () => {
     setSaving(true);
     try {
-      await fetch(`${API}/fin-chantier`, {
-        method:"POST", headers:{"Content-Type":"application/json"},
-        body:JSON.stringify({
+      await apiPost(`/fin-chantier`, {
           lotId:lot.id, lotNumero:lot.lotNumero, entrepriseId,
           photosAvant, photosApres, photosDepot, photosAcces,
           surfaceRenovee, typeBroyage, machineRenov, tempsRenov, nbPassages,
@@ -12833,7 +12726,6 @@ const EcranFinChantier = ({lot, onBack, onSaved, toast, entrepriseId}) => {
           sigPropFin, sigDataFin, nomPropFin, reserveProp, commentaireProp,
           noteQualite, indiceTotal, indiceLabel,
           statut:"LIVRE",
-        }),
       });
       toast("Fin de chantier validée ✓");
       onSaved();
@@ -13339,16 +13231,13 @@ const EcranDechiquetage = ({lot, operateurs=[], onBack, onSaved, toast, entrepri
     setSaving(true);
     try { localStorage.setItem(`applitag_dech_machine_${user?.id||""}`, machine); } catch {}
     try {
-      await fetch(`${API}/dechiquetage`, {
-        method:"POST", headers:{"Content-Type":"application/json"},
-        body:JSON.stringify({
+      await apiPost(`/dechiquetage`, {
           lotId:lot.id, lotNumero:lotSuggere, entrepriseId,
           entrepriseDechiquetage, operateurDechiquetage, machine, typeChargement,
           cubageCharge: parseFloat(cubageCharge)||null,
           tonnageCharge: parseFloat(tonnageCharge)||null,
           numeroCMR, photoCMR, immatTracteur, immatRemorque,
           heureDebut, heureFin, evenements, autreEvenement, statut:"EN_LIVRAISON",
-        }),
       });
       toast("Déchiquetage enregistré — transport créé ✓");
       onSaved("EN_LIVRAISON");
@@ -13559,15 +13448,12 @@ const EcranTransporteur = ({lot, onBack, onSaved, toast, entrepriseId}) => {
   const handleSave = async () => {
     setSaving(true);
     try {
-      await fetch(`${API}/transports`, {
-        method:"POST", headers:{"Content-Type":"application/json"},
-        body:JSON.stringify({
+      await apiPost(`/transports`, {
           lotId:lot.id, lotNumero:lot.lotNumero, entrepriseId,
           typeVehicule, immatTracteur, immatRemorque, nomChauffeur,
           societeTransp, numeroCMR,
           confirmReception, heureArrivee, departConfirme, destinationConfirmee,
           statut: departConfirme?"EN_LIVRAISON":"EN_COURS_DECHIQUETAGE",
-        }),
       });
       toast("Transport enregistré ✓");
       onSaved(departConfirme?"EN_LIVRAISON":"EN_COURS_DECHIQUETAGE");
@@ -13745,9 +13631,7 @@ const EcranLivraison = ({lot, onBack, onSaved, toast, entrepriseId}) => {
     setSaving(true);
     const statutFinal = typeDest==="chaufferie" ? "LIVRE_CHAUFFERIE" : "EN_STOCK_PLATEFORME";
     try {
-      await fetch(`${API}/livraisons`, {
-        method:"POST", headers:{"Content-Type":"application/json"},
-        body:JSON.stringify({
+      await apiPost(`/livraisons`, {
           lotId:lot.id, lotNumero:lot.lotNumero, entrepriseId,
           typeDest, numeroCMR, nomDestination, gpsLivraison,
           pesee, humiditeReception, nomReceptionnaire, signatureRecep,
@@ -13755,7 +13639,6 @@ const EcranLivraison = ({lot, onBack, onSaved, toast, entrepriseId}) => {
           dateHeureLivraison: new Date().toISOString(),
           statut: statutFinal,
           gpsAlerteDeclenche: gpsAlerte,
-        }),
       });
       toast(typeDest==="chaufferie"?"Livraison chaufferie validée ✓":"Entrée stock plateforme ✓");
       onSaved(statutFinal);
