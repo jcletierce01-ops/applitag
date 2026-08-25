@@ -29,222 +29,15 @@ import { DEFAULT_ENTREPRISE_ID, COMPTE_SESSION_KEY, annoncesLocalGet, annoncesLo
 import { ordresExplLocalGet, ordresExplLocalSave } from "./domains/exploitation/local-storage.js";
 import { countPendingSync, resyncPendingRecords } from "./domains/sync/legacy-sync.js";
 import { apiGet, apiPost, apiPostPublic, apiPatch, apiDelete } from "./services/api.service.js";
+import { BigBtn, MInput, GridSelect, SectionTitle, MiniBarChart, MSlider, CheckItem } from "./shared/ui.jsx";
+import { SignatureCanvas } from "./shared/SignatureCanvas.jsx";
 
 const API = API_BASE_URL;
 // Helpers importés depuis leurs modules domaine (voir imports ci-dessus)
 
 // ── ATOMS ─────────────────────────────────────────────────────
-const BigBtn = ({onClick,bg=C.green,color="#fff",children,disabled,icon,style={}}) => (
-  <button onClick={disabled?undefined:onClick} style={{
-    width:"100%",height:BTN_H,borderRadius:14,
-    background:disabled?C.bg2:bg,color:disabled?C.tx3:color,
-    border:"none",fontFamily:"inherit",fontSize:16,fontWeight:600,
-    display:"flex",alignItems:"center",justifyContent:"center",gap:10,
-    cursor:disabled?"not-allowed":"pointer",opacity:disabled?.5:1,
-    WebkitTapHighlightColor:"transparent",...style,
-  }}>
-    {icon&&<span style={{fontSize:22}}>{icon}</span>}
-    {children}
-  </button>
-);
-
-const MInput = ({label,value,onChange,placeholder,type="text",required,error,hint,big,min}) => {
-  const inputMode = type==="number"||type==="numeric" ? "decimal"
-    : type==="tel" ? "tel"
-    : type==="email" ? "email"
-    : undefined;
-  const minAttr = type==="date" ? (min ?? todayS()) : undefined;
-  const isEmpty = required && (!value || String(value).trim()==="" || parseFloat(value)===0 || value==="0");
-  const borderColor = error ? C.red : isEmpty ? "#E24B4A" : C.bd;
-  return (
-  <div style={{marginBottom:14}}>
-    <div style={{fontSize:13,fontWeight:600,color:(error||isEmpty)?C.red:C.tx2,marginBottom:5,
-      display:"flex",justifyContent:"space-between"}}>
-      <span>{label}{required&&<span style={{color:"#E24B4A"}}> ✱</span>}</span>
-      {hint&&<span style={{fontWeight:400,color:C.tx3,fontSize:12}}>{hint}</span>}
-    </div>
-    {big ? (
-      <textarea value={value} onChange={e=>onChange(e.target.value)}
-        placeholder={placeholder} rows={3}
-        style={{width:"100%",padding:"14px",borderRadius:12,resize:"none",
-          border:`1.5px solid ${borderColor}`,
-          fontSize:FONT_INPUT,fontFamily:"inherit",lineHeight:1.5,
-          background:"#fff",color:C.tx,outline:"none"}}/>
-    ) : (
-      <input value={value} onChange={e=>onChange(e.target.value)}
-        placeholder={placeholder}
-        type={type==="number"?"text":type}
-        inputMode={inputMode}
-        min={minAttr}
-        style={{width:"100%",height:INPUT_H,padding:"0 14px",borderRadius:12,
-          border:`1.5px solid ${borderColor}`,
-          fontSize:FONT_INPUT,fontFamily:"inherit",
-          background:"#fff",color:C.tx,outline:"none"}}/>
-    )}
-    {error&&<div style={{fontSize:12,color:C.red,marginTop:4}}>⚠ {error}</div>}
-  </div>
-  );
-};
-
-const GridSelect = ({options,value,onChange,cols=3}) => (
-  <div style={{display:"grid",gridTemplateColumns:`repeat(${cols},1fr)`,gap:8,marginBottom:14}}>
-    {options.map(([v,emoji,label])=>{
-      const active = value===v;
-      return (
-        <button key={v} onClick={()=>onChange(v)} style={{
-          padding:"10px 6px",borderRadius:12,
-          border:`1.5px solid ${active?C.green:C.bd}`,
-          background:active?C.greenL:"#fff",cursor:"pointer",
-          fontFamily:"inherit",display:"flex",flexDirection:"column",
-          alignItems:"center",gap:4,WebkitTapHighlightColor:"transparent",
-        }}>
-          <span style={{fontSize:20}}>{emoji}</span>
-          <span style={{fontSize:10,fontWeight:active?600:400,
-            color:active?C.greenD:C.tx2,textAlign:"center",lineHeight:1.3}}>
-            {label}
-          </span>
-        </button>
-      );
-    })}
-  </div>
-);
-
-const SectionTitle = ({icon,label,color}) => (
-  <div style={{fontSize:13,fontWeight:700,color:color||C.tx2,marginBottom:12,marginTop:8,
-    display:"flex",alignItems:"center",gap:7,fontFamily:FONT_TITLE,
-    paddingBottom:8,borderBottom:`1px solid ${color||C.bd}`}}>
-    <span style={{fontSize:16}}>{icon}</span>{label}
-  </div>
-);
-
-// Petit graphique linéaire (jour par jour sur le mois) affiché sous un chiffre clé de KPI
-const MiniBarChart = ({data, color=C.green, height=40}) => {
-  const max = Math.max(1, ...data.map(d=>d||0));
-  const n = data.length;
-  const x = i => n>1 ? (i/(n-1))*100 : 50;
-  const y = v => height - (v/max)*(height-4) - 2;
-  const points = data.map((v,i)=>`${x(i)},${y(v||0)}`).join(" ");
-  const areaPoints = `0,${height} ${points} 100,${height}`;
-  return (
-    <svg viewBox={`0 0 100 ${height}`} preserveAspectRatio="none" style={{width:"100%",height,display:"block"}}>
-      <polygon points={areaPoints} fill={color} opacity={0.12}/>
-      <polyline points={points} fill="none" stroke={color} strokeWidth={1.6}
-        strokeLinejoin="round" strokeLinecap="round" vectorEffect="non-scaling-stroke"/>
-      {data.map((v,i)=>v?(
-        <circle key={i} cx={x(i)} cy={y(v)} r={1.4} fill={color}/>
-      ):null)}
-    </svg>
-  );
-};
-
-// ── SIGNATURE CANVAS ──────────────────────────────────────────
-const SignatureCanvas = ({label, nomSignataire="", onSigned, onClear, signed=false}) => {
-  const canvasRef = useRef(null);
-  const drawing   = useRef(false);
-  const [hasSig,  setHasSig]  = useState(signed);
-  const [showPad, setShowPad] = useState(false);
-
-  const getPos = (e, canvas) => {
-    const rect = canvas.getBoundingClientRect();
-    const src  = e.touches ? e.touches[0] : e;
-    return { x:(src.clientX-rect.left)*(canvas.width/rect.width),
-             y:(src.clientY-rect.top)*(canvas.height/rect.height) };
-  };
-  const startDraw = (e) => {
-    e.preventDefault(); drawing.current = true;
-    const ctx = canvasRef.current.getContext("2d");
-    const {x,y} = getPos(e,canvasRef.current);
-    ctx.beginPath(); ctx.moveTo(x,y);
-  };
-  const draw = (e) => {
-    if (!drawing.current) return; e.preventDefault();
-    const ctx = canvasRef.current.getContext("2d");
-    const {x,y} = getPos(e,canvasRef.current);
-    ctx.lineWidth=2.5; ctx.lineCap="round"; ctx.strokeStyle="#1A1A18";
-    ctx.lineTo(x,y); ctx.stroke();
-  };
-  const endDraw = () => { drawing.current = false; };
-  const handleClear = () => {
-    const ctx = canvasRef.current?.getContext("2d");
-    ctx?.clearRect(0,0,canvasRef.current.width,canvasRef.current.height);
-    setHasSig(false); onClear&&onClear();
-  };
-  const handleValider = () => {
-    const data = canvasRef.current.toDataURL("image/png");
-    setHasSig(true); setShowPad(false); onSigned&&onSigned(data);
-  };
-
-  return (
-    <div style={{marginBottom:14}}>
-      {label&&<div style={{fontSize:13,fontWeight:600,color:C.tx2,marginBottom:8}}>{label}</div>}
-      <div onClick={()=>!hasSig&&setShowPad(true)} style={{
-        border:`2px solid ${hasSig?C.green:C.bd}`,borderRadius:12,
-        padding:hasSig?"0":"24px 0",background:hasSig?C.greenL:"#fff",
-        cursor:hasSig?"default":"pointer",
-        display:"flex",flexDirection:"column",alignItems:"center",gap:8,
-        WebkitTapHighlightColor:"transparent"}}>
-        {hasSig?(
-          <div style={{padding:"10px 16px",display:"flex",alignItems:"center",
-            justifyContent:"space-between",width:"100%"}}>
-            <div style={{fontSize:13,fontWeight:600,color:C.greenD}}>
-              ✅ Signé — {nomSignataire}
-            </div>
-            <button onClick={e=>{e.stopPropagation();handleClear();setShowPad(true);}}
-              style={{background:"none",border:"none",color:C.tx3,cursor:"pointer",
-                fontSize:12,padding:"2px 8px",borderRadius:6,
-                WebkitTapHighlightColor:"transparent"}}>
-              ↺ Refaire
-            </button>
-          </div>
-        ):(
-          <><span style={{fontSize:28}}>✍️</span>
-          <span style={{fontSize:13,color:C.tx3}}>Appuyez pour signer</span></>
-        )}
-      </div>
-      {showPad&&(
-        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.6)",
-          zIndex:3000,display:"flex",flexDirection:"column",justifyContent:"flex-end"}}>
-          <div style={{background:"#fff",borderRadius:"20px 20px 0 0",padding:16}}>
-            <div style={{width:40,height:4,borderRadius:2,background:C.bd,margin:"0 auto 16px"}}/>
-            <div style={{fontSize:15,fontWeight:700,color:C.tx,marginBottom:4}}>
-              ✍️ {nomSignataire||label}
-            </div>
-            <div style={{fontSize:11,color:C.tx3,marginBottom:12}}>
-              Signez dans le cadre ci-dessous
-            </div>
-            <div style={{position:"relative",borderRadius:12,overflow:"hidden",
-              border:`2px solid ${C.bd}`,background:"#FAFAF8",marginBottom:12}}>
-              <canvas ref={canvasRef} width={360} height={160}
-                style={{width:"100%",height:160,display:"block",touchAction:"none"}}
-                onMouseDown={startDraw} onMouseMove={draw} onMouseUp={endDraw} onMouseLeave={endDraw}
-                onTouchStart={startDraw} onTouchMove={draw} onTouchEnd={endDraw}/>
-              <div style={{position:"absolute",bottom:8,left:0,right:0,
-                textAlign:"center",pointerEvents:"none"}}>
-                <div style={{borderTop:`1px solid ${C.bd}`,margin:"0 24px",paddingTop:6,
-                  fontSize:10,color:C.tx3}}>{nomSignataire||"Signataire"}</div>
-              </div>
-            </div>
-            <div style={{display:"grid",gridTemplateColumns:"1fr 2fr",gap:8}}>
-              <button onClick={handleClear} style={{
-                padding:"12px 0",borderRadius:10,background:C.bg2,border:`1px solid ${C.bd}`,
-                color:C.tx2,fontFamily:"inherit",fontSize:13,cursor:"pointer",
-                WebkitTapHighlightColor:"transparent"}}>🗑️ Effacer</button>
-              <button onClick={handleValider} style={{
-                padding:"12px 0",borderRadius:10,background:C.green,border:"none",
-                color:"#fff",fontFamily:"inherit",fontSize:14,fontWeight:600,cursor:"pointer",
-                WebkitTapHighlightColor:"transparent"}}>✅ VALIDER</button>
-            </div>
-            <button onClick={()=>setShowPad(false)} style={{
-              width:"100%",marginTop:10,padding:10,background:"transparent",
-              border:"none",color:C.tx3,fontFamily:"inherit",fontSize:13,cursor:"pointer"}}>
-              Annuler
-            </button>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-};
+// BigBtn, MInput, GridSelect, SectionTitle, MiniBarChart importés depuis ./shared/ui.jsx
+// SignatureCanvas importé depuis ./shared/SignatureCanvas.jsx
 
 // ── ÉCRAN LOGIN ───────────────────────────────────────────────
 // ── DONNÉES DÉMO ──────────────────────────────────────────────
@@ -2160,22 +1953,7 @@ const ListeContacts = ({contacts, onNew, onNewVisite, onEdit}) => {
 };
 
 // ── VISITE TERRAIN ────────────────────────────────────────────
-const MSlider = ({label,value,onChange,min,max,step=1,unit,color=C.green,hint}) => (
-  <div style={{marginBottom:14}}>
-    <div style={{display:"flex",justifyContent:"space-between",
-      fontSize:12,fontWeight:600,color:C.tx2,marginBottom:8}}>
-      <span>{label}{hint&&<span style={{fontWeight:400,color:C.tx3,fontSize:10}}> · {hint}</span>}</span>
-      <span style={{color,fontSize:15,fontWeight:700}}>{value}{unit}</span>
-    </div>
-    <input type="range" min={min} max={max} step={step} value={value}
-      onChange={e=>onChange(parseFloat(e.target.value))}
-      style={{width:"100%",height:8,accentColor:color}}/>
-    <div style={{display:"flex",justifyContent:"space-between",
-      fontSize:9,color:C.tx3,marginTop:3}}>
-      <span>{min}{unit}</span><span>{max}{unit}</span>
-    </div>
-  </div>
-);
+// MSlider importé depuis ./shared/ui.jsx
 
 const MapZonesProtegees = ({gps}) => {
   const divRef = useRef(null);
@@ -2311,22 +2089,7 @@ const GpsWidget = ({value,onChange,required}) => {
   );
 };
 
-const CheckItem = ({checked,onChange,label,sub,warn}) => (
-  <div onClick={()=>onChange(!checked)} style={{display:"flex",alignItems:"flex-start",
-    gap:12,padding:"12px 0",borderBottom:`0.5px solid ${C.bd}`,
-    cursor:"pointer",WebkitTapHighlightColor:"transparent"}}>
-    <div style={{width:28,height:28,borderRadius:8,flexShrink:0,marginTop:1,
-      border:`2px solid ${checked?(warn?C.amber:C.green):C.bd2}`,
-      background:checked?(warn?C.amber:C.green):"#fff",
-      display:"flex",alignItems:"center",justifyContent:"center",transition:"all .15s"}}>
-      {checked&&<span style={{color:"#fff",fontSize:16,lineHeight:1}}>✓</span>}
-    </div>
-    <div style={{flex:1}}>
-      <div style={{fontSize:15,fontWeight:checked?400:500,color:checked?C.tx2:C.tx}}>{label}</div>
-      {sub&&<div style={{fontSize:12,color:C.tx3,marginTop:2}}>{sub}</div>}
-    </div>
-  </div>
-);
+// CheckItem importé depuis ./shared/ui.jsx
 
 const PhotosWidget = ({photos,onChange,required=2}) => {
   const addPhoto = (type) => {
