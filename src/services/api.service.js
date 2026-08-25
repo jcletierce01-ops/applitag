@@ -12,16 +12,28 @@
  */
 
 import { API_BASE_URL } from "@/config/env.js";
-import { authHeaders } from "@/services/auth.service.js";
+import { authHeaders, clearAuth } from "@/services/auth.service.js";
 
 const BASE = API_BASE_URL;
+
+// Garde contre les rechargements multiples si plusieurs requêtes simultanées reçoivent un 401.
+let _sessionExpired = false;
+
+const onUnauthorized = () => {
+  if (_sessionExpired) return;
+  _sessionExpired = true;
+  clearAuth();
+  window.location.reload();
+};
 
 /**
  * Décode la réponse : JSON si content-type le dit, texte sinon.
  * Lance une ApiError sur status >= 400.
+ * Sur 401 : efface la session et recharge la page (token expiré ou révoqué).
  */
 const handle = async (res) => {
   if (!res.ok) {
+    if (res.status === 401) onUnauthorized();
     let detail = "";
     try { const j = await res.json(); detail = j.message || j.error || ""; } catch {}
     const err = new Error(`API ${res.status}${detail ? ` — ${detail}` : ""}`);
