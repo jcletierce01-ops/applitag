@@ -2,9 +2,11 @@
 import { C, PADDING } from "../../design-system/tokens.js";
 import { todayS } from "../../shared/utils.js";
 import { fmtNum } from "../../shared/format.js";
-import { apiPost } from "../../services/api.service.js";
+import { apiPost, apiPostPublic } from "../../services/api.service.js";
 import { BigBtn, MInput, SectionTitle } from "../../shared/ui.jsx";
 import { generatePdfFromHtml, buildRedHTML } from "../../domains/documents/pdf-templates.js";
+import { validateCMR, formatCMR, formatImmat, validateImmat } from "../../shared/validators.js";
+import { STATUT_LOT } from "../../domains/screens/MobileScreens.jsx";
 export const EcranRoleMandataire = ({user, contacts, onSelectLot}) => {
   const mesLots = contacts.filter(c=>c.mandataireId===user.id);
   const [selLot, setSelLot] = useState(null);
@@ -398,7 +400,7 @@ export const EcranRoleChauffeur = ({user, transports=[], dechiquetages=[], gpsCh
           onClick={()=>{
             const val=capaciteSaisie.trim();
             setCapaciteM3(val);
-            try{localStorage.setItem(storageKey,val)}catch{}
+            try{localStorage.setItem(storageKey,val)} catch { /* noop */ }
             setPosteValide(true);
           }}
           style={{width:"100%",height:52,borderRadius:14,
@@ -800,7 +802,7 @@ const FluxDechiquetageRole = ({lot, user, onFinChantier, onRetour, toast}) => {
 
   const handleDemarrer = () => {
     if (!machine.trim()) { toast&&toast("Veuillez indiquer le nom de la machine","warn"); return; }
-    try { localStorage.setItem(`applitag_dech_machine_${user?.id||""}`, machine); } catch {}
+    try { localStorage.setItem(`applitag_dech_machine_${user?.id||""}`, machine); } catch { /* noop */ }
     const now = new Date();
     setHeureDebut(hNow());
     setDateDebut(now.toLocaleDateString("fr-FR",{weekday:"long",day:"numeric",month:"long",year:"numeric"}));
@@ -1061,9 +1063,9 @@ const FluxDechiquetageRole = ({lot, user, onFinChantier, onRetour, toast}) => {
 };
 
 // ────────────────────────────────────────────────────────────────────────────
-export const EcranRoleDechiquetage = ({user, contacts, onLaunchDechiquetage, avisArrivee={}, camionsPartis={}, onArriveeChantier, toast}) => {
+export const EcranRoleDechiquetage = ({user, contacts, _onLaunchDechiquetage, avisArrivee={}, camionsPartis={}, onArriveeChantier, toast}) => {
   const lotsABroyer = contacts.filter(c=>["BORD_ROUTE","A_DECHIQUETER"].includes(c.statutLot));
-  const [actif, setActif] = useState(null);
+  const [actif, _setActif] = useState(null);
   const [avisLus, setAvisLus] = useState({});
   const arriveeKey = `applitag_arrivee_op_${user.id||user.nom}`;
   const [arriveeGlobale, setArriveeGlobale] = useState(()=>{try{const s=localStorage.getItem(arriveeKey);return s?JSON.parse(s):null}catch{return null}});
@@ -1076,7 +1078,7 @@ export const EcranRoleDechiquetage = ({user, contacts, onLaunchDechiquetage, avi
       lot={lotActif}
       user={user}
       toast={toast}
-      onFinChantier={(lotId)=>{
+      onFinChantier={(_lotId)=>{
         // Retirer le lot de la liste locale (statut mis à jour côté API)
         setLotActif(null);
       }}
@@ -1088,20 +1090,20 @@ export const EcranRoleDechiquetage = ({user, contacts, onLaunchDechiquetage, avi
     const h = new Date().toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"});
     const val = {heure:h,gpsStatut:"acquisition"};
     setArriveeGlobale(val);
-    try{localStorage.setItem(arriveeKey,JSON.stringify(val))}catch{}
+    try{localStorage.setItem(arriveeKey,JSON.stringify(val))} catch { /* noop */ }
     if(navigator.geolocation){
       navigator.geolocation.getCurrentPosition(
         (pos)=>{
           const coords = {lat:pos.coords.latitude, lng:pos.coords.longitude, precision:Math.round(pos.coords.accuracy)};
           const v2 = {heure:h,gpsStatut:"ok",coords};
           setArriveeGlobale(v2);
-          try{localStorage.setItem(arriveeKey,JSON.stringify(v2))}catch{}
+          try{localStorage.setItem(arriveeKey,JSON.stringify(v2))} catch { /* noop */ }
           onArriveeChantier&&onArriveeChantier("global", h, coords);
         },
         ()=>{
           const v2 = {heure:h,gpsStatut:"erreur"};
           setArriveeGlobale(v2);
-          try{localStorage.setItem(arriveeKey,JSON.stringify(v2))}catch{}
+          try{localStorage.setItem(arriveeKey,JSON.stringify(v2))} catch { /* noop */ }
           onArriveeChantier&&onArriveeChantier("global", h, null);
         },
         {enableHighAccuracy:true, timeout:10000}
@@ -1109,11 +1111,11 @@ export const EcranRoleDechiquetage = ({user, contacts, onLaunchDechiquetage, avi
     } else {
       const v2 = {heure:h,gpsStatut:"indisponible"};
       setArriveeGlobale(v2);
-      try{localStorage.setItem(arriveeKey,JSON.stringify(v2))}catch{}
+      try{localStorage.setItem(arriveeKey,JSON.stringify(v2))} catch { /* noop */ }
       onArriveeChantier&&onArriveeChantier("global", h, null);
     }
   };
-  const avisActifs = Object.entries(avisArrivee).filter(([lotId])=>!avisLus[lotId]);
+  const _avisActifs = Object.entries(avisArrivee).filter(([lotId])=>!avisLus[lotId]);
   return (
     <div data-scrollable="1" style={{flex:1,overflowY:"auto",padding:PADDING,background:C.bg}}>
       <div style={{textAlign:"center",padding:"24px 0 16px"}}>
@@ -1320,7 +1322,7 @@ export const EcranRoleDechiquetage = ({user, contacts, onLaunchDechiquetage, avi
             )}
             <button onClick={()=>{
                 setArriveeGlobale(null);
-                try{localStorage.removeItem(arriveeKey)}catch{}
+                try{localStorage.removeItem(arriveeKey)} catch { /* noop */ }
               }}
               style={{width:"100%",padding:14,borderRadius:12,
                 background:"#FFEBEE",border:"2px solid #EF9A9A",color:"#C62828",
@@ -1361,7 +1363,7 @@ export const EcranEntrepriseSollicitee = ({user, lots=[], toast}) => {
 
   const save = (list) => {
     setOperateurs(list);
-    try{localStorage.setItem(storageKey,JSON.stringify(list))}catch{}
+    try{localStorage.setItem(storageKey,JSON.stringify(list))} catch { /* noop */ }
   };
 
   const handleAjouter = () => {
@@ -2255,7 +2257,7 @@ export const EcranCarte = ({contacts, visites, onOpenLot}) => {
 };
 
 // ── FICHE LOT CENTRALE (6 onglets) ───────────────────────────
-const PIPELINE = [
+export const PIPELINE = [
   {id:"NOUVEAU",            label:"Nouveau",       icon:"🆕"},
   {id:"VISITE_PREVUE",      label:"Visite prévue", icon:"🔭"},
   {id:"VISITE_REALISEE",    label:"Visite OK",     icon:"✅"},

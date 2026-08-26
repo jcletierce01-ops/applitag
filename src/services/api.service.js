@@ -35,7 +35,7 @@ const handle = async (res) => {
   if (!res.ok) {
     if (res.status === 401) onUnauthorized();
     let detail = "";
-    try { const j = await res.json(); detail = j.message || j.error || ""; } catch {}
+    try { const j = await res.json(); detail = j.message || j.error || ""; } catch { /* réponse sans corps JSON */ }
     const err = new Error(`API ${res.status}${detail ? ` — ${detail}` : ""}`);
     err.status = res.status;
     throw err;

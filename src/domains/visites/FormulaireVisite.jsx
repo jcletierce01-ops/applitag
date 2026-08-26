@@ -3,10 +3,11 @@ import { C, BTN_H, INPUT_H, FONT_INPUT, PADDING } from "../../design-system/toke
 import { IS_DEMO_BUILD } from "../../config/env.js";
 import { uid, nowISO, todayS } from "../../shared/utils.js";
 import { fmtNum } from "../../shared/format.js";
-import { INDICES_ESSENCE, calculerPoidsAjuste as poidsAjusteHumidite, indicesPonderes } from "../../metier/formules.js";
+import { indicesPonderes } from "../../metier/formules.js";
 import { apiPost } from "../../services/api.service.js";
 import { BigBtn, MInput, SectionTitle, MSlider, CheckItem } from "../../shared/ui.jsx";
 import { SignatureCanvas } from "../../shared/SignatureCanvas.jsx";
+import { TEXTES_REGL, CLAUSE_RESERVE, STATUT_REGL, VSS_RECONNUS } from "../../domains/dashboard/sections.jsx";
 export const MapZonesProtegees = ({gps}) => {
   const divRef = useRef(null);
   const mapRef = useRef(null);
@@ -40,7 +41,7 @@ export const MapZonesProtegees = ({gps}) => {
             if(!el.geometry?.length||el.geometry.length<3) return;
             const wet=el.tags?.natural==='wetland';
             const bog=['bog','fen','marsh','swamp'].includes(el.tags?.wetland);
-            const res=el.tags?.leisure==='nature_reserve'||el.tags?.boundary==='protected_area';
+            const _res=el.tags?.leisure==='nature_reserve'||el.tags?.boundary==='protected_area';
             const color=bog?'#5D4037':wet?'#1565C0':'#2E7D32';
             const name=el.tags?.name||el.tags?.['name:fr']||(bog?'TourbiÃ¨re/Marais':wet?'Zone humide':'RÃ©serve naturelle');
             const label=bog?'ðŸŸ¤ TourbiÃ¨re/Marais':wet?'ðŸ”µ Zone humide':'ðŸŸ¢ Aire protÃ©gÃ©e';
@@ -48,7 +49,7 @@ export const MapZonesProtegees = ({gps}) => {
               color,weight:2,fillColor:color,fillOpacity:0.22,opacity:0.85
             }).bindPopup(`<b>${name}</b><br/>${label}`).addTo(mapRef.current);
             n++;
-          }catch{}
+          } catch { /* noop */ }
         });
         if(n===0&&mapRef.current){
           L.control.scale().addTo(mapRef.current);
@@ -92,7 +93,7 @@ export const MapZonesProtegees = ({gps}) => {
   );
 };
 
-export const GpsWidget = ({value,onChange,required}) => {
+export const GpsWidget = ({value,onChange,_required}) => {
   const [loading,setLoading] = useState(false);
   const capture = () => {
     setLoading(true);
@@ -202,10 +203,8 @@ const LISTE_ESSENCES_ITEBE = [
 ];
 
 // Indices ITEBE importÃ©s depuis src/metier/formules.js (source unique ITEBE 2004)
-const INDICES_ESSENCE_ITEBE = INDICES_ESSENCE;
 
 // indicesPonderes et poidsAjusteHumidite importÃ©s depuis src/metier/formules.js
-const HUMIDITE_REF_ITEBE = 50; // valeur numÃ©rique pour affichage (rÃ©fÃ©rence ITEBE 2004)
 
 export const EssenceEditor = ({essences,onChange}) => {
   const LISTE = LISTE_ESSENCES_ITEBE;
@@ -489,8 +488,8 @@ export const FormulaireVisite = ({lot, onBack, onSaved, toast, entrepriseId, use
   const [sigExploit,  setSigExploit] = useState(false);
   const [sigDataProprio, setSigDataProprio] = useState(null);
   const [sigDataExploit, setSigDataExploit] = useState(null);
-  const [nomSignProprio,setNomSigPr] = useState(lot.nomSignataire||lot.nom||"");
-  const [nomSignExploit,setNomSigEx] = useState("");
+  const [nomSignProprio,_setNomSigPr] = useState(lot.nomSignataire||lot.nom||"");
+  const [nomSignExploit,_setNomSigEx] = useState("");
   const [coupeAutorisee,        setCoupeAutorisee]        = useState("");   // "oui"|"non"
   const [dateAutorisationPrevue,setDateAutorisationPrevue] = useState("");
   const [nomGestionnaire,       setNomGestionnaire]        = useState("");
@@ -534,7 +533,7 @@ export const FormulaireVisite = ({lot, onBack, onSaved, toast, entrepriseId, use
         if (draft.contraintes) setCont(draft.contraintes);
         if (draft.accesCamion) setAcces(draft.accesCamion);
       }
-    } catch {}
+    } catch { /* noop */ }
   },[lot.id]);
 
   // Sauvegarde automatique brouillon
@@ -546,7 +545,7 @@ export const FormulaireVisite = ({lot, onBack, onSaved, toast, entrepriseId, use
         iban, swift, nomBanque, villeBanque,
         contraintes, accesCamion, step,
       }));
-    } catch {}
+    } catch { /* noop */ }
   },[gps, essences, volumeT, surfaceHa, dateLimite, observations,
      prixTonne, diametreMoyen, popParHa, modeVolume, contraintes, accesCamion, step]);
 

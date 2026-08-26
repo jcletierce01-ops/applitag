@@ -1,15 +1,18 @@
 ﻿import { useState } from "react";
-import { C, FONT_TITLE, FONT_BODY, PADDING } from "../../design-system/tokens.js";
+import { C, FONT_TITLE, FONT_BODY } from "../../design-system/tokens.js";
 import { fmtNum } from "../../shared/format.js";
 import { MiniBarChart } from "../../shared/ui.jsx";
 import { EcranLots } from "../exploitation/ExploitationScreens.jsx";
-import { SectionAcces, SectionAbonnements, SectionDemoScenario, SectionAnalyses, SectionDocuments, SectionTerritoire, HubAlertes, SectionPlanning, BarChart, SectionModulesFuturs, SectionFinancements, SectionConformiteRED, SectionCoutReglementaire, SectionGES, SectionApplitgData, SectionScierie, SectionPermisIncendie, SectionDesserte, SectionCoproduits, SectionProjetFinance, SectionParcelleTravaux, SectionRegistreIA, SectionBoisCrise, SectionFicheCombustible, SectionVeilleReglementaire, SectionLivraisons, SectionFacturationElec, SectionChaufferies, SectionRapports, SectionReseau, SectionParametres, SectionChantiers, SectionTransports } from "./sections.jsx";
+import { SectionAcces, SectionAbonnements, SectionDemoScenario, SectionAnalyses, SectionDocuments, SectionTerritoire, HubAlertes, SectionPlanning, SectionModulesFuturs, SectionFinancements, SectionConformiteRED, SectionCoutReglementaire, SectionGES, SectionApplitgData, SectionScierie, SectionPermisIncendie, SectionDesserte, SectionCoproduits, SectionProjetFinance, SectionParcelleTravaux, SectionRegistreIA, SectionBoisCrise, SectionFicheCombustible, SectionVeilleReglementaire, SectionLivraisons, SectionFacturationElec, SectionChaufferies, SectionRapports, SectionReseau, SectionParametres, SectionChantiers, SectionTransports, DASHBOARD_NAV } from "./sections.jsx";
+
+import { EcranCarte } from "../roles/RoleScreens.jsx";
+import { STATUT_LOT } from "../screens/MobileScreens.jsx";
 export const EcranDashboardPC = ({user, contacts, visites, notifications, transports=[], livraisons=[], dechiquetages=[], pendingSyncCount=0, onLogout}) => {
   const [section, setSection] = useState("dashboard");
   const [lotDetail, setLotDetail] = useState(null);
 
   const lots = contacts.filter(c=>c.lotNumero);
-  const enExploitation = lots.filter(c=>["VALIDE_EXPLOITATION","EN_COURS_EXPLOITATION"].includes(c.statutLot));
+  const _enExploitation = lots.filter(c=>["VALIDE_EXPLOITATION","EN_COURS_EXPLOITATION"].includes(c.statutLot));
   const moisCourant = new Date().toISOString().slice(0,7);
   const livraisonsDuMois = livraisons.filter(l=>(l.dateHeureLivraison||l.dateLivraison||l.createdAt||"").slice(0,7)===moisCourant);
   const tonnesLivreesMois = livraisonsDuMois.reduce((s,l)=>s+(parseFloat(l.pesee)||0),0);
@@ -164,7 +167,7 @@ export const EcranDashboardPC = ({user, contacts, visites, notifications, transp
                   <div style={{position:"absolute",bottom:10,left:10,background:"rgba(255,255,255,.95)",
                     borderRadius:10,padding:"8px 12px",boxShadow:"0 2px 8px rgba(0,0,0,.12)",
                     display:"flex",flexDirection:"column",gap:5,zIndex:5}}>
-                    {MAP_LEGEND.map(([icon,color,label],i)=>(
+                    {MAP_LEGEND.map(([icon,_color,label],i)=>(
                       <div key={i} style={{display:"flex",alignItems:"center",gap:6,fontSize:11,color:C.tx2}}>
                         <span style={{fontSize:12}}>{icon}</span>{label}
                       </div>

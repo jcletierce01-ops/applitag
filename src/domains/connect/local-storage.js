@@ -14,7 +14,7 @@ export const annoncesLocalGet = () => {
   try { return JSON.parse(localStorage.getItem(ANNONCES_KEY) || "[]"); } catch { return []; }
 };
 export const annoncesLocalSave = (arr) => {
-  try { localStorage.setItem(ANNONCES_KEY, JSON.stringify(arr)); } catch {}
+  try { localStorage.setItem(ANNONCES_KEY, JSON.stringify(arr)); } catch { /* noop */ }
 };
 
 const COMPTES_KEY = "applitag_comptes_contact";
@@ -22,5 +22,5 @@ export const comptesLocalGet = () => {
   try { return JSON.parse(localStorage.getItem(COMPTES_KEY) || "[]"); } catch { return []; }
 };
 export const comptesLocalSave = (arr) => {
-  try { localStorage.setItem(COMPTES_KEY, JSON.stringify(arr)); } catch {}
+  try { localStorage.setItem(COMPTES_KEY, JSON.stringify(arr)); } catch { /* noop */ }
 };

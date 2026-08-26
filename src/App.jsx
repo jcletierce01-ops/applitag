@@ -20,13 +20,13 @@ import { getUser, getEntrepriseId, setAuth, clearAuth } from "./services/auth.se
 import { deletedLotsGet, deletedLotsAdd } from "./domains/lots/local-storage.js";
 import { comptesLocalGet } from "./domains/connect/local-storage.js";
 import { countPendingSync, resyncPendingRecords } from "./domains/sync/legacy-sync.js";
-import { apiGet, apiPost, apiPatch, apiDelete } from "./services/api.service.js";
+import { apiGet, apiPost, apiDelete } from "./services/api.service.js";
 import { BigBtn, SectionTitle } from "./shared/ui.jsx";
-import { MapZonesProtegees, GpsWidget, PhotosWidget, EssenceEditor, ChecklistChantier, FormulaireVisite, ListeVisites } from "./domains/visites/FormulaireVisite.jsx";
+import { FormulaireVisite } from "./domains/visites/FormulaireVisite.jsx";
 import { EcranDashboardPC } from "./domains/dashboard/EcranDashboardPC.jsx";
 import { FicheLotCentrale, EcranFinChantier, EcranDechiquetage, EcranTransporteur, EcranLivraison } from "./domains/lots/LotScreens.jsx";
 import { EcranRoleMandataire, EcranRoleProprietaire, EcranRoleChauffeur, EcranRoleDechiquetage, EcranEntrepriseSollicitee, EcranRoleChaufferie, EcranRoleReceptionnaire, EcranAutoDeclarationRED, EcranCarte } from "./domains/roles/RoleScreens.jsx";
-import { QrCodeAdmin, EcranReleves, EcranOperateur, EcranAccueil, EcranDelegations } from "./domains/screens/MobileScreens.jsx";
+import { QrCodeAdmin, EcranReleves, EcranOperateur, EcranAccueil, EcranDelegations, Fiche0, Fiche0Edit } from "./domains/screens/MobileScreens.jsx";
 import { EcranLots, ModalDelegationVisite, ModalSuggestionETF, EcranValidationExploitation, EcranClotureExploitation, EcranBonCommande, EcranSaisiesAdmin } from "./domains/exploitation/ExploitationScreens.jsx";
 import { LoginScreen } from "./domains/auth/LoginScreen.jsx";
 
@@ -103,7 +103,7 @@ export default function App() {
         }
       })
       .catch(()=>{
-        try { const c=JSON.parse(localStorage.getItem("applitag_contacts")||"[]"); if(c.length>0) setContacts(c); } catch {}
+        try { const c=JSON.parse(localStorage.getItem("applitag_contacts")||"[]"); if(c.length>0) setContacts(c); } catch { /* noop */ }
       });
     apiGet(`/visites`).then(d=>{ if(Array.isArray(d)) setVisites(d); }).catch(()=>{});
     apiGet(`/notifications/${entrepriseId}`).then(d=>{ if(Array.isArray(d)) setNotifications(d); }).catch(()=>{});
@@ -119,7 +119,7 @@ export default function App() {
   // Auto-save contacts to localStorage
   useEffect(()=>{
     if(contacts.length>0 && !isDemoMode) {
-      try { localStorage.setItem("applitag_contacts", JSON.stringify(contacts)); } catch {}
+      try { localStorage.setItem("applitag_contacts", JSON.stringify(contacts)); } catch { /* noop */ }
     }
   },[contacts]);
 
@@ -130,7 +130,7 @@ export default function App() {
   };
   const handleLoginOperateur = (op) => {
     setOperateur(op);
-    try { localStorage.setItem("applitag_operateur", JSON.stringify(op)); } catch {}
+    try { localStorage.setItem("applitag_operateur", JSON.stringify(op)); } catch { /* noop */ }
   };
   const handleLoginDemo = (role) => {
     if (!IS_DEMO_BUILD) return;
@@ -188,7 +188,7 @@ export default function App() {
       fontFamily:FONT_BODY,
       maxWidth:430,margin:"0 auto",boxShadow:"0 0 40px rgba(0,0,0,.15)"}}>
       <EcranOperateur operateur={operateur} onLogout={handleLogoutOperateur} toast={toast}
-        onUpdateOperateur={op=>{ setOperateur(op); try{localStorage.setItem("applitag_operateur",JSON.stringify(op));}catch{} }}/>
+        onUpdateOperateur={op=>{ setOperateur(op); try{localStorage.setItem("applitag_operateur",JSON.stringify(op));} catch { /* noop */ } }}/>
     </div>
   );
 
@@ -369,8 +369,8 @@ export default function App() {
       </div>
       <EcranRoleChauffeur user={user} transports={transports} dechiquetages={dechiquetages}
         gpsChantier={gpsChantier}
-        onValiderArrivee={(lotId,h,nomChauffeur,capaciteM3)=>setAvisArrivee(p=>{const next={...p,[lotId]:{heure:h,nomChauffeur:nomChauffeur.trim(),capaciteM3}};try{sessionStorage.setItem("applitag_avis_arrivee",JSON.stringify(next))}catch{}return next;})}
-        onValiderDepart={(lotId,info)=>setCamionsPartis(p=>{const next={...p,[lotId]:info};try{sessionStorage.setItem("applitag_camions_partis",JSON.stringify(next))}catch{}return next;})}/>
+        onValiderArrivee={(lotId,h,nomChauffeur,capaciteM3)=>setAvisArrivee(p=>{const next={...p,[lotId]:{heure:h,nomChauffeur:nomChauffeur.trim(),capaciteM3}};try{sessionStorage.setItem("applitag_avis_arrivee",JSON.stringify(next))} catch { /* noop */ }return next;})}
+        onValiderDepart={(lotId,info)=>setCamionsPartis(p=>{const next={...p,[lotId]:info};try{sessionStorage.setItem("applitag_camions_partis",JSON.stringify(next))} catch { /* noop */ }return next;})}/>
     </div>
   );
 
@@ -637,7 +637,7 @@ export default function App() {
               deletedLotsAdd(lot.id);
               try {
                 await apiDelete(`/contacts/${lot.id}`);
-              } catch {}
+              } catch { /* noop */ }
               setContacts(prev=>prev.filter(c=>c.id!==lot.id));
               setActiveContact(null);
               setScreen("lots");

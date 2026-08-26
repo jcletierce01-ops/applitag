@@ -1,13 +1,13 @@
 ﻿import { useState, useEffect, useRef } from "react";
 import { Html5Qrcode } from "html5-qrcode";
 import { C, FONT_TITLE, BTN_H, INPUT_H, FONT_INPUT, PADDING } from "../../design-system/tokens.js";
-import { uid, nowISO, todayS, genCode, genCodeAPT } from "../../shared/utils.js";
+import { uid, nowISO, todayS, genCodeAPT } from "../../shared/utils.js";
 import { setAuth } from "../../services/auth.service.js";
 import { formatPhone } from "../../shared/validators.js";
 import { TYPES_PRESTATION_ANNONCE, STATUTS_ANNONCE } from "../connect/constants.js";
 import { DEFAULT_ENTREPRISE_ID, COMPTE_SESSION_KEY, annoncesLocalGet, annoncesLocalSave, comptesLocalGet, comptesLocalSave } from "../connect/local-storage.js";
 import { ordresExplLocalGet, ordresExplLocalSave } from "../exploitation/local-storage.js";
-import { apiGet, apiPost, apiPostPublic, apiPatch } from "../../services/api.service.js";
+import { apiGet, apiPostPublic, apiPatch } from "../../services/api.service.js";
 
 export const LoginScreen = ({onLogin, onLoginOperateur, onLoginDemo}) => {
   const [step, setStep] = useState("bienvenue"); // bienvenue | home | scan | pin | operateur | demo | ordre
@@ -30,7 +30,7 @@ export const LoginScreen = ({onLogin, onLoginOperateur, onLoginDemo}) => {
     let found = null;
     try {
       found = await apiGet(`/ordres-exploitation/code/${code}`);
-    } catch {}
+    } catch { /* noop — fallback local storage ci-dessous */ }
     if (!found) found = ordresExplLocalGet().find(o=>o.code===code)||null;
     if (!found) setOrdreErreur("Code introuvable — vérifiez la saisie");
     else setOrdreTrouve(found);
@@ -114,7 +114,7 @@ export const LoginScreen = ({onLogin, onLoginOperateur, onLoginDemo}) => {
     try {
       await apiPostPublic(`/annonces`, annonce);
       annonce.synced = true;
-    } catch {}
+    } catch { /* noop — annonce sauvegardée localement de toute façon */ }
     annoncesLocalSave([annonce, ...annoncesLocalGet()]);
     setAnnonceEnvoyee(true);
     setAnnonceSaving(false);
@@ -170,11 +170,11 @@ export const LoginScreen = ({onLogin, onLoginOperateur, onLoginDemo}) => {
     try {
       await apiPostPublic(`/comptes-contact`, compte);
       compte.synced = true;
-    } catch {}
+    } catch { /* noop — compte sauvegardé localement de toute façon */ }
     try {
       const msg = `Bonjour ${compteNom}, votre compte APPLITAG Connect a été créé. Votre code d'accès personnel est : ${codeAPT}. Conservez-le précieusement, il vous sera demandé à chaque connexion.`;
       await apiPostPublic(`/sms`, {to: compteTel, message: msg});
-    } catch {}
+    } catch { /* noop — SMS non critique */ }
     comptesLocalSave([compte, ...existants]);
     const session = {id:compte.id, nom:compte.nom, telephone:compte.telephone, email:compte.email,
       consentActus:compte.consentActus, consentNetwork:compte.consentNetwork};
@@ -270,7 +270,6 @@ export const LoginScreen = ({onLogin, onLoginOperateur, onLoginDemo}) => {
     });
   }, [compteVue, compteSession?.telephone]);
 
-  const qrRef = useRef(null);
   const scannerRef = useRef(null);
 
   useEffect(() => {
@@ -299,7 +298,7 @@ export const LoginScreen = ({onLogin, onLoginOperateur, onLoginDemo}) => {
        .catch(() => setError("Impossible d'accéder à la caméra"));
       return () => {
         if (started) scanner.stop().catch(()=>{});
-        else try { scanner.stop().catch(()=>{}); } catch(e) {}
+        else try { scanner.stop().catch(()=>{}); } catch { /* noop */ }
       };
     }
   }, [step]);
@@ -309,10 +308,6 @@ export const LoginScreen = ({onLogin, onLoginOperateur, onLoginDemo}) => {
   };
   const handleDel = () => setPin(p => p.slice(0,-1));
 
-  useEffect(() => {
-    if (pin.length === 4) handleLogin();
-  }, [pin]);
-
   const handleLogin = async () => {
     setLoading(true);
     setError("");
@@ -320,12 +315,17 @@ export const LoginScreen = ({onLogin, onLoginOperateur, onLoginDemo}) => {
       const data = await apiPostPublic(`/auth/login`, { entrepriseId, pin });
       setAuth(data.access_token, data.utilisateur, entrepriseId);
       onLogin(data.utilisateur);
-    } catch(e) {
+    } catch {
       setError("PIN incorrect — réessayez");
       setPin("");
     }
     setLoading(false);
   };
+
+  useEffect(() => {
+    if (pin.length === 4) handleLogin();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pin]);
 
   const handleLoginOperateur = async () => {
     if (!opNom.trim()||!opPin.trim()) { setError("Saisissez votre nom et PIN"); return; }
@@ -337,7 +337,7 @@ export const LoginScreen = ({onLogin, onLoginOperateur, onLoginDemo}) => {
         nom: opNom, pin: opPin,
       });
       onLoginOperateur(data);
-    } catch(e) {
+    } catch {
       setError("Nom ou PIN incorrect — réessayez");
     }
     setLoading(false);

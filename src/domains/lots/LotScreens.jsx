@@ -6,14 +6,16 @@ import { apiGet, apiPost } from "../../services/api.service.js";
 import { BigBtn, MInput, SectionTitle, MSlider } from "../../shared/ui.jsx";
 import { SignatureCanvas } from "../../shared/SignatureCanvas.jsx";
 import { validateCMR, formatCMR, formatImmat, validateImmat } from "../../shared/validators.js";
-import { generatePdfFromHtml, buildCMRHTML, buildPVVisiteHTML, buildReceptionExploitHTML, buildOrdreDechiHTML, buildSimpleDocHTML } from "../../domains/documents/pdf-templates.js";
+import { generatePdfFromHtml, buildCMRHTML, buildPVVisiteHTML, buildReceptionExploitHTML, buildOrdreDechiHTML, buildSimpleDocHTML, buildCompteRenduContactHTML } from "../../domains/documents/pdf-templates.js";
 import { TYPE_RESSOURCE_OPTS } from "../../domains/contacts/constants.js";
+import { STATUT_LOT } from "../../domains/screens/MobileScreens.jsx";
+import { PIPELINE } from "../../domains/roles/RoleScreens.jsx";
 export const FicheLotCentrale = ({
   lot, visites=[], operateurs=[], onBack, onEdit, onBonCommande,
   onLaunchVisite, onLaunchValidation, onLaunchCloture,
   onLaunchDechiquetage, onLaunchTransporteur, onLaunchLivraison, onLaunchFinChantier,
   onRedDeclaration, onDeleguerVisite, onDeleteLot,
-  toast, entrepriseId, user,
+  toast, _entrepriseId, user,
 }) => {
   const [onglet, setOnglet] = useState(0);
   const [deleteStep, setDeleteStep] = useState(0);
@@ -1003,7 +1005,7 @@ export const EcranFinChantier = ({lot, onBack, onSaved, toast, entrepriseId}) =>
   const indiceValidation = sigDataFin ? 20 : (sigPropFin ? 10 : 0);
   const indiceTotal = Math.min(100, indiceDocs + indiceQualite + indiceNote + indiceValidation);
 
-  const indiceColor = indiceTotal>=80?C.greenD:indiceTotal>=50?C.amberD:C.red;
+  const _indiceColor = indiceTotal>=80?C.greenD:indiceTotal>=50?C.amberD:C.red;
   const indiceLabel = indiceTotal>=80?"Excellent":indiceTotal>=60?"Bon":
     indiceTotal>=40?"Conforme":indiceTotal>=20?"À améliorer":"Non conforme";
 
@@ -1310,7 +1312,7 @@ export const EcranFinChantier = ({lot, onBack, onSaved, toast, entrepriseId}) =>
                 [3,"⭐⭐⭐","Conforme","Travail correct, quelques points à améliorer"],
                 [2,"⭐⭐","À améliorer","Réserves significatives signalées"],
                 [1,"⭐","Non conforme","Non-respect des conditions du contrat"],
-              ].map(([n,e,l,s])=>(
+              ].map(([n,_e,l,s])=>(
                 <div key={n} onClick={()=>setNoteQualite(n)} style={{
                   display:"flex",alignItems:"center",gap:10,padding:"10px 0",
                   borderBottom:n>1?`1px solid ${C.bd}`:"none",cursor:"pointer",
@@ -1429,7 +1431,7 @@ const CAPACITES_CHARGEMENT = {
 
 export const EcranDechiquetage = ({lot, operateurs=[], onBack, onSaved, toast, entrepriseId, user}) => {
   const nomUserDechiquetage = user ? `${user.prenom||""} ${user.nom||""}`.trim() : "";
-  const [lotSuggere,    setLotSuggere]  = useState(lot.lotNumero||"");
+  const [lotSuggere,    _setLotSuggere]  = useState(lot.lotNumero||"");
   const [operateurDechiquetage,setOpDechiquetage] = useState(nomUserDechiquetage);
   const [machine,       setMachine]     = useState(()=>{ try { return localStorage.getItem(`applitag_dech_machine_${user?.id||""}`) || ""; } catch { return ""; } });
   const [typeChargement,setTypeCharg]   = useState("semi");
@@ -1525,7 +1527,7 @@ export const EcranDechiquetage = ({lot, operateurs=[], onBack, onSaved, toast, e
   const handleSave = async () => {
     if (!canValidate) { toast("CMR, immatriculation tracteur, horaires complets et photo CMR obligatoires (formats valides)","warn"); return; }
     setSaving(true);
-    try { localStorage.setItem(`applitag_dech_machine_${user?.id||""}`, machine); } catch {}
+    try { localStorage.setItem(`applitag_dech_machine_${user?.id||""}`, machine); } catch { /* noop */ }
     try {
       await apiPost(`/dechiquetage`, {
           lotId:lot.id, lotNumero:lotSuggere, entrepriseId,

@@ -1,17 +1,20 @@
 ﻿import { useState, useEffect, useRef } from "react";
 import { C, BTN_H, INPUT_H, FONT_INPUT, FONT_TITLE, PADDING } from "../../design-system/tokens.js";
-import { todayS, nowISO, uid } from "../../shared/utils.js";
-import { apiGet, apiPost, apiPatch } from "../../services/api.service.js";
+import { todayS, nowISO, uid, genCode } from "../../shared/utils.js";
+import { apiGet, apiPost, apiPatch, apiPostPublic } from "../../services/api.service.js";
+import { genPin4 } from "../../services/auth.service.js";
+import { API_BASE_URL } from "@/config/env.js";
 import { annoncesLocalGet, annoncesLocalSave, comptesLocalGet, comptesLocalSave } from "../../domains/connect/local-storage.js";
 import { ordresExplLocalGet, ordresExplLocalSave } from "../../domains/exploitation/local-storage.js";
-import { BigBtn, MInput, GridSelect, SectionTitle, MSlider } from "../../shared/ui.jsx";
+import { BigBtn, MInput, GridSelect, SectionTitle } from "../../shared/ui.jsx";
 import { validatePhone, formatPhone } from "../../shared/validators.js";
-import { generatePdfFromHtml, buildCompteRenduContactHTML } from "../../domains/documents/pdf-templates.js";
+import { generatePdfFromHtml, buildCompteRenduContactHTML, buildOrdreExploitationHTML } from "../../domains/documents/pdf-templates.js";
 import { FormulaireVisite } from "../../domains/visites/FormulaireVisite.jsx";
-import { ORIGINE_OPTS, TYPE_CONTACT_OPTS, TYPE_RESSOURCE_OPTS } from "../../domains/contacts/constants.js";
+import { ORIGINE_OPTS, TYPE_CONTACT_OPTS, TYPE_RESSOURCE_OPTS, PRIORITE_OPTS, STATUT_OPTS } from "../../domains/contacts/constants.js";
 import { TYPES_PRESTATION_ANNONCE, STATUTS_ANNONCE, ORDRE_STATUTS_ANNONCE } from "../../domains/connect/constants.js";
+import { indicesPonderes } from "../../metier/formules.js";
 export const QrCodeAdmin = ({entrepriseId, entrepriseNom, onClose}) => {
-  const canvasRef = useRef(null);
+  const _canvasRef = useRef(null);
   const [qrUrl, setQrUrl] = useState("");
 
   useEffect(()=>{
@@ -47,7 +50,7 @@ export const QrCodeAdmin = ({entrepriseId, entrepriseNom, onClose}) => {
 };
 
 // ── FICHE 0 ───────────────────────────────────────────────────
-const Fiche0 = ({onBack, onSaved, toast, contactCount, entrepriseId, prefill=null, comptes=[]}) => {
+export const Fiche0 = ({onBack, onSaved, toast, _contactCount, entrepriseId, prefill=null, comptes=[]}) => {
   const [origine,       setOrigine]  = useState(prefill?"appel_applitag":"");
   const [nomApporteur,  setApporteur]= useState("");
   const [dateContact,   setDateC]    = useState(todayS());
@@ -111,7 +114,7 @@ const Fiche0 = ({onBack, onSaved, toast, contactCount, entrepriseId, prefill=nul
       const html = buildCompteRenduContactHTML(saved);
       generatePdfFromHtml(html, `CompteRenduContact_${lotNumero}.pdf`, toast);
       onSaved(saved);
-    } catch(e) {
+    } catch {
       toast("Erreur API","warn");
     }
     setSaving(false);
@@ -335,7 +338,7 @@ const Fiche0 = ({onBack, onSaved, toast, contactCount, entrepriseId, prefill=nul
 };
 
 // ── LISTE CONTACTS ────────────────────────────────────────────
-const ListeContacts = ({contacts, onNew, onNewVisite, onEdit}) => {
+const _ListeContacts = ({contacts, onNew, onNewVisite, onEdit}) => {
   const typeRessourceLabel = t => TYPE_RESSOURCE_OPTS.find(([v])=>v===t)?.[2] ?? t;
   const statutColor = s => ({
     nouveau:      {bg:C.bg2,     color:C.tx3},
@@ -413,7 +416,7 @@ const ListeContacts = ({contacts, onNew, onNewVisite, onEdit}) => {
 // ── VISITE TERRAIN ────────────────────────────────────────────
 // MSlider importé depuis ./shared/ui.jsx
 
-export const EcranReleves = ({entrepriseId, user, toast, notifications=[], setNotifications, onGoDelegations}) => {
+export const EcranReleves = ({entrepriseId, _user, toast, notifications=[], setNotifications, onGoDelegations}) => {
   const [sousOnglet, setSousOnglet] = useState("notifs");
   const [operateurs, setOperateurs] = useState([]);
   const [acces, setAcces] = useState([]);
@@ -455,7 +458,7 @@ export const EcranReleves = ({entrepriseId, user, toast, notifications=[], setNo
       try {
         const d = await apiGet(`/annonces/entreprise/${entrepriseId}`);
         if (Array.isArray(d)) fromApi = d;
-      } catch {}
+      } catch { /* noop */ }
       const fromLocal = annoncesLocalGet().filter(a=>a.entrepriseId===entrepriseId);
       const ids = new Set(fromApi.map(a=>a.id));
       setAnnonces([...fromApi, ...fromLocal.filter(a=>!ids.has(a.id))]
@@ -526,7 +529,7 @@ export const EcranReleves = ({entrepriseId, user, toast, notifications=[], setNo
   };
 
   const handleCreateAcces = async () => {
-    if (!lotId||!etfNom) { toast("Sélectionnez un lot et saisissez l\'ETF","warn"); return; }
+    if (!lotId||!etfNom) { toast("Sélectionnez un lot et saisissez l'ETF","warn"); return; }
     setAccesSaving(true);
     try {
       const saved = await apiPost(`/acces-lot`, {lotId,lotNumero,entrepriseId,etfNom,etfContact,typeOperation});
@@ -672,7 +675,7 @@ export const EcranReleves = ({entrepriseId, user, toast, notifications=[], setNo
                     padding:"0 14px",borderRadius:12,border:`1.5px solid ${C.bd}`,background:C.bg2}}>
                     <span style={{flex:1,fontFamily:"monospace",fontSize:20,fontWeight:700,
                       letterSpacing:6,color:C.tx}}>{opPin}</span>
-                    <button onClick={async()=>{ try{setOpPin(await genPin4(API));}catch{toast("Erreur génération PIN — réessayez","warn");} }} style={{
+                    <button onClick={async()=>{ try{setOpPin(await genPin4(API_BASE_URL));}catch{toast("Erreur génération PIN — réessayez","warn");} }} style={{
                       background:C.greenL,border:`1px solid ${C.green}`,color:C.greenD,
                       borderRadius:8,padding:"6px 10px",fontSize:12,fontWeight:600,
                       cursor:"pointer",WebkitTapHighlightColor:"transparent"}}>🔄 Régénérer</button>
@@ -994,7 +997,7 @@ export const EcranReleves = ({entrepriseId, user, toast, notifications=[], setNo
 
       {sousOnglet==="operateurs"&&!showNew&&!selOp&&(
         <div style={{padding:"12px 16px 24px",flexShrink:0}}>
-          <BigBtn onClick={async()=>{ try{const p=await genPin4(API);setOpPin(p);setShowNew(true);}catch{toast("Erreur génération PIN — réessayez","warn");} }} bg={C.green} icon="👷">Nouvel opérateur</BigBtn>
+          <BigBtn onClick={async()=>{ try{const p=await genPin4(API_BASE_URL);setOpPin(p);setShowNew(true);}catch{toast("Erreur génération PIN — réessayez","warn");} }} bg={C.green} icon="👷">Nouvel opérateur</BigBtn>
         </div>
       )}
       {sousOnglet==="notifs"&&(
@@ -1056,7 +1059,7 @@ const CHAMP_LABELS = {
   numeroSiret:"SIRET", nomSignataire:"Signataire", qualiteSignataire:"Qualité signataire",
 };
 
-const Fiche0Edit = ({contact, onBack, onSaved, toast, user, onLaunchVisite, onLaunchValidation, onLaunchCloture, onLaunchDechiquetage, onLaunchTransporteur, onLaunchLivraison}) => {
+export const Fiche0Edit = ({contact, onBack, onSaved, toast, user, onLaunchVisite, onLaunchValidation, onLaunchCloture, onLaunchDechiquetage, onLaunchTransporteur, onLaunchLivraison}) => {
   const [nom,           setNom]      = useState(contact.nom||"");
   const [prenom,        setPrenom]   = useState(contact.prenom||"");
   const [telephone,     setTel]      = useState(contact.telephone||"");
@@ -1325,7 +1328,7 @@ export const EcranOperateur = ({operateur, onLogout, toast, onUpdateOperateur}) 
     setPinSaving(true);
     try {
       await apiPatch(`/operateurs/${operateur.id}`, {pin:pinNouveau});
-    } catch {}
+    } catch { /* noop */ }
     const opMaj = {...operateur, pin:pinNouveau};
     onUpdateOperateur?.(opMaj);
     setPinActuel(""); setPinNouveau(""); setPinNouveauConf("");
@@ -1365,7 +1368,7 @@ export const EcranOperateur = ({operateur, onLogout, toast, onUpdateOperateur}) 
   const [foisonnement,setFoison]  = useState(0.55);
   const [meteo,       setMeteo]   = useState("beau");
   const [incident,    setIncid]   = useState("");
-  const [temps,       setTemps]   = useState(8);
+  const [temps,       _setTemps]   = useState(8);
   const [heureDebAb,  setHeureDebAb] = useState("");
   const [heureFinAb,  setHeureFinAb] = useState("");
 
@@ -1447,9 +1450,9 @@ export const EcranOperateur = ({operateur, onLogout, toast, onUpdateOperateur}) 
       poidsTotal,
     };
     try {
-      let res;
+      let _res;
       try {
-        res = modeModif && releveExistantId
+        _res = modeModif && releveExistantId
           ? await apiPatch(`${endpoint}/${releveExistantId}`, payload)
           : await apiPost(endpoint, payload);
       } catch(apiErr) {
@@ -1461,7 +1464,7 @@ export const EcranOperateur = ({operateur, onLogout, toast, onUpdateOperateur}) 
           setSaving(false);
           return;
         }
-        throw new Error();
+        throw apiErr;
       }
       // Débardeur → accumuler tonnage bord de route sur le lot
       if (isDebardeur && poidsTotalDeb>0) {
@@ -1498,7 +1501,7 @@ export const EcranOperateur = ({operateur, onLogout, toast, onUpdateOperateur}) 
         date: new Date().toISOString(),
         message:`L'opérateur ${operateur.prenom||""} ${operateur.nom} demande une correction sur le relevé ${typeOp==="debardage"?"débardage":"abattage"} du lot ${activeLot?.lotNumero} (${new Date().toLocaleDateString("fr-FR")}).`,
       });
-    } catch {}
+    } catch { /* noop */ }
     setMsgModifEnvoi(false);
     setMsgModifEnvoye(true);
     toast("Message envoyé à l'administrateur ✓");
@@ -2021,7 +2024,7 @@ export const EcranOperateur = ({operateur, onLogout, toast, onUpdateOperateur}) 
 };
 
 // ── COULEURS STATUT LOT ───────────────────────────────────────
-const STATUT_LOT = {
+export const STATUT_LOT = {
   NOUVEAU:               {label:"Nouveau",            color:"#9A9892", bg:"#ECEAE6"},
   VISITE_PREVUE:         {label:"Visite prévue",      color:"#BA7517", bg:"#FAEEDA"},
   VISITE_REALISEE:       {label:"Visite réalisée",    color:"#185FA5", bg:"#E6F1FB"},
@@ -2038,7 +2041,7 @@ const STATUT_LOT = {
 };
 
 // ── ÉCRAN ACCUEIL ─────────────────────────────────────────────
-export const EcranAccueil = ({contacts, visites, notifications, user, onNewLot, onGoLots, onGoAlertes, onGoDelegations, onAppelerContact}) => {
+export const EcranAccueil = ({contacts, _visites, notifications, user, onNewLot, onGoLots, onGoAlertes, onGoDelegations, onAppelerContact}) => {
   const STATUTS_EXPLOITATION = ["VALIDE_EXPLOITATION","EN_COURS_EXPLOITATION","BORD_ROUTE","A_DECHIQUETER","EN_COURS_DECHIQUETAGE","EN_LIVRAISON","LIVRE_CHAUFFERIE","EN_STOCK_PLATEFORME","LIVRE"];
   const lotsAVisiter = contacts.filter(c=>c.lotNumero&&(c.statutLot==="VISITE_PREVUE"||c.statutLot==="NOUVEAU"||!c.statutLot)&&!STATUTS_EXPLOITATION.includes(c.statutLot));
   const chantiersJour = contacts.filter(c=>["EN_COURS_EXPLOITATION","VALIDE_EXPLOITATION"].includes(c.statutLot));
@@ -2420,9 +2423,9 @@ export const EcranDelegations = ({entrepriseId, toast, onBack}) => {
   );
 
   useEffect(()=>{
-    try { const s=localStorage.getItem(`applitag_entreprises_${entrepriseId}`); if(s){ const p=JSON.parse(s); if(Array.isArray(p)) setEntreprises(p); } } catch{}
+    try { const s=localStorage.getItem(`applitag_entreprises_${entrepriseId}`); if(s){ const p=JSON.parse(s); if(Array.isArray(p)) setEntreprises(p); } } catch { /* noop */ }
     apiGet(`/entreprises/entreprise/${entrepriseId}`)
-      .then(d=>{ if(Array.isArray(d)){ setEntreprises(d); try{localStorage.setItem(`applitag_entreprises_${entrepriseId}`,JSON.stringify(d));}catch{} } }).catch(()=>{});
+      .then(d=>{ if(Array.isArray(d)){ setEntreprises(d); try{localStorage.setItem(`applitag_entreprises_${entrepriseId}`,JSON.stringify(d));} catch { /* noop */ } } }).catch(()=>{});
     apiGet(`/contacts`)
       .then(d=>{ if(Array.isArray(d)) setContacts(d); }).catch(()=>{});
   },[entrepriseId]);
@@ -2439,10 +2442,10 @@ export const EcranDelegations = ({entrepriseId, toast, onBack}) => {
     };
     try {
       const saved = await apiPost(`/entreprises`, entreprise);
-      setEntreprises(prev=>{ const next=[saved,...prev]; try{localStorage.setItem(`applitag_entreprises_${entrepriseId}`,JSON.stringify(next));}catch{} return next; });
+      setEntreprises(prev=>{ const next=[saved,...prev]; try{localStorage.setItem(`applitag_entreprises_${entrepriseId}`,JSON.stringify(next));} catch { /* noop */ } return next; });
       toast(`Entreprise ${nom} créée ✓`);
     } catch {
-      setEntreprises(prev=>{ const next=[{...entreprise,id:uid()},...prev]; try{localStorage.setItem(`applitag_entreprises_${entrepriseId}`,JSON.stringify(next));}catch{} return next; });
+      setEntreprises(prev=>{ const next=[{...entreprise,id:uid()},...prev]; try{localStorage.setItem(`applitag_entreprises_${entrepriseId}`,JSON.stringify(next));} catch { /* noop */ } return next; });
       toast("Entreprise enregistrée localement ✓");
     }
     setNom(""); setSiret(""); setAdresse(""); setComplementAdresse(""); setCommune(""); setCP("");
@@ -2484,7 +2487,7 @@ export const EcranDelegations = ({entrepriseId, toast, onBack}) => {
       try {
         await apiPost(`/ordres-exploitation`, ordre);
         ordre.synced = true;
-      } catch {}
+      } catch { /* noop */ }
       const newOrdres = [ordre, ...ordresExplLocalGet()];
       ordresExplLocalSave(newOrdres);
       setOrdresLocaux(newOrdres);
@@ -2727,7 +2730,7 @@ export const EcranDelegations = ({entrepriseId, toast, onBack}) => {
 };
 
 // ── ÉCRAN LISTE LOTS ──────────────────────────────────────────
-const FILTRES_LOTS = [
+export const FILTRES_LOTS = [
   {id:"TOUS",              label:"Tous"},
   {id:"VISITE_PREVUE",     label:"À visiter"},
   {id:"VISITE_REALISEE",   label:"Visite faite"},

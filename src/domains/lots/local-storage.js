@@ -13,5 +13,5 @@ export const deletedLotsAdd = (id) => {
   try {
     const ids = [...new Set([...deletedLotsGet(), id])];
     localStorage.setItem(KEY, JSON.stringify(ids));
-  } catch {}
+  } catch { /* noop */ }
 };

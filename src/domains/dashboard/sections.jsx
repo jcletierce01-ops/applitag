@@ -1,7 +1,7 @@
 ﻿import { useState, useEffect, useRef, useMemo } from "react";
 import { C, BTN_H, INPUT_H, FONT_INPUT, FONT_TITLE, PADDING } from "../../design-system/tokens.js";
 import { FEATURE_FLAGS } from "../../config/featureFlags.js";
-import { DEMO_LOTS, DEMO_LIVRAISONS } from "../../demo/demoData.js";
+import { DEMO_LIVRAISONS } from "../../demo/demoData.js";
 import { todayS, nowISO, uid } from "../../shared/utils.js";
 import { MInput } from "../../shared/ui.jsx";
 const ROLES_DEF = [
@@ -167,7 +167,7 @@ const DEMO_HIERARCHY = [
    perms:PERMS_PAR_ROLE.chaufferie},
 ];
 
-export const SectionAcces = ({isDemo=false}) => {
+export const SectionAcces = ({_isDemo=false}) => {
   const [utilisateurs, setUtilisateurs] = useState(DEMO_HIERARCHY);
   const [vue, setVue] = useState("organigramme"); // organigramme | tableau | ajouter
   const [selectedUser, setSelectedUser] = useState(null);
@@ -1507,261 +1507,6 @@ export const SectionModulesFuturs = () => {
   );
 };
 
-// ── MODULES FUTURS (ancienne structure — conservée pour archive) ─
-const MODULES_FUTURS = [
-  {
-    id:"forest-intelligence",
-    icon:"🌳",
-    nom:"APPLITAG Forest Intelligence",
-    tagline:"L'IA au service de la forêt française",
-    statut:"beta",
-    statutLabel:"Bêta privée — T3 2026",
-    couleur:"#1E5B3A",
-    bg:"#D1FAE5",
-    fonctionnalites:[
-      {icon:"🛰️", titre:"Cartographie satellitaire", desc:"Analyse d'images Sentinel-2 pour estimer les volumes sur pied, détecter les stress hydriques et les attaques de scolytes avant la visite terrain."},
-      {icon:"🤖", titre:"IA de cubage automatique", desc:"Estimation du volume bois énergie exploitable à partir de photos terrain via vision par ordinateur. Précision ±8% vs cubage manuel."},
-      {icon:"📈", titre:"Prédiction prix plaquettes", desc:"Modèle prédictif basé sur la météo, les stocks nationaux et les contrats chaleur pour anticiper les fenêtres de prix optimales."},
-      {icon:"🌿", titre:"Bilan carbone automatique", desc:"Calcul en temps réel du CO₂ séquestré, substitué et émis par chantier. Export certifié pour les labels bas-carbone."},
-      {icon:"🔔", titre:"Alertes sanitaires", desc:"Détection automatique des zones à risque scolyte, chalarose du frêne et autres pathogènes forestiers dans un rayon de 50 km."},
-    ],
-    roadmap:[
-      {q:"T3 2026",label:"Analyse satellite intégrée",done:false},
-      {q:"T4 2026",label:"IA cubage photo",done:false},
-      {q:"T1 2027",label:"Prédiction prix",done:false},
-      {q:"T2 2027",label:"Bilan carbone certifié",done:false},
-    ],
-    cta:"Rejoindre la bêta",
-    prix:"Sur devis — à partir de 190 €/mois",
-  },
-  {
-    id:"compliance",
-    icon:"⚖️",
-    nom:"APPLITAG Compliance",
-    tagline:"Conformité réglementaire sans effort",
-    statut:"dev",
-    statutLabel:"En développement — T4 2026",
-    couleur:"#7C3AED",
-    bg:"#EDE9FE",
-    fonctionnalites:[
-      {icon:"🪪", titre:"Registre légal automatique", desc:"Génération automatique du registre d'exploitation conforme à l'article L124-5 du Code forestier. Export CERFA prêt à déposer."},
-      {icon:"🌱", titre:"Suivi PEFC/FSC", desc:"Gestion des certifications par parcelle, alertes de renouvellement, traçabilité de la chaîne de custody de la coupe à la chaufferie."},
-      {icon:"📋", titre:"Reporting ESG", desc:"Tableaux de bord ESG pour les collectivités et industriels : empreinte carbone, biodiversité, emplois locaux générés par chantier."},
-      {icon:"🔏", titre:"Signature électronique qualifiée", desc:"Signature eIDAS qualifiée intégrée pour tous les documents contractuels. Valeur probante totale, archivage 10 ans inclus."},
-      {icon:"🏛️", titre:"Interface administrations", desc:"Connexion directe avec les DDT, ONF et DRAAF pour les dépôts de documents réglementaires (PSG, coupes spéciales…)."},
-    ],
-    roadmap:[
-      {q:"T4 2026",label:"Registre légal & CERFA",done:false},
-      {q:"T1 2027",label:"Certification PEFC/FSC",done:false},
-      {q:"T2 2027",label:"Signature eIDAS",done:false},
-      {q:"T3 2027",label:"Interface DDT/ONF",done:false},
-    ],
-    cta:"Être notifié au lancement",
-    prix:"Inclus dans les offres Pro et Entreprise",
-  },
-  {
-    id:"data",
-    icon:"📊",
-    nom:"APPLITAG Data",
-    tagline:"La data de la filière bois énergie",
-    statut:"concept",
-    statutLabel:"Roadmap 2027",
-    couleur:"#0369A1",
-    bg:"#E0F2FE",
-    fonctionnalites:[
-      {icon:"🗺️", titre:"Heatmap des gisements", desc:"Cartographie nationale des disponibilités bois énergie par EPCI, actualisée en temps réel à partir des lots APPLITAG et des données IFN."},
-      {icon:"📡", titre:"API ouverte", desc:"API REST documentée pour connecter APPLITAG à vos outils métier : ERP, BI, GIS, plateformes de trading de biomasse."},
-      {icon:"🤝", titre:"Place de marché B2B", desc:"Mise en relation directe entre propriétaires forestiers, ETF, déchiqueteurs et chaufferies. Appel d'offres automatisé par lot."},
-      {icon:"📉", titre:"Benchmarks marché", desc:"Indices de prix régionaux plaquettes et bois énergie, volumes disponibles, délais moyens — partagés anonymement entre adhérents."},
-      {icon:"🔗", titre:"Interopérabilité filière", desc:"Connexion aux systèmes des réseaux de chaleur, des syndicats de production forestière et des plateformes de financement carbone."},
-    ],
-    roadmap:[
-      {q:"T1 2027",label:"API ouverte v1",done:false},
-      {q:"T2 2027",label:"Heatmap gisements",done:false},
-      {q:"T3 2027",label:"Place de marché",done:false},
-      {q:"T4 2027",label:"Benchmarks & indices",done:false},
-    ],
-    cta:"Manifeste d'intérêt",
-    prix:"Modèle économique en cours de définition",
-  },
-];
-
-// supprimé — remplacé par SectionModulesFuturs ci-dessus
-const _UNUSED_SectionModulesFutursOld = () => {
-  const [selected, setSelected] = useState(MODULES_FUTURS[0].id);
-  const mod = MODULES_FUTURS.find(m=>m.id===selected);
-
-  return (
-    <div style={{maxWidth:1000,margin:"0 auto"}}>
-      {/* En-tête */}
-      <div style={{marginBottom:24,textAlign:"center"}}>
-        <div style={{display:"inline-flex",alignItems:"center",gap:8,
-          background:"#FEF3C7",border:"1px solid #FCD34D",borderRadius:20,
-          padding:"4px 14px",fontSize:11,fontWeight:700,color:"#92400E",marginBottom:12}}>
-          🚀 APPLITAG VISION 2027
-        </div>
-        <div style={{fontSize:24,fontWeight:900,color:C.tx,marginBottom:6}}>Modules à venir</div>
-        <div style={{fontSize:14,color:C.tx2,maxWidth:560,margin:"0 auto",lineHeight:1.6}}>
-          APPLITAG se développe pour couvrir l'ensemble de la chaîne de valeur bois énergie. Voici ce qui arrive.
-        </div>
-      </div>
-
-      {/* Timeline globale */}
-      <div style={{background:"#fff",borderRadius:14,border:`1px solid ${C.bd}`,
-        padding:"14px 20px",marginBottom:24,overflowX:"auto"}}>
-        <div style={{fontSize:11,fontWeight:700,color:C.tx2,marginBottom:12}}>Roadmap globale</div>
-        <div style={{display:"flex",gap:0,minWidth:600}}>
-          {[
-            {period:"T3 2026",items:["Forest Intelligence bêta"],color:"#1E5B3A"},
-            {period:"T4 2026",items:["Compliance — registre légal"],color:"#7C3AED"},
-            {period:"T1 2027",items:["IA cubage","API ouverte v1"],color:"#0369A1"},
-            {period:"T2 2027",items:["Prédiction prix","PEFC/FSC","Heatmap"],color:"#B45309"},
-            {period:"T3 2027",items:["Bilan carbone","Signature eIDAS","Marketplace"],color:"#065F46"},
-            {period:"T4 2027",items:["Interface DDT/ONF","Benchmarks"],color:"#7C3AED"},
-          ].map((p,i,arr)=>(
-            <div key={p.period} style={{flex:1,position:"relative"}}>
-              <div style={{background:p.color,color:"#fff",fontSize:10,fontWeight:700,
-                padding:"4px 8px",borderRadius:"6px 6px 0 0",textAlign:"center"}}>{p.period}</div>
-              <div style={{background:`${p.color}10`,border:`1px solid ${p.color}30`,
-                borderTop:"none",borderRadius:"0 0 6px 6px",padding:"8px 6px",
-                minHeight:60}}>
-                {p.items.map(it=>(
-                  <div key={it} style={{fontSize:9,color:p.color,fontWeight:600,
-                    marginBottom:3,lineHeight:1.3,padding:"2px 4px",borderRadius:3,
-                    background:`${p.color}15`}}>
-                    {it}
-                  </div>
-                ))}
-              </div>
-              {i<arr.length-1&&(
-                <div style={{position:"absolute",top:10,right:-6,width:12,height:12,
-                  background:"#fff",border:`2px solid ${p.color}`,borderRadius:"50%",
-                  zIndex:1}}/>
-              )}
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Sélecteur de module */}
-      <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:12,marginBottom:20}}>
-        {MODULES_FUTURS.map(m=>{
-          const ss = STATUT_STYLE[m.statut]||STATUT_STYLE.concept;
-          const isActive = selected===m.id;
-          return (
-            <div key={m.id} onClick={()=>setSelected(m.id)}
-              style={{background:"#fff",borderRadius:14,padding:"14px 16px",cursor:"pointer",
-                border:`2px solid ${isActive?m.couleur:C.bd}`,
-                boxShadow:isActive?`0 0 0 4px ${m.bg}`:"none",
-                transition:"all .2s"}}>
-              <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:8}}>
-                <span style={{fontSize:28}}>{m.icon}</span>
-                <span style={{fontSize:9,padding:"2px 7px",borderRadius:10,fontWeight:700,
-                  background:ss.bg,color:ss.color}}>{m.statutLabel}</span>
-              </div>
-              <div style={{fontSize:13,fontWeight:800,color:isActive?m.couleur:C.tx,marginBottom:3}}>
-                {m.nom.replace("APPLITAG ","")}
-              </div>
-              <div style={{fontSize:11,color:C.tx2,lineHeight:1.4}}>{m.tagline}</div>
-            </div>
-          );
-        })}
-      </div>
-
-      {/* Détail du module sélectionné */}
-      {mod&&(
-        <div style={{display:"grid",gridTemplateColumns:"1fr 280px",gap:16,alignItems:"start"}}>
-          {/* Fonctionnalités */}
-          <div style={{background:"#fff",borderRadius:14,border:`1px solid ${C.bd}`,overflow:"hidden"}}>
-            <div style={{background:mod.bg,borderBottom:`1px solid ${mod.couleur}22`,
-              padding:"16px 20px",display:"flex",alignItems:"center",gap:12}}>
-              <span style={{fontSize:32}}>{mod.icon}</span>
-              <div>
-                <div style={{fontSize:16,fontWeight:900,color:mod.couleur}}>{mod.nom}</div>
-                <div style={{fontSize:12,color:C.tx2,marginTop:2}}>{mod.tagline}</div>
-              </div>
-            </div>
-            <div style={{padding:"16px 20px"}}>
-              <div style={{fontSize:11,fontWeight:700,color:C.tx2,marginBottom:12,
-                textTransform:"uppercase",letterSpacing:".5px"}}>Fonctionnalités prévues</div>
-              <div style={{display:"flex",flexDirection:"column",gap:14}}>
-                {mod.fonctionnalites.map((f,i)=>(
-                  <div key={i} style={{display:"flex",gap:12,alignItems:"flex-start",
-                    padding:"12px 14px",borderRadius:10,
-                    background:i%2===0?mod.bg+"80":"transparent",
-                    border:`1px solid ${i%2===0?mod.couleur+"22":"transparent"}`}}>
-                    <span style={{fontSize:22,flexShrink:0,lineHeight:1}}>{f.icon}</span>
-                    <div>
-                      <div style={{fontSize:13,fontWeight:700,color:mod.couleur,marginBottom:4}}>{f.titre}</div>
-                      <div style={{fontSize:12,color:C.tx2,lineHeight:1.6}}>{f.desc}</div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          {/* Panneau droit */}
-          <div style={{display:"flex",flexDirection:"column",gap:12}}>
-            {/* Roadmap module */}
-            <div style={{background:"#fff",borderRadius:14,border:`1px solid ${C.bd}`,padding:16}}>
-              <div style={{fontSize:11,fontWeight:700,color:C.tx2,marginBottom:12}}>Jalons du module</div>
-              <div style={{display:"flex",flexDirection:"column",gap:8}}>
-                {mod.roadmap.map((r,i)=>(
-                  <div key={i} style={{display:"flex",alignItems:"center",gap:10,
-                    padding:"8px 10px",borderRadius:8,
-                    background:r.done?mod.bg:"#F9FAFB",
-                    border:`1px solid ${r.done?mod.couleur+"44":C.bd}`}}>
-                    <div style={{width:28,height:28,borderRadius:8,flexShrink:0,
-                      background:r.done?mod.couleur:mod.bg,
-                      display:"flex",alignItems:"center",justifyContent:"center",
-                      fontSize:12,fontWeight:700,color:r.done?"#fff":mod.couleur}}>
-                      {r.done?"✓":r.q.replace("T","")}
-                    </div>
-                    <div>
-                      <div style={{fontSize:10,color:C.tx2}}>{r.q}</div>
-                      <div style={{fontSize:11,fontWeight:600,color:r.done?mod.couleur:C.tx}}>{r.label}</div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Tarification */}
-            <div style={{background:mod.bg,borderRadius:14,border:`1px solid ${mod.couleur}33`,padding:16}}>
-              <div style={{fontSize:11,fontWeight:700,color:mod.couleur,marginBottom:6}}>Tarification</div>
-              <div style={{fontSize:12,color:C.tx,lineHeight:1.5}}>{mod.prix}</div>
-            </div>
-
-            {/* CTA */}
-            <button style={{width:"100%",padding:"14px 0",borderRadius:12,
-              background:mod.couleur,border:"none",color:"#fff",
-              fontFamily:"inherit",fontSize:13,fontWeight:700,cursor:"pointer"}}>
-              {mod.cta} →
-            </button>
-
-            {/* Autres modules */}
-            <div style={{background:"#fff",borderRadius:14,border:`1px solid ${C.bd}`,padding:14}}>
-              <div style={{fontSize:11,fontWeight:700,color:C.tx2,marginBottom:10}}>Voir aussi</div>
-              {MODULES_FUTURS.filter(m2=>m2.id!==mod.id).map(m2=>(
-                <div key={m2.id} onClick={()=>setSelected(m2.id)}
-                  style={{display:"flex",alignItems:"center",gap:10,padding:"8px 10px",
-                    borderRadius:8,cursor:"pointer",marginBottom:4,
-                    background:"#F9FAFB",border:`1px solid ${C.bd}`}}>
-                  <span style={{fontSize:20}}>{m2.icon}</span>
-                  <div>
-                    <div style={{fontSize:11,fontWeight:700,color:C.tx}}>{m2.nom.replace("APPLITAG ","")}</div>
-                    <div style={{fontSize:9,color:C.tx2}}>{m2.statutLabel}</div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-};
 
 // ── FINANCEMENTS & RESTAURATION FORESTIÈRE ─────────────────────
 
@@ -2478,7 +2223,7 @@ export const SectionFinancements = () => {
             </div>
             {/* Mini stepper horizontal */}
             <div style={{display:"flex",overflowX:"auto",gap:2,paddingBottom:8}}>
-              {WORKFLOW_FIN_STEPS.map((s,i)=>(
+              {WORKFLOW_FIN_STEPS.map((s,_i)=>(
                 <div key={s.n} onClick={()=>setWfStep(s.n)}
                   style={{flexShrink:0,width:32,height:32,borderRadius:"50%",cursor:"pointer",
                     background:s.n<wfStep?"#1E5B3A":s.n===wfStep?"#0369A1":"#E5E7EB",
@@ -2966,19 +2711,17 @@ const exportCSVFromRows = (headers, rows, filename) => {
 };
 
 // ── CONFORMITÉ RED — COMPOSANT ──────────────────────────────────
-export const SectionConformiteRED = ({lots=[], visites=[], livraisons=[], plateformes=[]}) => {
+export const SectionConformiteRED = ({lots=[], visites=[], livraisons=[], _plateformes=[]}) => {
   const [tab, setTab] = useState("fournisseurs");
 
   // Fournisseurs
   const [fournisseurs, setFournisseurs] = useState(DEMO_FOURNISSEURS_RED);
   const [ficheOpen, setFicheOpen]       = useState(null);
-  const [ficheEdit, setFicheEdit]       = useState({});
   const [filtreStat, setFiltreStat]     = useState("tous");
   const [showNewFourn, setShowNewFourn] = useState(false);
   const [newFourn, setNewFourn]         = useState({nom:"",systeme:"sbp",statut:"a_auditer",perimetre:[]});
 
   // Bilan massique
-  const [bilanPlatId, setBilanPlatId]   = useState("plat1");
   const [entreeRed,  setEntreeRed]      = useState(85);
   const [entreeNonRed,setEntreeNonRed]  = useState(40);
   const [sortieRed,  setSortieRed]      = useState(60);
@@ -3697,7 +3440,7 @@ export const SectionConformiteRED = ({lots=[], visites=[], livraisons=[], platef
 };
 
 // ── SYSTÈMES VOLONTAIRES (VSS) RED II ──────────────────────────
-const VSS_RECONNUS = [
+export const VSS_RECONNUS = [
   {id:"sure",      label:"SURE",     couleur:"#1565C0", bg:"#E3F2FD",
    org:"Sustainable & Renewable Energy",
    url:"https://www.sure-system.org",
@@ -4285,7 +4028,7 @@ export const SectionGES = ({lots=[], visites=[], livraisons=[]}) => {
   // Transport
   const [distAmont, setDistAmont] = useState(20);
   const [distAval,  setDistAval]  = useState(50);
-  const [nbRotations,setNbRot]    = useState(5);
+  const [nbRotations,_setNbRot]    = useState(5);
   // Matériel exploitation
   const [materielItems, setMaterielItems] = useState(
     MATERIEL_GES.slice(0,3).map(m=>({...m, qty:0}))
@@ -4932,7 +4675,7 @@ const STATUT_TRONCON = {
 // ── APPLITAG DATA — SIGNALEMENTS ANOMALIES DESSERTES ─────────────
 const SIGNALEMENTS_KEY = "applitag_signalements_desserte";
 const signalementsGet = () => { try { return JSON.parse(localStorage.getItem(SIGNALEMENTS_KEY)||"[]"); } catch { return []; } };
-const signalementsSet = (arr) => { try { localStorage.setItem(SIGNALEMENTS_KEY, JSON.stringify(arr)); } catch {} };
+const signalementsSet = (arr) => { try { localStorage.setItem(SIGNALEMENTS_KEY, JSON.stringify(arr)); } catch { /* noop */ } };
 
 const TYPES_ANOMALIE = [
   {id:"orniere",     label:"Ornières / nids-de-poule",  icon:"🕳️", urgence:"orange"},
@@ -5187,13 +4930,12 @@ const NIVEAUX_RESTRICTION = [
 
 const SCIERIE_KEY_GRUMES    = "applitag_scierie_grumes";
 const SCIERIE_KEY_COPRODUITS= "applitag_scierie_coproduits";
-const SCIERIE_KEY_STOCKS    = "applitag_scierie_stocks";
 const SCIERIE_KEY_ENLEV     = "applitag_scierie_enlev";
 const LOTS_SECONDAIRES_KEY  = "applitag_lots_secondaires";
 const scierieGet = (key) => { try { return JSON.parse(localStorage.getItem(key)||"[]"); } catch { return []; } };
 const lotsSecGet = () => { try { return JSON.parse(localStorage.getItem(LOTS_SECONDAIRES_KEY)||"[]"); } catch { return []; } };
-const lotsSecSet = (arr) => { try { localStorage.setItem(LOTS_SECONDAIRES_KEY,JSON.stringify(arr)); } catch {} };
-const scierieSet = (key,arr) => { try { localStorage.setItem(key,JSON.stringify(arr)); } catch {} };
+const lotsSecSet = (arr) => { try { localStorage.setItem(LOTS_SECONDAIRES_KEY,JSON.stringify(arr)); } catch { /* noop */ } };
+const scierieSet = (key,arr) => { try { localStorage.setItem(key,JSON.stringify(arr)); } catch { /* noop */ } };
 
 const ESSENCES_GRUMES = ["Chêne","Hêtre","Douglas","Pin sylvestre","Épicéa","Sapin","Frêne","Peuplier","Châtaignier","Autres"];
 const QUALITES_GRUME  = ["A (grume d'œuvre)","B (bois d'industrie)","C (bois énergie)","Déclassé"];
@@ -5623,7 +5365,7 @@ const ACTIVITES_CONCERNEES = [
 
 const PERMIS_LOCAL_KEY = "applitag_permis_incendie";
 const permisLocalGet = () => { try { return JSON.parse(localStorage.getItem(PERMIS_LOCAL_KEY)||"[]"); } catch { return []; } };
-const permisLocalSave = (arr) => { try { localStorage.setItem(PERMIS_LOCAL_KEY, JSON.stringify(arr)); } catch {} };
+const permisLocalSave = (arr) => { try { localStorage.setItem(PERMIS_LOCAL_KEY, JSON.stringify(arr)); } catch { /* noop */ } };
 
 export const SectionPermisIncendie = () => {
   const [tab, setTab] = useState("nouveau"); // "nouveau" | "historique"
@@ -5649,7 +5391,7 @@ export const SectionPermisIncendie = () => {
   const [saved,        setSaved]        = useState(false);
   const fileRef = useRef();
 
-  const niveauInfo = NIVEAUX_RESTRICTION.find(n=>n.id===niveau) || NIVEAUX_RESTRICTION[0];
+  const _niveauInfo = NIVEAUX_RESTRICTION.find(n=>n.id===niveau) || NIVEAUX_RESTRICTION[0];
 
   const toggleActivite = (a) => setActivites(prev =>
     prev.includes(a) ? prev.filter(x=>x!==a) : [...prev, a]
@@ -5944,9 +5686,8 @@ export const SectionPermisIncendie = () => {
 export const SectionDesserte = () => {
   const [tab,    setTab]    = useState("liste");
   const [sel,    setSel]    = useState(null);
-  const [form,   setForm]   = useState(null); // null | "new" | tronçon id
 
-  const trc = sel ? DEMO_TRONCONS.find(t=>t.id===sel) : null;
+  const _trc = sel ? DEMO_TRONCONS.find(t=>t.id===sel) : null;
   const totalTonnage = DEMO_TRONCONS.reduce((s,t)=>s+t.tonnageMobilisable,0);
   const totalCout    = DEMO_TRONCONS.reduce((s,t)=>s+t.coutProjet,0);
 
@@ -7272,7 +7013,7 @@ const DEMO_PROJETS_FINANCES = [
 export const SectionProjetFinance = () => {
   const [tab,    setTab]    = useState("liste");
   const [selId,  setSelId]  = useState(null);
-  const proj = selId ? DEMO_PROJETS_FINANCES.find(p=>p.id===selId) : null;
+  const _proj = selId ? DEMO_PROJETS_FINANCES.find(p=>p.id===selId) : null;
 
   return (
     <div style={{maxWidth:1040,margin:"0 auto"}}>
@@ -7566,7 +7307,7 @@ export const SectionProjetFinance = () => {
 };
 
 // ── TABLEAU DE BORD DESKTOP (ADMIN) ────────────────────────────
-const DASHBOARD_NAV = [
+export const DASHBOARD_NAV = [
   {id:"dashboard",          icon:"📊", label:"Tableau de bord",     flag:"DASHBOARD"},
   {id:"planning",           icon:"📅", label:"Planning",             flag:"PLANNING"},
   {id:"lots",               icon:"🌲", label:"Lots",                 flag:"LOTS"},
@@ -7612,11 +7353,6 @@ const QUALITES_BOIS = [
    desc:"Pâte à papier, panneaux, palettes — valorisation matière intermédiaire"},
   {id:"be",  label:"Bois énergie",      icon:"🔥", couleur:"#B45309", bg:"#FEF3C7", usage:"energie",
    desc:"Plaquettes forestières, bûches, granulés — valorisation énergétique"},
-];
-
-const PRESCRIPTIONS_TYPES = [
-  "Coupe rase","Coupe d'éclaircie","Coupe sanitaire","Coupe jardinatoire",
-  "Dépressage","Élagage","Recépage","Plantation","Regarni","Travaux de dégagement",
 ];
 
 const DEMO_PARCELLE = {
@@ -7741,7 +7477,7 @@ export const SectionParcelleTravaux = () => {
   const [onglet, setOnglet] = useState("diagnostic");
   const p = DEMO_PARCELLE;
 
-  const totalSubv = p.couts.subventions.reduce((s,sub)=>s+sub.montant,0);
+  const _totalSubv = p.couts.subventions.reduce((s,sub)=>s+sub.montant,0);
   const volTotalReel = p.volumes.bo.reel + p.volumes.bi.reel + p.volumes.be.reel;
   const pctMatiere = volTotalReel>0 ? Math.round((p.volumes.bo.reel+p.volumes.bi.reel)/volTotalReel*100) : 0;
   const pctEnergie = 100-pctMatiere;
@@ -7930,7 +7666,7 @@ export const SectionParcelleTravaux = () => {
           ["Éclaircie","#1E5B3A","#D1FAE5",p.surfaces.eclaircie],
           ["Plantation","#166534","#DCFCE7",p.surfaces.plantation],
           ["Non intervenue","#6B7280","#F3F4F6",p.surfaces.nonIntervenee],
-        ].map(([label,col,bg,val])=>(
+        ].map(([label,col,_bg,val])=>(
           <div key={label} style={{marginBottom:10}}>
             <div style={{display:"flex",justifyContent:"space-between",marginBottom:3,fontSize:12}}>
               <span style={{color:col,fontWeight:600}}>{label}</span>
@@ -8287,16 +8023,16 @@ export const SectionParcelleTravaux = () => {
 
 // ── VEILLE RÉGLEMENTAIRE ───────────────────────────────────────
 
-const CLAUSE_RESERVE = "Projet techniquement préparé, sous réserve du cadre réglementaire et de l'ouverture effective du dispositif au jour du dépôt.";
+export const CLAUSE_RESERVE = "Projet techniquement préparé, sous réserve du cadre réglementaire et de l'ouverture effective du dispositif au jour du dépôt.";
 
-const STATUT_REGL = {
+export const STATUT_REGL = {
   applicable: {label:"Applicable",   color:"#065F46", bg:"#D1FAE5", icon:"✅"},
   suspendu:   {label:"Suspendu",     color:"#92400E", bg:"#FEF3C7", icon:"⏸"},
   annule:     {label:"Annulé",       color:"#991B1B", bg:"#FEE2E2", icon:"❌"},
   remplace:   {label:"Remplacé",     color:"#6B7280", bg:"#F3F4F6", icon:"🔄"},
 };
 
-const TEXTES_REGL = [
+export const TEXTES_REGL = [
   {
     id:"tr1",
     dispositif:"Aides au renouvellement forestier — reboisement & régénération naturelle",
@@ -8583,7 +8319,7 @@ const REGISTRE_IA_FONCTIONS = [
 ];
 
 export const SectionRegistreIA = () => {
-  const inp={height:INPUT_H,borderRadius:10,border:`1px solid ${C.bd}`,
+  const _inp={height:INPUT_H,borderRadius:10,border:`1px solid ${C.bd}`,
     padding:"0 14px",fontSize:14,boxSizing:"border-box",width:"100%"};
 
   return (
@@ -8666,7 +8402,7 @@ const DESTINATIONS_CRISE = [
 ];
 const CRISE_KEY = "applitag_bois_crise";
 const criseGet = () => { try { return JSON.parse(localStorage.getItem(CRISE_KEY)||"[]"); } catch { return []; } };
-const criseSet = (arr) => { try { localStorage.setItem(CRISE_KEY,JSON.stringify(arr)); } catch {} };
+const criseSet = (arr) => { try { localStorage.setItem(CRISE_KEY,JSON.stringify(arr)); } catch { /* noop */ } };
 
 const DEMO_LOTS_CRISE = [
   {id:"lc1",ref:"CRISE-2026-001",proprietaire:"M. Dupont Henri",mandataire:"Cabinet Forêt Sud",
@@ -8846,7 +8582,6 @@ export const SectionBoisCrise = () => {
 // ── FICHE COMBUSTIBLE CONTRACTUELLE ─────────────────────────────
 const FICHE_COMB_KEY = "applitag_fiches_combustible";
 const ficheCombGet = () => { try { return JSON.parse(localStorage.getItem(FICHE_COMB_KEY)||"[]"); } catch { return []; } };
-const ficheCombSet = (arr) => { try { localStorage.setItem(FICHE_COMB_KEY,JSON.stringify(arr)); } catch {} };
 
 const DEMO_FICHES_COMB = [
   {id:"fc1",chaufferie:"Chaufferie Communale — Saint-Julien-de-Concelles",version:"v1.0",dateVersion:"2026-07-12",
@@ -8872,7 +8607,7 @@ const DEMO_FICHES_COMB = [
 ];
 
 export const SectionFicheCombustible = () => {
-  const [fiches, setFiches] = useState(()=>{ const d=ficheCombGet(); return d.length?d:[...DEMO_FICHES_COMB]; });
+  const [fiches, _setFiches] = useState(()=>{ const d=ficheCombGet(); return d.length?d:[...DEMO_FICHES_COMB]; });
   const [sel, setSel] = useState(fiches[0]?.id||null);
   const [tabF, setTabF] = useState("fiche");
   const fiche = fiches.find(f=>f.id===sel);
@@ -9377,7 +9112,7 @@ export const SectionVeilleReglementaire = () => {
       {/* ── IA TRANSPARENCE — Art. 50 Règlement IA ── */}
       {vue==="ia_transparence"&&(()=>{
         const nbAdapt = INVENTAIRE_IA.filter(f=>f.statut==="a_adapter").length;
-        const sel = selFonction ? INVENTAIRE_IA.find(f=>f.id===selFonction) : null;
+        const _sel = selFonction ? INVENTAIRE_IA.find(f=>f.id===selFonction) : null;
         return (
           <div style={{display:"flex",flexDirection:"column",gap:14}}>
 
@@ -11977,9 +11712,9 @@ const byMois = () => {
 };
 
 // Mini barre SVG inline
-export const BarChart = ({data, valKey, labelKey, couleurFn, height=120, unite="€"}) => {
+export const BarChart = ({data, valKey, labelKey, couleurFn, height=120, _unite="€"}) => {
   const max = Math.max(...data.map(d=>d[valKey]));
-  const w = 100 / data.length;
+  const _w = 100 / data.length;
   return (
     <svg viewBox={`0 0 ${data.length*60} ${height+30}`} style={{width:"100%",height:height+30}}>
       {data.map((d,i)=>{
@@ -12324,7 +12059,7 @@ export const SectionAnalyses = () => {
                 <thead>
                   <tr style={{background:"#F9FAFB",borderBottom:`1px solid ${C.bd}`}}>
                     {["Mois","Tonnes","CA (€)","Coûts (€)","Marge (€)","Marge %","Moy €/t"].map(h=>(
-                      <th key={h} style={{padding:"7px 10px",textAlign:"right",color:C.tx3,fontWeight:700,
+                      <th key={h} style={{padding:"7px 10px",color:C.tx3,fontWeight:700,
                         textAlign:h==="Mois"?"left":"right"}}>{h}</th>
                     ))}
                   </tr>
