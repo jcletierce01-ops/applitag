@@ -7,6 +7,23 @@ export default defineConfig({
   test: {
     environment: 'node',
     include: ['src/**/*.test.{js,jsx}'],
+    coverage: {
+      provider: 'v8',
+      include: [
+        'src/metier/formules.js',
+        'src/shared/validators.js',
+        'src/shared/format.js',
+        'src/shared/utils.js',
+        'src/config/validateEnv.js',
+      ],
+      reporter: ['text', 'json-summary'],
+      thresholds: {
+        statements: 100,
+        functions:  100,
+        lines:      100,
+        branches:    95,
+      },
+    },
   },
   plugins: [react()],
   resolve: {

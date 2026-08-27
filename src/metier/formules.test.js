@@ -172,6 +172,10 @@ describe('estimerVolumeParHa', () => {
     const b = estimerVolumeParHa(400, 30, 1, 1000, 20);
     expect(b).toBeGreaterThan(a);
   });
+
+  it('retourne 0 si popParHa est 0 (branche || 0)', () => {
+    expect(estimerVolumeParHa(0, 30, 1, 1000, 20)).toBe(0);
+  });
 });
 
 describe('indicesPonderes', () => {
@@ -202,6 +206,12 @@ describe('indicesPonderes', () => {
   it('utilise le mélange par défaut pour une essence inconnue', () => {
     const r = indicesPonderes([{ id: 'essence_inconnue', pct: 100 }]);
     expect(r.densite).toBeCloseTo(INDICES_ESSENCE.melange.densite, 5);
+  });
+
+  it('gère le cas dégénéré où tous les pct sont 0 (branche total || 100)', () => {
+    const r = indicesPonderes([{ id: 'chene', pct: 0 }]);
+    expect(r.densite).toBe(0);
+    expect(r.pci).toBe(0);
   });
 
   it('les résultats restent dans des plages réalistes (densite 700-1100, pci 2-5)', () => {

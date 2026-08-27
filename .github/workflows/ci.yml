@@ -32,6 +32,9 @@ jobs:
       - name: Vitest — tests unitaires cœur métier
         run: npm test
 
+      - name: Vitest — couverture avec seuils (stmt/func/lines 100%, branches 95%)
+        run: npm run test:coverage
+
       - name: Build — mode production
         run: npm run build:prod
         env:
