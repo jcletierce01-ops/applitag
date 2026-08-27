@@ -1,16 +1,18 @@
 import { describe, it, expect } from 'vitest';
 import { fmtNum, fmtDate } from './format.js';
 
+// Supprime tout espace (normal, insécable U+00A0, insécable étroit U+202F)
+// car fr-FR utilise U+202F comme séparateur de milliers en Node 20+
+const stripSpaces = (s) => s.replace(/[\s\u00a0\u202f]/g, '');
+
 describe('fmtNum', () => {
   it('formate un entier : la valeur numérique est préservée (sans séparateurs)', () => {
-    const result = fmtNum(1234);
-    expect(result.replace(/[\s  ]/g, '')).toBe('1234');
+    expect(stripSpaces(fmtNum(1234))).toBe('1234');
   });
 
   it('formate avec 2 décimales', () => {
-    const result = fmtNum(1.5, 2);
     // séparateur décimal fr-FR = virgule
-    expect(result.replace(/[\s  ]/g, '')).toBe('1,50');
+    expect(stripSpaces(fmtNum(1.5, 2))).toBe('1,50');
   });
 
   it('retourne la valeur brute si non numérique', () => {
@@ -28,8 +30,7 @@ describe('fmtNum', () => {
   });
 
   it('accepte une string numérique', () => {
-    const result = fmtNum('1234.5', 1);
-    expect(result.replace(/[\s  ]/g, '')).toMatch(/^1234,5$/);
+    expect(stripSpaces(fmtNum('1234.5', 1))).toMatch(/^1234,5$/);
   });
 
   it('0 décimale par défaut', () => {

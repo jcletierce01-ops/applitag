@@ -11,7 +11,6 @@ import {
   indicesPonderes,
   INDICES_ESSENCE,
   PCI_BOIS_ANHYDRE,
-  CHALEUR_VAPORISATION_EAU,
   HUMIDITE_REF_ITEBE,
 } from './formules.js';
 

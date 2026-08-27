@@ -7,8 +7,8 @@ on:
     branches: [main, master]
 
 jobs:
-  build:
-    name: Build Vite (production + demo)
+  check:
+    name: Lint · Tests · Build
     runs-on: ubuntu-latest
 
     steps:
@@ -25,6 +25,12 @@ jobs:
 
       - name: Audit de sécurité des dépendances
         run: npm audit --audit-level=high
+
+      - name: ESLint — zéro erreur requise
+        run: npm run lint -- --max-warnings 25
+
+      - name: Vitest — tests unitaires cœur métier
+        run: npm test
 
       - name: Build — mode production
         run: npm run build:prod
