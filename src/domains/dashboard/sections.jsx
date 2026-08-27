@@ -12932,7 +12932,8 @@ export const HubAlertes = ({contacts=[], livraisons=[], onGoTo}) => {
     });
 
     return arr.sort((a,b)=>a.gravite-b.gravite);
-  },[contacts,livraisons]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  },[contacts,livraisons]); // today/todayStr : new Date() à chaque render — les ajouter invaliderait le memo
 
   const GRAVITE = [
     {label:"Bloquant",  bg:"#FEE2E2", col:"#991B1B", dot:"#EF4444"},

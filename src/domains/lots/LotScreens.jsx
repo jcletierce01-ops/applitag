@@ -1466,14 +1466,14 @@ export const EcranDechiquetage = ({lot, operateurs=[], onBack, onSaved, toast, e
       (o.assignations||[]).some(a=>(a.lotId===lot.id||a.lotNumero===lot.lotNumero)&&a.typeOperation==="dechiquetage")
     );
     if (op) setOpDechiquetage(`${op.nom}${op.prenom?" "+op.prenom:""}`);
-  },[operateurs, lot]);
+  },[operateurs, lot, operateurDechiquetage]);
 
   // Heure de début du prochain chargement du jour : pré-remplie à l'heure de saisie moins 30 minutes
   useEffect(()=>{
     if (heureDebut) return;
     const d = new Date(Date.now()-30*60000);
     setHeureDebut(`${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`);
-  },[]);
+  },[]); // eslint-disable-line react-hooks/exhaustive-deps -- initialisation unique au montage, guard empeche la reInitialisation
 
   const handleSelectMission = (id) => {
     setMissionId(id);

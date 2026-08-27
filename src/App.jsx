@@ -112,7 +112,7 @@ export default function App() {
     apiGet(`/transports`).then(d=>{ if(Array.isArray(d)) setTransports(d); }).catch(()=>{});
     apiGet(`/livraisons`).then(d=>{ if(Array.isArray(d)) setLivraisons(d); }).catch(()=>{});
     apiGet(`/dechiquetage`).then(d=>{ if(Array.isArray(d)) setDechiquetages(d); }).catch(()=>{});
-  },[user]);
+  },[user, entrepriseId, isDemoMode]);
 
   const [transitioning, setTransitioning] = useState(false);
 
@@ -121,7 +121,7 @@ export default function App() {
     if(contacts.length>0 && !isDemoMode) {
       try { localStorage.setItem("applitag_contacts", JSON.stringify(contacts)); } catch { /* noop */ }
     }
-  },[contacts]);
+  },[contacts, isDemoMode]);
 
   const handleLogin = (u) => {
     setTransitioning(true);

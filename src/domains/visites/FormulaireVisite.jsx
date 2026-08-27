@@ -72,7 +72,8 @@ export const MapZonesProtegees = ({gps}) => {
       sc.onload=init;document.head.appendChild(sc);
     }
     return()=>{if(mapRef.current){mapRef.current.remove();mapRef.current=null;}};
-  },[gps?.lat,gps?.lng]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  },[gps?.lat,gps?.lng]); // plus précis que gps (objet) : re-render seulement si les coordonnées changent
   if(!gps) return null;
   return(
     <div style={{borderRadius:12,overflow:'hidden',marginTop:16,marginBottom:8,
@@ -546,15 +547,16 @@ export const FormulaireVisite = ({lot, onBack, onSaved, toast, entrepriseId, use
         contraintes, accesCamion, step,
       }));
     } catch { /* noop */ }
-  },[gps, essences, volumeT, surfaceHa, dateLimite, observations,
-     prixTonne, diametreMoyen, popParHa, modeVolume, contraintes, accesCamion, step]);
+  },[lot.id, gps, essences, volumeT, surfaceHa, dateLimite, observations,
+     prixTonne, diametreMoyen, popParHa, modeVolume, tauxTVA, acompte, delaiSolde, modeReglement,
+     iban, swift, nomBanque, villeBanque, contraintes, accesCamion, step]);
 
   // Recalcul du volume estimÃ© si la surface ou l'essence change en mode "par ha"
   useEffect(()=>{
     if (modeVolume==="parha") {
       setVolumeT(calcVolumeParHa(popParHa, diametreMoyen, surfaceHa, indices));
     }
-  },[surfaceHa, modeVolume, essencePrincipale]);
+  },[surfaceHa, modeVolume, essencePrincipale, diametreMoyen, indices, popParHa]);
 
 
   // Plateforme
@@ -586,7 +588,7 @@ export const FormulaireVisite = ({lot, onBack, onSaved, toast, entrepriseId, use
   // PrÃ©-positionne la surface Ã  replanter sur la surface exploitÃ©e saisie en Ã©tape "Volumes"
   useEffect(()=>{
     if (replantation==="oui" && surfaceReplant===0) setSurfaceReplant(parseFloat(surfaceHa)||0);
-  },[replantation]);
+  },[replantation, surfaceHa, surfaceReplant]);
 
   // Scroll en haut Ã  chaque changement d'Ã©tape
   const scrollRef = useRef(null);

@@ -1091,7 +1091,7 @@ export const Fiche0Edit = ({contact, onBack, onSaved, toast, user, onLaunchVisit
       apiGet(`/contacts/${contact.id}/historique`)
         .then(d=>{ if(Array.isArray(d)) setHistorique(d); }).catch(()=>{});
     }
-  },[showHistorique]);
+  },[showHistorique, contact.id]);
 
   const handleSave = async () => {
     const phoneErr = telephone ? validatePhone(telephone) : null;
