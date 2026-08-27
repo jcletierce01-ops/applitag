@@ -8,8 +8,8 @@ import { SignatureCanvas } from "../../shared/SignatureCanvas.jsx";
 import { validateCMR, formatCMR, formatImmat, validateImmat } from "../../shared/validators.js";
 import { generatePdfFromHtml, buildCMRHTML, buildPVVisiteHTML, buildReceptionExploitHTML, buildOrdreDechiHTML, buildSimpleDocHTML, buildCompteRenduContactHTML } from "../../domains/documents/pdf-templates.js";
 import { TYPE_RESSOURCE_OPTS } from "../../domains/contacts/constants.js";
-import { STATUT_LOT } from "../../domains/screens/MobileScreens.jsx";
-import { PIPELINE } from "../../domains/roles/RoleScreens.jsx";
+import { STATUT_LOT } from "../../domains/screens/MobileScreens.constants.js";
+import { PIPELINE } from "../../domains/roles/RoleScreens.constants.js";
 export const FicheLotCentrale = ({
   lot, visites=[], operateurs=[], onBack, onEdit, onBonCommande,
   onLaunchVisite, onLaunchValidation, onLaunchCloture,

@@ -6,7 +6,7 @@ import { apiPost, apiPostPublic } from "../../services/api.service.js";
 import { BigBtn, MInput, SectionTitle } from "../../shared/ui.jsx";
 import { generatePdfFromHtml, buildRedHTML } from "../../domains/documents/pdf-templates.js";
 import { validateCMR, formatCMR, formatImmat, validateImmat } from "../../shared/validators.js";
-import { STATUT_LOT } from "../../domains/screens/MobileScreens.jsx";
+import { STATUT_LOT } from "../../domains/screens/MobileScreens.constants.js";
 export const EcranRoleMandataire = ({user, contacts, onSelectLot}) => {
   const mesLots = contacts.filter(c=>c.mandataireId===user.id);
   const [selLot, setSelLot] = useState(null);
@@ -2256,17 +2256,4 @@ export const EcranCarte = ({contacts, visites, onOpenLot}) => {
   );
 };
 
-// ── FICHE LOT CENTRALE (6 onglets) ───────────────────────────
-export const PIPELINE = [
-  {id:"NOUVEAU",            label:"Nouveau",       icon:"🆕"},
-  {id:"VISITE_PREVUE",      label:"Visite prévue", icon:"🔭"},
-  {id:"VISITE_REALISEE",    label:"Visite OK",     icon:"✅"},
-  {id:"VALIDE_EXPLOITATION",label:"Validé",        icon:"📋"},
-  {id:"EN_COURS_EXPLOITATION",label:"Exploitation",icon:"🪓"},
-  {id:"BORD_ROUTE",         label:"Bord route",    icon:"🌲"},
-  {id:"A_DECHIQUETER",      label:"À déchiqueter", icon:"🌀"},
-  {id:"EN_COURS_DECHIQUETAGE",   label:"Déchiquetage", icon:"⚙️"},
-  {id:"EN_LIVRAISON",       label:"En livraison",  icon:"🚛"},
-  {id:"LIVRE_CHAUFFERIE",   label:"Livré",         icon:"🔥"},
-];
 

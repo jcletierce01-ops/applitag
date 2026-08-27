@@ -7,7 +7,7 @@ import { indicesPonderes } from "../../metier/formules.js";
 import { apiPost } from "../../services/api.service.js";
 import { BigBtn, MInput, SectionTitle, MSlider, CheckItem } from "../../shared/ui.jsx";
 import { SignatureCanvas } from "../../shared/SignatureCanvas.jsx";
-import { TEXTES_REGL, CLAUSE_RESERVE, STATUT_REGL, VSS_RECONNUS } from "../../domains/dashboard/sections.jsx";
+import { TEXTES_REGL, CLAUSE_RESERVE, STATUT_REGL, VSS_RECONNUS } from "../../domains/dashboard/sections.constants.js";
 export const MapZonesProtegees = ({gps}) => {
   const divRef = useRef(null);
   const mapRef = useRef(null);

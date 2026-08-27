@@ -1,4 +1,5 @@
 ﻿import { useState, useEffect, useRef } from "react";
+import { STATUT_LOT } from "./MobileScreens.constants.js";
 import { C, BTN_H, INPUT_H, FONT_INPUT, FONT_TITLE, PADDING } from "../../design-system/tokens.js";
 import { todayS, nowISO, uid, genCode } from "../../shared/utils.js";
 import { apiGet, apiPost, apiPatch, apiPostPublic } from "../../services/api.service.js";
@@ -2024,21 +2025,6 @@ export const EcranOperateur = ({operateur, onLogout, toast, onUpdateOperateur}) 
 };
 
 // ── COULEURS STATUT LOT ───────────────────────────────────────
-export const STATUT_LOT = {
-  NOUVEAU:               {label:"Nouveau",            color:"#9A9892", bg:"#ECEAE6"},
-  VISITE_PREVUE:         {label:"Visite prévue",      color:"#BA7517", bg:"#FAEEDA"},
-  VISITE_REALISEE:       {label:"Visite réalisée",    color:"#185FA5", bg:"#E6F1FB"},
-  VALIDE_EXPLOITATION:   {label:"Validé",             color:"#534AB7", bg:"#EEEDFE"},
-  EN_COURS_EXPLOITATION: {label:"En exploitation",    color:"#185FA5", bg:"#E6F1FB"},
-  BORD_ROUTE:            {label:"Bord de route",      color:"#A66A2E", bg:"#F3EBE0"},
-  A_DECHIQUETER:         {label:"À déchiqueter",      color:"#D85A30", bg:"#FAECE7"},
-  EN_COURS_DECHIQUETAGE:      {label:"Déchiquetage en cours", color:"#D85A30", bg:"#FAECE7"},
-  EN_LIVRAISON:          {label:"En livraison",       color:"#534AB7", bg:"#EEEDFE"},
-  LIVRE_CHAUFFERIE:      {label:"Livré chaufferie",   color:"#4CAF50", bg:"#E8F5E9"},
-  EN_STOCK_PLATEFORME:   {label:"En stock plateforme",color:"#185FA5", bg:"#E6F1FB"},
-  LIVRE:                 {label:"Livré",              color:"#4CAF50", bg:"#E8F5E9"},
-  ALERTE:                {label:"⚠ Alerte",           color:"#A32D2D", bg:"#FCEBEB"},
-};
 
 // ── ÉCRAN ACCUEIL ─────────────────────────────────────────────
 export const EcranAccueil = ({contacts, _visites, notifications, user, onNewLot, onGoLots, onGoAlertes, onGoDelegations, onAppelerContact}) => {
@@ -2730,13 +2716,4 @@ export const EcranDelegations = ({entrepriseId, toast, onBack}) => {
 };
 
 // ── ÉCRAN LISTE LOTS ──────────────────────────────────────────
-export const FILTRES_LOTS = [
-  {id:"TOUS",              label:"Tous"},
-  {id:"VISITE_PREVUE",     label:"À visiter"},
-  {id:"VISITE_REALISEE",   label:"Visite faite"},
-  {id:"EN_COURS_EXPLOITATION", label:"Exploitation"},
-  {id:"BORD_ROUTE",        label:"Bord route"},
-  {id:"EN_LIVRAISON",      label:"Transport"},
-  {id:"LIVRE_CHAUFFERIE",  label:"Livré"},
-];
 

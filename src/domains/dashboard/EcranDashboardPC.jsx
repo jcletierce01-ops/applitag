@@ -3,10 +3,11 @@ import { C, FONT_TITLE, FONT_BODY } from "../../design-system/tokens.js";
 import { fmtNum } from "../../shared/format.js";
 import { MiniBarChart } from "../../shared/ui.jsx";
 import { EcranLots } from "../exploitation/ExploitationScreens.jsx";
-import { SectionAcces, SectionAbonnements, SectionDemoScenario, SectionAnalyses, SectionDocuments, SectionTerritoire, HubAlertes, SectionPlanning, SectionModulesFuturs, SectionFinancements, SectionConformiteRED, SectionCoutReglementaire, SectionGES, SectionApplitgData, SectionScierie, SectionPermisIncendie, SectionDesserte, SectionCoproduits, SectionProjetFinance, SectionParcelleTravaux, SectionRegistreIA, SectionBoisCrise, SectionFicheCombustible, SectionVeilleReglementaire, SectionLivraisons, SectionFacturationElec, SectionChaufferies, SectionRapports, SectionReseau, SectionParametres, SectionChantiers, SectionTransports, DASHBOARD_NAV } from "./sections.jsx";
+import { SectionAcces, SectionAbonnements, SectionDemoScenario, SectionAnalyses, SectionDocuments, SectionTerritoire, HubAlertes, SectionPlanning, SectionModulesFuturs, SectionFinancements, SectionConformiteRED, SectionCoutReglementaire, SectionGES, SectionApplitgData, SectionScierie, SectionPermisIncendie, SectionDesserte, SectionCoproduits, SectionProjetFinance, SectionParcelleTravaux, SectionRegistreIA, SectionBoisCrise, SectionFicheCombustible, SectionVeilleReglementaire, SectionLivraisons, SectionFacturationElec, SectionChaufferies, SectionRapports, SectionReseau, SectionParametres, SectionChantiers, SectionTransports } from "./sections.jsx";
+import { DASHBOARD_NAV } from "./sections.constants.js";
 
 import { EcranCarte } from "../roles/RoleScreens.jsx";
-import { STATUT_LOT } from "../screens/MobileScreens.jsx";
+import { STATUT_LOT } from "../screens/MobileScreens.constants.js";
 export const EcranDashboardPC = ({user, contacts, visites, notifications, transports=[], livraisons=[], dechiquetages=[], pendingSyncCount=0, onLogout}) => {
   const [section, setSection] = useState("dashboard");
   const [lotDetail, setLotDetail] = useState(null);
