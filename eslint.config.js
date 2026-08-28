@@ -20,6 +20,11 @@ export default defineConfig([
     'src/applitag_sprint1_visite.jsx',
   ]),
   {
+    files: ['vite.config.js'],
+    extends: [js.configs.recommended],
+    languageOptions: { globals: globals.node },
+  },
+  {
     files: ['**/*.{js,jsx}'],
     extends: [
       js.configs.recommended,
