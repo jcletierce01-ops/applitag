@@ -40,5 +40,8 @@ jobs:
         env:
           VITE_API_URL: https://applitag-api-production.up.railway.app
 
+      - name: Audit bundle — aucun secret dans les chunks
+        run: npm run audit:bundle
+
       - name: Build — mode demo
         run: npm run build:demo
