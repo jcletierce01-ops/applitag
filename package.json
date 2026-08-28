@@ -14,7 +14,8 @@
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
     "audit:bundle": "node scripts/audit-bundle.js",
-    "audit:licenses": "node scripts/audit-licenses.js"
+    "audit:licenses": "node scripts/audit-licenses.js",
+    "prepare": "husky"
   },
   "dependencies": {
     "html5-qrcode": "^2.3.8",
@@ -32,6 +33,7 @@
     "eslint-plugin-react-hooks": "^7.1.1",
     "eslint-plugin-react-refresh": "^0.5.2",
     "globals": "^17.6.0",
+    "husky": "^9.1.7",
     "vite": "^8.0.12",
     "vitest": "^4.1.11"
   }
