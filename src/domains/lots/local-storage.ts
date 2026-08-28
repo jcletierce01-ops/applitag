@@ -5,11 +5,11 @@
 
 const KEY = "applitag_deleted_lots";
 
-export const deletedLotsGet = () => {
-  try { return JSON.parse(localStorage.getItem(KEY) || "[]"); } catch { return []; }
+export const deletedLotsGet = (): string[] => {
+  try { return JSON.parse(localStorage.getItem(KEY) ?? "[]") as string[]; } catch { return []; }
 };
 
-export const deletedLotsAdd = (id) => {
+export const deletedLotsAdd = (id: string): void => {
   try {
     const ids = [...new Set([...deletedLotsGet(), id])];
     localStorage.setItem(KEY, JSON.stringify(ids));

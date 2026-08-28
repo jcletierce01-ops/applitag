@@ -6,5 +6,5 @@
  *   - EcranVisites, FicheVisite
  *   - Géolocalisation GPS
  *   - Photos et pièces jointes visite
- *   - Brouillon visite (key: applitag_visite_draft → offline/migration.js)
+ *   - Brouillon visite (key: applitag_visite_draft → offline/migration.ts)
  */

@@ -6,7 +6,7 @@
  * est ici — les composants n'ont plus à les gérer manuellement.
  *
  * Conventions :
- *   - Toutes les méthodes lancent une Error typée sur réponse non-ok.
+ *   - Toutes les méthodes lancent une ApiError typée sur réponse non-ok.
  *   - Ne jamais faire de catch silencieux autour de ces appels.
  *   - Les endpoints publics (login, annonces sans auth) utilisent postPublic / getPublic.
  */
@@ -14,12 +14,21 @@
 import { API_BASE_URL } from "@/config/env.js";
 import { authHeaders, clearAuth } from "@/services/auth.service.js";
 
+export class ApiError extends Error {
+  status: number;
+  constructor(message: string, status: number) {
+    super(message);
+    this.status = status;
+    this.name = "ApiError";
+  }
+}
+
 const BASE = API_BASE_URL;
 
 // Garde contre les rechargements multiples si plusieurs requêtes simultanées reçoivent un 401.
 let _sessionExpired = false;
 
-const onUnauthorized = () => {
+const onUnauthorized = (): void => {
   if (_sessionExpired) return;
   _sessionExpired = true;
   clearAuth();
@@ -31,32 +40,36 @@ const onUnauthorized = () => {
  * Lance une ApiError sur status >= 400.
  * Sur 401 : efface la session et recharge la page (token expiré ou révoqué).
  */
-const handle = async (res) => {
+const handle = async (res: Response): Promise<unknown> => {
   if (!res.ok) {
     if (res.status === 401) onUnauthorized();
     let detail = "";
-    try { const j = await res.json(); detail = j.message || j.error || ""; } catch { /* réponse sans corps JSON */ }
-    const err = new Error(`API ${res.status}${detail ? ` — ${detail}` : ""}`);
-    err.status = res.status;
-    throw err;
+    try {
+      const j = await res.json() as { message?: string; error?: string };
+      detail = j.message ?? j.error ?? "";
+    } catch { /* réponse sans corps JSON */ }
+    throw new ApiError(`API ${res.status}${detail ? ` — ${detail}` : ""}`, res.status);
   }
   if (res.status === 204) return null;
-  const ct = res.headers.get("content-type") || "";
+  const ct = res.headers.get("content-type") ?? "";
   return ct.includes("application/json") ? res.json() : res.text();
 };
 
-const authJson = () => ({ ...authHeaders(), "Content-Type": "application/json" });
+const authJson = (): Record<string, string> => ({
+  ...authHeaders(),
+  "Content-Type": "application/json",
+});
 
 /** GET authentifié */
-export const apiGet = (path) =>
+export const apiGet = (path: string): Promise<unknown> =>
   fetch(`${BASE}${path}`, { headers: authHeaders() }).then(handle);
 
 /** GET public (sans token) */
-export const apiGetPublic = (path) =>
+export const apiGetPublic = (path: string): Promise<unknown> =>
   fetch(`${BASE}${path}`).then(handle);
 
 /** POST authentifié avec corps JSON */
-export const apiPost = (path, body) =>
+export const apiPost = (path: string, body: unknown): Promise<unknown> =>
   fetch(`${BASE}${path}`, {
     method: "POST",
     headers: authJson(),
@@ -64,7 +77,7 @@ export const apiPost = (path, body) =>
   }).then(handle);
 
 /** POST public (login, inscription, annonces sans compte) */
-export const apiPostPublic = (path, body) =>
+export const apiPostPublic = (path: string, body: unknown): Promise<unknown> =>
   fetch(`${BASE}${path}`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -72,15 +85,15 @@ export const apiPostPublic = (path, body) =>
   }).then(handle);
 
 /** PATCH authentifié avec corps JSON */
-export const apiPatch = (path, body) =>
+export const apiPatch = (path: string, body?: unknown): Promise<unknown> =>
   fetch(`${BASE}${path}`, {
     method: "PATCH",
     headers: authJson(),
-    body: body !== undefined ? JSON.stringify(body) : undefined,
+    body: body !== undefined ? JSON.stringify(body) : null,
   }).then(handle);
 
 /** PUT authentifié avec corps JSON */
-export const apiPut = (path, body) =>
+export const apiPut = (path: string, body: unknown): Promise<unknown> =>
   fetch(`${BASE}${path}`, {
     method: "PUT",
     headers: authJson(),
@@ -88,5 +101,5 @@ export const apiPut = (path, body) =>
   }).then(handle);
 
 /** DELETE authentifié */
-export const apiDelete = (path) =>
+export const apiDelete = (path: string): Promise<unknown> =>
   fetch(`${BASE}${path}`, { method: "DELETE", headers: authHeaders() }).then(handle);

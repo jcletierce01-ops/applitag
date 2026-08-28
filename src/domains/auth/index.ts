@@ -9,5 +9,5 @@
  *   - genPin4() (appel API génération PIN)
  *
  * Services associés :
- *   - services/auth.service.js
+ *   - services/auth.service.ts
  */
