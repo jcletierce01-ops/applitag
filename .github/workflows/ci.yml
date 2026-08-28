@@ -26,6 +26,9 @@ jobs:
       - name: Audit de sécurité des dépendances
         run: npm audit --audit-level=high
 
+      - name: Audit licences — dépendances compatibles open source
+        run: npm run audit:licenses
+
       - name: ESLint — zéro erreur, zéro warning
         run: npm run lint -- --max-warnings 0
 

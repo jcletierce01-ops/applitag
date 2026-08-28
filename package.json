@@ -13,7 +13,8 @@
     "preview": "vite preview",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
-    "audit:bundle": "node scripts/audit-bundle.js"
+    "audit:bundle": "node scripts/audit-bundle.js",
+    "audit:licenses": "node scripts/audit-licenses.js"
   },
   "dependencies": {
     "html5-qrcode": "^2.3.8",
