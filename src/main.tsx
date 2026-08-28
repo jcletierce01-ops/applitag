@@ -6,7 +6,7 @@ import { assertEnv } from './config/validateEnv.js'
 
 assertEnv()
 
-createRoot(document.getElementById('root')).render(
+createRoot(document.getElementById('root')!).render(
   <ErrorBoundary>
     <App />
   </ErrorBoundary>

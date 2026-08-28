@@ -1,25 +1,34 @@
-import { Component } from "react";
+import { Component, type ReactNode, type ErrorInfo } from "react";
+
+interface Props {
+  children?: ReactNode;
+}
+
+interface State {
+  hasError: boolean;
+  error: unknown;
+}
 
 /**
  * Attrape toute erreur de rendu d'un composant enfant et affiche un écran
  * d'erreur convivial au lieu d'un écran blanc.
  * Doit être un composant classe — seule API React supportant componentDidCatch.
  */
-export class ErrorBoundary extends Component {
-  constructor(props) {
+export class ErrorBoundary extends Component<Props, State> {
+  constructor(props: Props) {
     super(props);
     this.state = { hasError: false, error: null };
   }
 
-  static getDerivedStateFromError(error) {
+  static getDerivedStateFromError(error: unknown): State {
     return { hasError: true, error };
   }
 
-  componentDidCatch(error, info) {
+  componentDidCatch(error: Error, info: ErrorInfo): void {
     console.error("[ErrorBoundary] Erreur de rendu :", error, info.componentStack);
   }
 
-  render() {
+  render(): ReactNode {
     if (!this.state.hasError) return this.props.children;
 
     return (
@@ -48,7 +57,7 @@ export class ErrorBoundary extends Component {
           }}>
           🔄 Recharger la page
         </button>
-        {import.meta.env.DEV && this.state.error && (
+        {import.meta.env.DEV && this.state.error != null && (
           <pre style={{
             marginTop: 28, fontSize: 11, color: "#ffaaaa",
             maxWidth: 540, overflow: "auto", textAlign: "left",

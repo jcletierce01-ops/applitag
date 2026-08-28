@@ -13,10 +13,18 @@
  */
 
 import { useState, useEffect, useCallback } from 'react';
+import type { CSSProperties } from 'react';
 import { onSyncStateChange, triggerSync } from './sync-engine.js';
 import { comptesParEtat, ETATS } from './operation-queue.js';
 
-const STYLE_BASE = {
+interface SyncStatusProps {
+  tenantId: string;
+  apiBase: string;
+  authHeaders?: () => Record<string, string>;
+  onConflitClick?: () => void;
+}
+
+const STYLE_BASE: CSSProperties = {
   display: 'inline-flex', alignItems: 'center', gap: 6,
   padding: '4px 10px', borderRadius: 20, fontSize: 12, fontWeight: 600,
   cursor: 'default', userSelect: 'none',
@@ -28,10 +36,10 @@ const COULEURS = {
   conflit: { background: '#FEE2E2', color: '#991B1B' },
   ok:      { background: '#D1FAE5', color: '#065F46' },
   offline: { background: '#F3F4F6', color: '#6B7280' },
-};
+} as const;
 
-export function SyncStatus({ tenantId, apiBase, authHeaders, onConflitClick }) {
-  const [comptes, setComptes]     = useState({});
+export function SyncStatus({ tenantId, apiBase, authHeaders, onConflitClick }: SyncStatusProps) {
+  const [comptes, setComptes]     = useState<Record<string, number>>({});
   const [enCours, setEnCours]     = useState(false);
   const [estOnline, setEstOnline] = useState(navigator.onLine);
 
@@ -44,7 +52,7 @@ export function SyncStatus({ tenantId, apiBase, authHeaders, onConflitClick }) {
     rafraichir();
 
     const unsubSync = onSyncStateChange((state) => {
-      setEnCours(state.en_cours ?? false);
+      setEnCours(state.en_cours);
       rafraichir();
     });
 
