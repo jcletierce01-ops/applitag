@@ -1,4 +1,7 @@
-export const STATUT_LOT = {
+type StatutInfo = { label: string; color: string; bg: string };
+type FiltreItem = { id: string; label: string };
+
+export const STATUT_LOT: Record<string, StatutInfo> = {
   NOUVEAU:               {label:"Nouveau",            color:"#9A9892", bg:"#ECEAE6"},
   VISITE_PREVUE:         {label:"Visite prévue",      color:"#BA7517", bg:"#FAEEDA"},
   VISITE_REALISEE:       {label:"Visite réalisée",    color:"#185FA5", bg:"#E6F1FB"},
@@ -14,7 +17,7 @@ export const STATUT_LOT = {
   ALERTE:                {label:"⚠ Alerte",           color:"#A32D2D", bg:"#FCEBEB"},
 };
 
-export const FILTRES_LOTS = [
+export const FILTRES_LOTS: FiltreItem[] = [
   {id:"TOUS",              label:"Tous"},
   {id:"VISITE_PREVUE",     label:"À visiter"},
   {id:"VISITE_REALISEE",   label:"Visite faite"},

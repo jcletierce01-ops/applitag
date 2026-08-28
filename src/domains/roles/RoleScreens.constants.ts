@@ -1,4 +1,6 @@
-export const PIPELINE = [
+type PipelineStep = { id: string; label: string; icon: string };
+
+export const PIPELINE: PipelineStep[] = [
   {id:"NOUVEAU",            label:"Nouveau",       icon:"🆕"},
   {id:"VISITE_PREVUE",      label:"Visite prévue", icon:"🔭"},
   {id:"VISITE_REALISEE",    label:"Visite OK",     icon:"✅"},

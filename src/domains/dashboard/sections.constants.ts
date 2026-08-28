@@ -1,6 +1,20 @@
 import { FEATURE_FLAGS } from "../../config/featureFlags.js";
 
-export const VSS_RECONNUS = [
+type VssReconnu = {
+  id: string;
+  label: string;
+  couleur: string;
+  bg: string;
+  org: string;
+  url?: string;
+  perimetre: string;
+  combustibles: string;
+  reconnu: string;
+  vigilance: boolean;
+  note: string;
+};
+
+export const VSS_RECONNUS: VssReconnu[] = [
   {id:"sure",      label:"SURE",     couleur:"#1565C0", bg:"#E3F2FD",
    org:"Sustainable & Renewable Energy",
    url:"https://www.sure-system.org",
@@ -44,7 +58,11 @@ export const VSS_RECONNUS = [
    note:"Consulter la liste des systèmes volontaires reconnus publiée par la Commission européenne (mise à jour régulière)."},
 ];
 
-export const DASHBOARD_NAV = [
+type FlagKey = keyof typeof FEATURE_FLAGS;
+
+type NavEntry = { id: string; icon: string; label: string; flag: FlagKey };
+
+export const DASHBOARD_NAV: NavEntry[] = ([
   {id:"dashboard",          icon:"📊", label:"Tableau de bord",     flag:"DASHBOARD"},
   {id:"planning",           icon:"📅", label:"Planning",             flag:"PLANNING"},
   {id:"lots",               icon:"🌲", label:"Lots",                 flag:"LOTS"},
@@ -79,18 +97,36 @@ export const DASHBOARD_NAV = [
   {id:"demo",               icon:"🎬", label:"Démo scénario",        flag:"DEMO_SCENAR"},
   {id:"futur",              icon:"🚀", label:"Modules futurs",       flag:"MODULES_FUTURS"},
   {id:"parametres",         icon:"⚙️", label:"Paramètres",           flag:"PARAMETRES"},
-].filter(item => FEATURE_FLAGS[item.flag] !== false);
+] satisfies NavEntry[]).filter(item => FEATURE_FLAGS[item.flag] !== false);
 
 export const CLAUSE_RESERVE = "Projet techniquement préparé, sous réserve du cadre réglementaire et de l'ouverture effective du dispositif au jour du dépôt.";
 
-export const STATUT_REGL = {
+type StatutReglInfo = { label: string; color: string; bg: string; icon: string };
+
+export const STATUT_REGL: Record<string, StatutReglInfo> = {
   applicable: {label:"Applicable",   color:"#065F46", bg:"#D1FAE5", icon:"✅"},
   suspendu:   {label:"Suspendu",     color:"#92400E", bg:"#FEF3C7", icon:"⏸"},
   annule:     {label:"Annulé",       color:"#991B1B", bg:"#FEE2E2", icon:"❌"},
   remplace:   {label:"Remplacé",     color:"#6B7280", bg:"#F3F4F6", icon:"🔄"},
 };
 
-export const TEXTES_REGL = [
+type TexteRegl = {
+  id: string;
+  dispositif: string;
+  texteRef: string;
+  statut: keyof typeof STATUT_REGL;
+  dateStatut: string;
+  sourceStatut: string;
+  motifStatut: string;
+  dateConsultation: string;
+  versionCriteres: string;
+  remplacePar: string | null;
+  reservesJuridiques: string[];
+  dossiersImpactes: string[];
+  alerteActive: boolean;
+};
+
+export const TEXTES_REGL: TexteRegl[] = [
   {
     id:"tr1",
     dispositif:"Aides au renouvellement forestier — reboisement & régénération naturelle",
