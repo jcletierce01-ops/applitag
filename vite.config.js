@@ -43,15 +43,15 @@ function cspPlugin() {
 export default defineConfig({
   test: {
     environment: 'node',
-    include: ['src/**/*.test.{js,jsx}'],
+    include: ['src/**/*.test.{js,jsx,ts,tsx}'],
     coverage: {
       provider: 'v8',
       include: [
-        'src/metier/formules.js',
-        'src/shared/validators.js',
-        'src/shared/format.js',
-        'src/shared/utils.js',
-        'src/config/validateEnv.js',
+        'src/metier/formules.ts',
+        'src/shared/validators.ts',
+        'src/shared/format.ts',
+        'src/shared/utils.ts',
+        'src/config/validateEnv.ts',
       ],
       reporter: ['text', 'json-summary'],
       thresholds: {
