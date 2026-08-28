@@ -8,9 +8,10 @@
  * Ne jamais utiliser cette valeur comme contrôle de sécurité côté serveur.
  * La sécurité côté serveur est gérée par l'API (token, tenant, RBAC).
  */
-export const IS_DEMO_BUILD = import.meta.env.VITE_APP_MODE === "demo";
+export const IS_DEMO_BUILD: boolean = import.meta.env.VITE_APP_MODE === "demo";
 
-export const APP_MODE = import.meta.env.VITE_APP_MODE ?? "demo";
+export const APP_MODE: string = (import.meta.env.VITE_APP_MODE ?? "demo") as string;
 
-export const API_BASE_URL =
-  import.meta.env.VITE_API_URL ?? "https://applitag-api-production.up.railway.app";
+export const API_BASE_URL: string = (
+  import.meta.env.VITE_API_URL ?? "https://applitag-api-production.up.railway.app"
+) as string;

@@ -48,4 +48,4 @@ export const FEATURE_FLAGS = {
   ANOMALIES_VOIRIES:    IS_DEMO_BUILD,
   DEMO_SCENAR:          IS_DEMO_BUILD,
   MODULES_FUTURS:       IS_DEMO_BUILD,
-};
+} satisfies Record<string, boolean>;

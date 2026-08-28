@@ -21,7 +21,7 @@ export const C = Object.freeze({
   bd:       "#DDDBD5", bd2:     "#C8C5BE",
   tx:       "#333333", tx2:     "#5A5955", tx3: "#9A9892",
   sb:       "#1E5B3A",
-});
+} as const);
 
 // ── Typographie ───────────────────────────────────────────────────────────────
 export const FONT_TITLE = "'Montserrat',-apple-system,sans-serif";
