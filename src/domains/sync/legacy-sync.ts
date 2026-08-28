@@ -11,18 +11,23 @@ import { API_BASE_URL } from "@/config/env.js";
 import { ordresExplLocalGet, ordresExplLocalSave } from "@/domains/exploitation/local-storage.js";
 import { annoncesLocalGet, annoncesLocalSave, comptesLocalGet, comptesLocalSave } from "@/domains/connect/local-storage.js";
 
+interface SyncRecord {
+  synced?: boolean;
+  [key: string]: unknown;
+}
+
 const SYNC_SOURCES = [
   { get: ordresExplLocalGet, save: ordresExplLocalSave, url: `${API_BASE_URL}/ordres-exploitation` },
   { get: annoncesLocalGet,   save: annoncesLocalSave,   url: `${API_BASE_URL}/annonces` },
   { get: comptesLocalGet,    save: comptesLocalSave,    url: `${API_BASE_URL}/comptes-contact` },
 ];
 
-export const countPendingSync = () =>
-  SYNC_SOURCES.reduce((s, src) => s + src.get().filter(r => !r.synced).length, 0);
+export const countPendingSync = (): number =>
+  SYNC_SOURCES.reduce((s, src) => s + (src.get() as SyncRecord[]).filter(r => !r.synced).length, 0);
 
-export const resyncPendingRecords = async () => {
+export const resyncPendingRecords = async (): Promise<void> => {
   for (const src of SYNC_SOURCES) {
-    const records = src.get();
+    const records = src.get() as SyncRecord[];
     let changed = false;
     for (const r of records) {
       if (r.synced) continue;
@@ -37,6 +42,6 @@ export const resyncPendingRecords = async () => {
         // silence intentionnel — erreur réseau attendue hors-ligne
       }
     }
-    if (changed) src.save(records);
+    if (changed) src.save(records as unknown[]);
   }
 };

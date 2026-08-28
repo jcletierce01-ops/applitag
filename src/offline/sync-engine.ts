@@ -14,53 +14,79 @@
  */
 
 import {
+  type Operation,
   ETATS,
   listerASync,
   mettreAJourEtat,
 } from './operation-queue.js';
 
-const IS_DEMO_BUILD = import.meta.env.VITE_APP_MODE === 'demo';
+const IS_DEMO_BUILD: boolean = import.meta.env.VITE_APP_MODE === 'demo';
 
 // ── État du moteur ────────────────────────────────────────────────────────────
 
+type SyncState =
+  | { en_cours: true }
+  | { en_cours: false; traitees: number; erreurs: number; conflits: number };
+
+type SyncResult = { traitees: number; erreurs: number; conflits: number };
+
+export interface SyncContext {
+  tenantId: string;
+  apiBase: string;
+  authHeaders: () => Record<string, string>;
+}
+
+interface OperationResult {
+  ok: boolean;
+  data?: { id?: string };
+  replay?: boolean;
+  conflit?: boolean;
+  authExpired?: boolean;
+  interdit?: boolean;
+  status?: number;
+  erreur?: string;
+}
+
 let _enCours   = false;
-let _listeners = [];
+let _listeners: ((etat: SyncState) => void)[] = [];
 
 /** Abonne un callback aux changements d'état de la synchronisation. */
-export function onSyncStateChange(fn) {
+export function onSyncStateChange(fn: (etat: SyncState) => void): () => void {
   _listeners.push(fn);
   return () => { _listeners = _listeners.filter(l => l !== fn); };
 }
 
-function notifier(etat) {
+function notifier(etat: SyncState): void {
   _listeners.forEach(fn => fn(etat));
 }
 
 // ── Envoi d'une opération ─────────────────────────────────────────────────────
 
-const ENDPOINT_MAP = {
+type ActionMap = Partial<Record<'CREATE' | 'UPDATE' | 'DELETE', string>>;
+
+const ENDPOINT_MAP: Record<string, ActionMap> = {
   contact:          { CREATE: '/contacts',  UPDATE: '/contacts/:id', DELETE: '/contacts/:id'  },
   visite:           { CREATE: '/visites',   UPDATE: '/visites/:id',  DELETE: '/visites/:id'   },
   releve_abatteur:  { CREATE: '/releves-abatteur', UPDATE: '/releves-abatteur/:id' },
   releve_debardeur: { CREATE: '/releves-debardeur' },
 };
 
-function buildUrl(apiBase, entityType, action, entityServerId) {
+function buildUrl(apiBase: string, entityType: string, action: string, entityServerId: string | null): string {
   const map = ENDPOINT_MAP[entityType];
   if (!map) throw new Error(`entityType inconnu : ${entityType}`);
-  const tpl = map[action];
+  const tpl = map[action as keyof ActionMap];
   if (!tpl) throw new Error(`action ${action} non gérée pour ${entityType}`);
   return apiBase + (entityServerId ? tpl.replace(':id', entityServerId) : tpl.replace('/:id', ''));
 }
 
-async function envoyerOperation(op, { apiBase, authHeaders }) {
+async function envoyerOperation(op: Operation, { apiBase, authHeaders }: { apiBase: string; authHeaders: Record<string, string> }): Promise<OperationResult> {
   const method = op.action === 'CREATE' ? 'POST'
                : op.action === 'UPDATE' ? 'PATCH'
                : 'DELETE';
 
   const url = buildUrl(apiBase, op.entityType, op.action, op.entityServerId);
 
-  const headers = {
+  const headers: Record<string, string> = {
     'Content-Type':    'application/json',
     'Idempotency-Key': op.idempotencyKey,
     'X-Entity-Type':   op.entityType,
@@ -70,12 +96,12 @@ async function envoyerOperation(op, { apiBase, authHeaders }) {
   const res = await fetch(url, {
     method,
     headers,
-    body: op.action !== 'DELETE' ? JSON.stringify(op.payload) : undefined,
+    body: op.action !== 'DELETE' ? JSON.stringify(op.payload) : null,
     signal: AbortSignal.timeout(30_000),
   });
 
   if (res.ok) {
-    const data = res.json ? await res.json().catch(() => ({})) : {};
+    const data = await res.json().catch(() => ({})) as { id?: string };
     return { ok: true, data, replay: res.headers.get('X-Idempotency-Replay') === 'true' };
   }
 
@@ -91,13 +117,8 @@ async function envoyerOperation(op, { apiBase, authHeaders }) {
 
 /**
  * Synchronise toutes les opérations en attente.
- * @param {object} options
- * @param {string} options.tenantId
- * @param {string} options.apiBase          ex: https://applitag-api-production.up.railway.app
- * @param {()=>object} options.authHeaders  callback retournant les headers Bearer à jour
- * @returns {Promise<{traitees: number, erreurs: number, conflits: number}>}
  */
-export async function triggerSync({ tenantId, apiBase, authHeaders }) {
+export async function triggerSync({ tenantId, apiBase, authHeaders }: SyncContext): Promise<SyncResult> {
   if (IS_DEMO_BUILD) return { traitees: 0, erreurs: 0, conflits: 0 };
   if (_enCours) return { traitees: 0, erreurs: 0, conflits: 0 };
 
@@ -125,8 +146,7 @@ export async function triggerSync({ tenantId, apiBase, authHeaders }) {
             erreur: 'Conflit détecté (409) — décision manuelle requise',
           });
           conflits++;
-        } else if (resultat.authExpired || resultat.interdit) {
-          // Pas de retry automatique — l'utilisateur doit se reconnecter
+        } else if (resultat.authExpired ?? resultat.interdit) {
           await mettreAJourEtat(op.operationId, ETATS.ECHEC, {
             erreur: `Erreur d'autorisation (${resultat.status})`,
           });
@@ -139,9 +159,8 @@ export async function triggerSync({ tenantId, apiBase, authHeaders }) {
           erreurs++;
         }
       } catch (e) {
-        // Erreur réseau ou timeout — passe en ECHEC pour la prochaine tentative
         await mettreAJourEtat(op.operationId, ETATS.ECHEC, {
-          erreur: e?.message ?? 'Erreur réseau',
+          erreur: (e instanceof Error ? e.message : null) ?? 'Erreur réseau',
         });
         erreurs++;
       }
@@ -156,17 +175,17 @@ export async function triggerSync({ tenantId, apiBase, authHeaders }) {
 
 // ── Auto-sync sur reconnexion ─────────────────────────────────────────────────
 
-let _autoSyncContext = null;
+let _autoSyncContext: SyncContext | null = null;
 
 /**
  * Active la synchronisation automatique lors du passage online.
  * Doit être appelé une seule fois au démarrage de l'application.
  */
-export function startAutoSync(context) {
+export function startAutoSync(context: SyncContext): () => void {
   if (IS_DEMO_BUILD) return () => {};
   _autoSyncContext = context;
 
-  const handler = () => {
+  const handler = (): void => {
     if (navigator.onLine && _autoSyncContext) {
       triggerSync(_autoSyncContext).catch(() => {});
     }
@@ -177,6 +196,6 @@ export function startAutoSync(context) {
 }
 
 /** Met à jour le contexte (token JWT renouvelé, etc.). */
-export function setAutoSyncContext(context) {
+export function setAutoSyncContext(context: SyncContext): void {
   _autoSyncContext = context;
 }

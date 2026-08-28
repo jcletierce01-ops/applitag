@@ -11,16 +11,16 @@
  * le bundler peut éliminer les tableaux de données en production (dead-code).
  */
 
-const IS_DEMO = import.meta.env.VITE_APP_MODE === "demo";
+const IS_DEMO: boolean = import.meta.env.VITE_APP_MODE === "demo";
 
-export const DEMO_ENTREPRISE_ID = IS_DEMO ? "demo-applitag-2026" : null;
+export const DEMO_ENTREPRISE_ID: string | null = IS_DEMO ? "demo-applitag-2026" : null;
 
 /**
  * Utilisateurs fictifs de démonstration.
  * NE JAMAIS utiliser comme référence d'authentification en production.
  * Les PINs ici sont publics et uniquement valides en mode démo.
  */
-export const DEMO_USERS = IS_DEMO ? {
+export const DEMO_USERS: Record<string, Record<string, unknown>> = IS_DEMO ? {
   admin:         { nom:"Demo",      prenom:"Admin",    role:"admin",          id:"demo-admin",         pin:"0000" },
   operateur:     { nom:"Dupont",    prenom:"Martin",   role:"operateur",      id:"demo-op1",           pin:"1111" },
   mandataire:    { nom:"Laurent",   prenom:"Claire",   role:"mandataire",     profil:"charge_mission", roles:["mandataire"], id:"demo-mandat",  pin:"6666" },
@@ -33,7 +33,7 @@ export const DEMO_USERS = IS_DEMO ? {
   entreprise:    { nom:"Gaillard",  prenom:"Henri",    role:"entreprise",     id:"demo-etf1",          pin:"9999", nomEntreprise:"ETF Gaillard" },
 } : {};
 
-export const DEMO_LOTS = IS_DEMO ? [
+export const DEMO_LOTS: Record<string, unknown>[] = IS_DEMO ? [
   { id:"demo-lot-1", lotNumero:"LOT-2026-06-89-001", nom:"Martin",   prenom:"Jean",
     telephone:"0386420123", commune:"Charny-Orée-de-Puisaye", surfaceHa:12.5,
     potentiel:"chene", statutLot:"EN_LIVRAISON", dateContact:"2026-06-01",
@@ -83,7 +83,7 @@ export const DEMO_LOTS = IS_DEMO ? [
     etfNom:"ETF Gaillard", tonnageCumul:0, entrepriseId:DEMO_ENTREPRISE_ID },
 ] : [];
 
-export const DEMO_VISITES = IS_DEMO ? [
+export const DEMO_VISITES: Record<string, unknown>[] = IS_DEMO ? [
   { id:"demo-v1", lotId:"demo-lot-1", lotNumero:"LOT-2026-06-89-001",
     date:"2026-06-15", statut:"validee",
     gps:{lat:47.7234,lng:3.0892,accuracy:5}, photos:["p1","p2","p3"],
@@ -111,7 +111,7 @@ export const DEMO_VISITES = IS_DEMO ? [
     numeroCertification:"" },
 ] : [];
 
-export const DEMO_REPORTINGS = IS_DEMO ? [
+export const DEMO_REPORTINGS: Record<string, unknown>[] = IS_DEMO ? [
   { id:"demo-r0a", lotId:"demo-lot-1", lotNumero:"LOT-2026-06-89-001",
     dateJour:"2026-06-18", heureDebut:"07:00", heureFin:"17:00",
     typeOperationJour:"abattage", machineJour:"Tronçonneuse Stihl 500i",
@@ -149,7 +149,7 @@ export const DEMO_REPORTINGS = IS_DEMO ? [
     observations:"Débardage section principale" },
 ] : [];
 
-export const DEMO_TRANSPORTS = IS_DEMO ? [
+export const DEMO_TRANSPORTS: Record<string, unknown>[] = IS_DEMO ? [
   { id:"demo-t1", lotId:"demo-lot-4", lotNumero:"LOT-2026-06-89-004",
     numeroCMR:"CMR-2026-0089", typeVehicule:"semi",
     immatTracteur:"AB-123-CD", immatRemorque:"EF-456-GH",
@@ -159,7 +159,7 @@ export const DEMO_TRANSPORTS = IS_DEMO ? [
     departConfirme:true },
 ] : [];
 
-export const DEMO_LIVRAISONS = IS_DEMO ? [
+export const DEMO_LIVRAISONS: Record<string, unknown>[] = IS_DEMO ? [
   { id:"demo-l1", lotId:"demo-lot-5", lotNumero:"LOT-2026-06-89-005",
     typeDest:"chaufferie", nomDestination:"Chaufferie Migennes Énergie",
     numeroCMR:"CMR-2026-0071", pesee:"142", humiditeReception:28,
@@ -210,7 +210,7 @@ export const DEMO_LIVRAISONS = IS_DEMO ? [
     statut:"recu", gpsAlerteDeclenche:false },
 ] : [];
 
-export const DEMO_DECHIQUETAGES = IS_DEMO ? [
+export const DEMO_DECHIQUETAGES: Record<string, unknown>[] = IS_DEMO ? [
   { id:"demo-d1", lotId:"demo-lot-1", lotNumero:"LOT-2026-06-89-001", dateJour:"2026-06-23" },
   { id:"demo-d-today", lotId:"demo-lot-1", lotNumero:"LOT-2026-06-89-001",
     dateJour:new Date().toISOString().slice(0,10),

@@ -15,16 +15,16 @@
 const DB_NAME    = 'APPLITAG_OFFLINE';
 const DB_VERSION = 1;
 
-let _db = null;
+let _db: IDBDatabase | null = null;
 
-export function ouvrirDB() {
+export function ouvrirDB(): Promise<IDBDatabase> {
   if (_db) return Promise.resolve(_db);
 
   return new Promise((resolve, reject) => {
     const req = indexedDB.open(DB_NAME, DB_VERSION);
 
     req.onupgradeneeded = (event) => {
-      const db = event.target.result;
+      const db = (event.target as IDBOpenDBRequest).result;
 
       // ── Store : operations ──────────────────────────────────────────────
       if (!db.objectStoreNames.contains('operations')) {
@@ -51,17 +51,21 @@ export function ouvrirDB() {
 }
 
 /** Ferme la connexion (utile pour les tests). */
-export function fermerDB() {
+export function fermerDB(): void {
   if (_db) { _db.close(); _db = null; }
 }
 
 /**
  * Wrapper transactionnel générique.
- * @param {string|string[]} stores — noms de stores impliqués
- * @param {'readonly'|'readwrite'} mode
- * @param {(tx: IDBTransaction) => Promise<T>} fn
+ * @param stores — noms de stores impliqués
+ * @param mode
+ * @param fn
  */
-export async function transaction(stores, mode, fn) {
+export async function transaction<T>(
+  stores: string | string[],
+  mode: IDBTransactionMode,
+  fn: (tx: IDBTransaction) => Promise<T>
+): Promise<T> {
   const db = await ouvrirDB();
   return new Promise((resolve, reject) => {
     const tx  = db.transaction(stores, mode);
@@ -74,7 +78,7 @@ export async function transaction(stores, mode, fn) {
 }
 
 /** Wrap une requête IDB en Promise. */
-export function idbReq(req) {
+export function idbReq<T>(req: IDBRequest<T>): Promise<T> {
   return new Promise((resolve, reject) => {
     req.onsuccess = () => resolve(req.result);
     req.onerror   = () => reject(req.error);

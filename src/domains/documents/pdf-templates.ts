@@ -1,20 +1,126 @@
 import { fmtNum } from "../../shared/format.js";
 import { TYPE_CONTACT_OPTS, ORIGINE_OPTS, TYPE_RESSOURCE_OPTS } from "../contacts/constants.js";
 
-// ── GÉNÉRATION PDF GÉNÉRIQUE (jsPDF + html2canvas via CDN) ────
-export const generatePdfFromHtml = (htmlContent, filename, toast, onDone) => {
-  const finish = () => onDone&&onDone();
+// ── Types CDN globaux ─────────────────────────────────────────────────────────
+
+interface JsPdfInstance {
+  addImage(data: string, format: string, x: number, y: number, w: number, h: number): void;
+  save(filename: string): void;
+}
+
+declare global {
+  interface Window {
+    jspdf?: { jsPDF: new (orientation: string, unit: string, format: string) => JsPdfInstance };
+    html2canvas?: (element: HTMLElement, options?: Record<string, unknown>) => Promise<HTMLCanvasElement>;
+  }
+}
+
+// ── Interfaces métier ─────────────────────────────────────────────────────────
+
+interface EssenceDoc { label: string; pct: number; id?: string; emoji?: string; }
+interface GpsDoc { lat: number; lng: number; accuracy?: number; }
+
+interface VisiteDoc {
+  date?: string; certification?: string; numeroCertification?: string;
+  contraintes?: Record<string, boolean>; essences?: EssenceDoc[];
+  volumeEstimeT?: string | number; popParHa?: string | number; diametreMoyen?: string | number;
+  accesCamion?: string; largeurAcces?: string | number; distancePlateforme?: string | number;
+  notesAcces?: string; replantation?: string; essenceReplanT?: string;
+  surfaceReplant?: string | number; dateReplant?: string; respReplant?: string;
+  gps?: GpsDoc; surfaceHa?: string | number; observations?: string; notes?: string;
+  adressePlateforme?: string; cpPlateforme?: string; villePlateforme?: string;
+  surfacePlateforme?: string | number; dateLimite?: string;
+  tauxTVA?: string | number; acompte?: string | number; iban?: string;
+  nomBanque?: string; villeBanque?: string;
+  redDistance?: string | number; redCategorie?: string; redPays?: string;
+  humiditeMesure?: string | number;
+}
+
+interface LotDoc {
+  lotNumero?: string; nom?: string; prenom?: string;
+  adressePostale?: string; complementAdresse?: string;
+  commune?: string; adresseParcelle?: string; refCadastrale?: string;
+  surfaceHa?: string | number; telephone?: string; email?: string;
+  codePostal?: string; certification?: string; potentiel?: string;
+  tonnageCumul?: number; tonnageBordRoute?: string | number; volumeEstime?: string | number;
+  typeTravaux?: string; estPersonneMorale?: boolean; typePersonneMorale?: string;
+  nomSignataire?: string; numeroSiret?: string; etfNom?: string;
+}
+
+interface TransportDoc {
+  numeroCMR?: string; heureDebut?: string; heureFin?: string;
+  societeTransport?: string; immatTracteur?: string; immatRemorque?: string;
+  nomChauffeur?: string; nomDestination?: string;
+  tonnageNet?: string | number; tonnageCharge?: string | number; cubage?: string | number;
+  peage?: string | number; fraisAccessoires?: string | number; observations?: string;
+}
+
+interface LivraisonDoc {
+  heureArrivee?: string; dateHeureLivraison?: string;
+  nomDestination?: string; adresseDestination?: string; nomReceptionnaire?: string;
+  pesee?: string | number; granulometrie?: string; humiditeReception?: string | number | null;
+}
+
+interface UserDoc { nom?: string; prenom?: string; }
+
+interface DechiDoc {
+  doNom?: string; doAdresse?: string; entrepriseNom?: string; entrepriseAdresse?: string;
+  operateur?: string; machine?: string; datePrevue?: string; granulometrie?: string;
+}
+
+export interface DocSection {
+  icon: string; label: string; rows: [string, string | null | undefined][];
+}
+
+interface EntrepriseObj {
+  nom?: string; adressePostale?: string; complementAdresse?: string;
+  codePostal?: string; commune?: string; siret?: string; telephone?: string; email?: string;
+}
+
+export interface BonCommandeExtra {
+  modePrix?: string; prixGlobal?: string | number; prixHoraire?: string | number;
+  typeTravaux?: string; entrepriseObj?: EntrepriseObj;
+  nomDO?: string; qualiteDO?: string; dateSign?: string;
+  conditionsParticulieres?: string; modeReglementBC?: string; delaiReglementBC?: string;
+  dateReception?: string; observationsBC?: string;
+  sigDataProprio?: string; sigDataExploit?: string; nomSignProprio?: string; nomSignExploit?: string;
+}
+
+interface OrdreExploitation {
+  lotNumero?: string; doNom?: string; doAdresse?: string;
+  doCP?: string; doCommune?: string; doSiret?: string; doEmail?: string;
+  missionLabel?: string; entrepriseNom?: string; entrepriseAdresse?: string;
+  entrepriseComplement?: string; entrepriseCP?: string; entrepriseCommune?: string;
+  entrepriseSiret?: string; lotCommune?: string; lotRefCadastrale?: string;
+  lotAdresse?: string; lotSurfaceHa?: string | number;
+  volumeEstime?: string | number; delaiExecution?: string; description?: string; code?: string;
+}
+
+interface ContactDoc {
+  typeContact?: string; origine?: string; potentiel?: string;
+  lotNumero?: string; nomApporteur?: string; dateContact?: string;
+  nom?: string; prenom?: string; telephone?: string; email?: string;
+  adressePostale?: string; complementAdresse?: string;
+  commune?: string; adresseParcelle?: string; refCadastrale?: string;
+  surfaceHa?: string | number; commentaire?: string;
+  conclusion?: string; exploitationAutorisee?: string; redacteur?: string;
+}
+
+// ── GÉNÉRATION PDF GÉNÉRIQUE (jsPDF + html2canvas via CDN) ────────────────────
+
+export const generatePdfFromHtml = (htmlContent: string, filename: string, toast: (msg: string) => void, onDone?: () => void): void => {
+  const finish = () => onDone && onDone();
 
   const fallbackPrint = () => {
-    const blob = new Blob([htmlContent],{type:"text/html"});
+    const blob = new Blob([htmlContent], { type: "text/html" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = filename.replace(/\.pdf$/i,".html");
+    a.download = filename.replace(/\.pdf$/i, ".html");
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
-    setTimeout(()=>URL.revokeObjectURL(url), 1000);
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
     toast("Document téléchargé (HTML) — ouvrez-le pour imprimer en PDF");
     finish();
   };
@@ -24,24 +130,25 @@ export const generatePdfFromHtml = (htmlContent, filename, toast, onDone) => {
       const iframe = document.createElement("iframe");
       iframe.style.cssText = "position:fixed;top:-9999px;left:-9999px;width:794px;height:1123px;border:none;";
       document.body.appendChild(iframe);
-      iframe.contentDocument.open();
-      iframe.contentDocument.write(htmlContent);
-      iframe.contentDocument.close();
+      const doc = iframe.contentDocument!;
+      doc.open();
+      doc.write(htmlContent);
+      doc.close();
 
       setTimeout(() => {
-        window.html2canvas(iframe.contentDocument.body, {
-          scale:2, useCORS:true, allowTaint:true,
-          width:794, height:1123,
+        window.html2canvas!(doc.body, {
+          scale: 2, useCORS: true, allowTaint: true,
+          width: 794, height: 1123,
         }).then(canvas => {
-          const { jsPDF } = window.jspdf;
-          const pdf = new jsPDF("p","mm","a4");
-          const imgData = canvas.toDataURL("image/jpeg",0.95);
-          pdf.addImage(imgData,"JPEG",0,0,210,297);
+          const { jsPDF } = window.jspdf!;
+          const pdf = new jsPDF("p", "mm", "a4");
+          const imgData = canvas.toDataURL("image/jpeg", 0.95);
+          pdf.addImage(imgData, "JPEG", 0, 0, 210, 297);
           pdf.save(filename);
           document.body.removeChild(iframe);
           toast("PDF téléchargé ✓");
           finish();
-        }).catch(()=>{ document.body.removeChild(iframe); fallbackPrint(); });
+        }).catch(() => { document.body.removeChild(iframe); fallbackPrint(); });
       }, 800);
     } catch { fallbackPrint(); }
   };
@@ -63,16 +170,17 @@ export const generatePdfFromHtml = (htmlContent, filename, toast, onDone) => {
   }
 };
 
-// ── COMPTE RENDU DE CONTACT PDF ───────────────────────────────
-export const buildCompteRenduContactHTML = (contact) => {
-  const typeLabel = TYPE_CONTACT_OPTS.find(([v])=>v===contact.typeContact)?.[2] || contact.typeContact || "—";
-  const origineLabel = ORIGINE_OPTS.find(([v])=>v===contact.origine)?.[2] || contact.origine || "—";
-  const ressourceLabel = TYPE_RESSOURCE_OPTS.find(([v])=>v===contact.potentiel)?.[2] || contact.potentiel || "—";
+// ── COMPTE RENDU DE CONTACT PDF ───────────────────────────────────────────────
+
+export const buildCompteRenduContactHTML = (contact: ContactDoc): string => {
+  const typeLabel = TYPE_CONTACT_OPTS.find(([v]) => v === contact.typeContact)?.[2] || contact.typeContact || "—";
+  const origineLabel = ORIGINE_OPTS.find(([v]) => v === contact.origine)?.[2] || contact.origine || "—";
+  const ressourceLabel = TYPE_RESSOURCE_OPTS.find(([v]) => v === contact.potentiel)?.[2] || contact.potentiel || "—";
 
   return `<!DOCTYPE html><html lang="fr">
 <head>
 <meta charset="UTF-8">
-<title>Compte rendu de contact ${contact.lotNumero||""}</title>
+<title>Compte rendu de contact ${contact.lotNumero || ""}</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:Arial,Helvetica,sans-serif;font-size:11px;color:#1A1A18;background:#fff}
@@ -112,8 +220,8 @@ td.v{font-weight:600}
   </div>
   <div class="doc-ref">
     <h2>Compte rendu de contact</h2>
-    <div class="num">${contact.lotNumero||"BROUILLON"}</div>
-    <div class="dt">Émis le ${new Date().toLocaleDateString("fr-FR",{day:"2-digit",month:"long",year:"numeric"})}</div>
+    <div class="num">${contact.lotNumero || "BROUILLON"}</div>
+    <div class="dt">Émis le ${new Date().toLocaleDateString("fr-FR", { day: "2-digit", month: "long", year: "numeric" })}</div>
   </div>
 </div>
 
@@ -121,64 +229,65 @@ td.v{font-weight:600}
   <h3>📡 Origine du contact</h3>
   <table>
     <tr><td class="k">Source</td><td class="v">${origineLabel}</td></tr>
-    <tr><td class="k">Apporteur</td><td class="v">${contact.nomApporteur||"—"}</td></tr>
-    <tr><td class="k">Date du contact</td><td class="v">${contact.dateContact||"—"}</td></tr>
+    <tr><td class="k">Apporteur</td><td class="v">${contact.nomApporteur || "—"}</td></tr>
+    <tr><td class="k">Date du contact</td><td class="v">${contact.dateContact || "—"}</td></tr>
   </table>
 </div>
 
 <div class="sec">
   <h3>👤 Contact</h3>
   <table>
-    <tr><td class="k">Nom / Type</td><td class="v">${contact.nom||""} ${contact.prenom||""} — ${typeLabel}</td></tr>
-    <tr><td class="k">Téléphone</td><td class="v">${contact.telephone||"—"}</td></tr>
-    <tr><td class="k">Email</td><td class="v">${contact.email||"—"}</td></tr>
-    <tr><td class="k">Adresse</td><td class="v">${contact.adressePostale||"—"}${contact.complementAdresse?" — "+contact.complementAdresse:""}</td></tr>
+    <tr><td class="k">Nom / Type</td><td class="v">${contact.nom || ""} ${contact.prenom || ""} — ${typeLabel}</td></tr>
+    <tr><td class="k">Téléphone</td><td class="v">${contact.telephone || "—"}</td></tr>
+    <tr><td class="k">Email</td><td class="v">${contact.email || "—"}</td></tr>
+    <tr><td class="k">Adresse</td><td class="v">${contact.adressePostale || "—"}${contact.complementAdresse ? " — " + contact.complementAdresse : ""}</td></tr>
   </table>
 </div>
 
 <div class="sec">
   <h3>🌲 Parcelle</h3>
   <table>
-    <tr><td class="k">N° lot</td><td class="v">${contact.lotNumero||"—"}</td></tr>
-    <tr><td class="k">Commune</td><td class="v">${contact.commune||"—"}</td></tr>
-    <tr><td class="k">Adresse parcelle</td><td class="v">${contact.adresseParcelle||"—"}</td></tr>
-    <tr><td class="k">Référence cadastrale</td><td class="v">${contact.refCadastrale||"—"}</td></tr>
-    <tr><td class="k">Surface</td><td class="v">${contact.surfaceHa?contact.surfaceHa+" ha":"—"}</td></tr>
+    <tr><td class="k">N° lot</td><td class="v">${contact.lotNumero || "—"}</td></tr>
+    <tr><td class="k">Commune</td><td class="v">${contact.commune || "—"}</td></tr>
+    <tr><td class="k">Adresse parcelle</td><td class="v">${contact.adresseParcelle || "—"}</td></tr>
+    <tr><td class="k">Référence cadastrale</td><td class="v">${contact.refCadastrale || "—"}</td></tr>
+    <tr><td class="k">Surface</td><td class="v">${contact.surfaceHa ? contact.surfaceHa + " ha" : "—"}</td></tr>
     <tr><td class="k">Type de ressource</td><td class="v">${ressourceLabel}</td></tr>
   </table>
 </div>
 
 <div class="sec">
   <h3>📝 Commentaire</h3>
-  <div class="note">${contact.commentaire||"—"}</div>
+  <div class="note">${contact.commentaire || "—"}</div>
 </div>
 
-${contact.conclusion||contact.exploitationAutorisee?`
+${contact.conclusion || contact.exploitationAutorisee ? `
 <div class="sec">
   <h3>✅ Conclusion de l'entretien</h3>
   <table>
-    ${contact.conclusion?`<tr><td class="k">Conclusion</td><td class="v">${{rendez_vous:"📅 Rendez-vous fixé",visite_prevue:"🔭 Visite prévue",a_rappeler:"📞 À rappeler",en_reflexion:"🤔 En réflexion",echec:"❌ Sans suite"}[contact.conclusion]||contact.conclusion}</td></tr>`:""}
-    ${contact.exploitationAutorisee?`<tr><td class="k">Exploitation autorisée</td><td class="v">${{oui:"✅ Oui — accord verbal",non:"❌ Non",en_cours:"⏳ À confirmer"}[contact.exploitationAutorisee]||contact.exploitationAutorisee}</td></tr>`:""}
+    ${contact.conclusion ? `<tr><td class="k">Conclusion</td><td class="v">${({ rendez_vous: "📅 Rendez-vous fixé", visite_prevue: "🔭 Visite prévue", a_rappeler: "📞 À rappeler", en_reflexion: "🤔 En réflexion", echec: "❌ Sans suite" } as Record<string, string>)[contact.conclusion] || contact.conclusion}</td></tr>` : ""}
+    ${contact.exploitationAutorisee ? `<tr><td class="k">Exploitation autorisée</td><td class="v">${({ oui: "✅ Oui — accord verbal", non: "❌ Non", en_cours: "⏳ À confirmer" } as Record<string, string>)[contact.exploitationAutorisee] || contact.exploitationAutorisee}</td></tr>` : ""}
   </table>
-</div>`:""}
+</div>` : ""}
 
 <div class="footer">
-  ${contact.redacteur?`Rédigé par <strong>${contact.redacteur}</strong> — `:""}Document généré par APPLITAG
+  ${contact.redacteur ? `Rédigé par <strong>${contact.redacteur}</strong> — ` : ""}Document généré par APPLITAG
   <span style="float:right;opacity:.4;font-size:7.5px">APPLITAG © ${new Date().getFullYear()}</span>
 </div>
 
 </div></body></html>`;
 };
 
-// ── CMR TRANSPORT ─────────────────────────────────────────────
-export const buildCMRHTML = (lot, transport, livraison) => {
-  const date = new Date().toLocaleDateString("fr-FR",{day:"2-digit",month:"long",year:"numeric"});
-  const heureDepart = transport?.heureDebut||"—";
-  const heureArrivee = livraison?.heureArrivee||livraison?.dateHeureLivraison?.slice(11,16)||"—";
+// ── CMR TRANSPORT ─────────────────────────────────────────────────────────────
+
+export const buildCMRHTML = (lot: LotDoc, transport: TransportDoc | null | undefined, livraison: LivraisonDoc | null | undefined): string => {
+  const date = new Date().toLocaleDateString("fr-FR", { day: "2-digit", month: "long", year: "numeric" });
+  const heureDepart = transport?.heureDebut || "—";
+  const heureArrivee = livraison?.heureArrivee || livraison?.dateHeureLivraison?.slice(11, 16) || "—";
   return `<!DOCTYPE html><html lang="fr">
 <head>
 <meta charset="UTF-8">
-<title>CMR ${transport?.numeroCMR||lot.lotNumero||""}</title>
+<title>CMR ${transport?.numeroCMR || lot.lotNumero || ""}</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:Arial,Helvetica,sans-serif;font-size:10px;color:#1A1A18;background:#fff}
@@ -229,7 +338,7 @@ td{padding:6px 8px;border-bottom:1px solid #ECEAE6;font-size:9.5px}
   </div>
   <div class="doc-ref">
     <h2>CMR — Lettre de voiture</h2>
-    <div class="num">${transport?.numeroCMR||"CMR-—"}</div>
+    <div class="num">${transport?.numeroCMR || "CMR-—"}</div>
     <div class="dt">Date : ${date}</div>
   </div>
 </div>
@@ -238,18 +347,18 @@ td{padding:6px 8px;border-bottom:1px solid #ECEAE6;font-size:9.5px}
   <div class="box">
     <h3>1. Expéditeur (chargeur)</h3>
     <p>
-      <strong>${lot.nom||""} ${lot.prenom||""}</strong><br/>
-      ${lot.adressePostale||"—"}<br/>
-      ${[lot.codePostal,lot.commune].filter(Boolean).join(" ")||lot.commune||"—"}<br/>
-      ${lot.telephone?`📞 ${lot.telephone}`:""}
+      <strong>${lot.nom || ""} ${lot.prenom || ""}</strong><br/>
+      ${lot.adressePostale || "—"}<br/>
+      ${[lot.codePostal, lot.commune].filter(Boolean).join(" ") || lot.commune || "—"}<br/>
+      ${lot.telephone ? `📞 ${lot.telephone}` : ""}
     </p>
   </div>
   <div class="box">
     <h3>2. Destinataire</h3>
     <p>
-      <strong>${livraison?.nomDestination||transport?.nomDestination||"—"}</strong><br/>
-      ${livraison?.adresseDestination||"—"}<br/>
-      ${livraison?.nomReceptionnaire?`Réceptionnaire : ${livraison.nomReceptionnaire}`:""}
+      <strong>${livraison?.nomDestination || transport?.nomDestination || "—"}</strong><br/>
+      ${livraison?.adresseDestination || "—"}<br/>
+      ${livraison?.nomReceptionnaire ? `Réceptionnaire : ${livraison.nomReceptionnaire}` : ""}
     </p>
   </div>
 </div>
@@ -258,16 +367,16 @@ td{padding:6px 8px;border-bottom:1px solid #ECEAE6;font-size:9.5px}
   <div class="box">
     <h3>3. Lieu de prise en charge</h3>
     <p>
-      <strong>${lot.commune||"—"}</strong><br/>
-      ${lot.adresseParcelle||lot.adressePostale||"—"}<br/>
-      ${lot.refCadastrale?`Réf. cad. : ${lot.refCadastrale}`:""}
+      <strong>${lot.commune || "—"}</strong><br/>
+      ${lot.adresseParcelle || lot.adressePostale || "—"}<br/>
+      ${lot.refCadastrale ? `Réf. cad. : ${lot.refCadastrale}` : ""}
     </p>
   </div>
   <div class="box">
     <h3>4. Lieu de livraison</h3>
     <p>
-      <strong>${livraison?.nomDestination||transport?.nomDestination||"—"}</strong><br/>
-      ${livraison?.adresseDestination||"—"}
+      <strong>${livraison?.nomDestination || transport?.nomDestination || "—"}</strong><br/>
+      ${livraison?.adresseDestination || "—"}
     </p>
   </div>
 </div>
@@ -279,16 +388,16 @@ td{padding:6px 8px;border-bottom:1px solid #ECEAE6;font-size:9.5px}
     <tr>
       <td>Plaquettes forestières / Bois énergie</td>
       <td>1 chargement complet</td>
-      <td>${transport?.tonnageNet||transport?.tonnageCharge||livraison?.pesee||"—"}</td>
-      <td>${transport?.cubage||"—"}</td>
-      <td>${livraison?.granulometrie||"P45"}</td>
+      <td>${transport?.tonnageNet || transport?.tonnageCharge || livraison?.pesee || "—"}</td>
+      <td>${transport?.cubage || "—"}</td>
+      <td>${livraison?.granulometrie || "P45"}</td>
     </tr>
   </table>
   <table>
     <tr><th>Référence lot</th><th>Certification</th><th>Instructions spéciales</th></tr>
     <tr>
-      <td>${lot.lotNumero||"—"}</td>
-      <td>${lot.certification||"—"}</td>
+      <td>${lot.lotNumero || "—"}</td>
+      <td>${lot.certification || "—"}</td>
       <td>Manipulation avec précaution — ne pas mouiller</td>
     </tr>
   </table>
@@ -298,10 +407,10 @@ td{padding:6px 8px;border-bottom:1px solid #ECEAE6;font-size:9.5px}
   <div class="box">
     <h3>6. Transporteur</h3>
     <p>
-      <strong>${transport?.societeTransport||"—"}</strong><br/>
-      Tracteur : ${transport?.immatTracteur||"—"}<br/>
-      Remorque : ${transport?.immatRemorque||"—"}<br/>
-      Chauffeur : ${transport?.nomChauffeur||"—"}
+      <strong>${transport?.societeTransport || "—"}</strong><br/>
+      Tracteur : ${transport?.immatTracteur || "—"}<br/>
+      Remorque : ${transport?.immatRemorque || "—"}<br/>
+      Chauffeur : ${transport?.nomChauffeur || "—"}
     </p>
   </div>
   <div class="box">
@@ -315,8 +424,8 @@ td{padding:6px 8px;border-bottom:1px solid #ECEAE6;font-size:9.5px}
   <div class="box">
     <h3>8. Frais de transport</h3>
     <p>
-      Péage : ${transport?.peage||"—"}<br/>
-      Frais acc. : ${transport?.fraisAccessoires||"—"}<br/>
+      Péage : ${transport?.peage || "—"}<br/>
+      Frais acc. : ${transport?.fraisAccessoires || "—"}<br/>
       <span class="sub">Port payé / À payer selon accord</span>
     </p>
   </div>
@@ -324,44 +433,45 @@ td{padding:6px 8px;border-bottom:1px solid #ECEAE6;font-size:9.5px}
 
 <div class="reserve">
   <strong>9. Réserves et observations du transporteur à la prise en charge :</strong><br/>
-  ${transport?.observations||"Aucune réserve."}
+  ${transport?.observations || "Aucune réserve."}
 </div>
 
 <div class="sigs">
   <div class="sig">
     <h4>Expéditeur</h4>
-    <div class="who">${lot.nom||""} ${lot.prenom||""}</div>
+    <div class="who">${lot.nom || ""} ${lot.prenom || ""}</div>
     <div class="line">Signature &amp; cachet — le ${date}</div>
   </div>
   <div class="sig">
     <h4>Transporteur</h4>
-    <div class="who">${transport?.societeTransport||"—"}<br/>${transport?.nomChauffeur||""}</div>
+    <div class="who">${transport?.societeTransport || "—"}<br/>${transport?.nomChauffeur || ""}</div>
     <div class="line">Signature &amp; cachet — le ${date}</div>
   </div>
   <div class="sig">
     <h4>Destinataire</h4>
-    <div class="who">${livraison?.nomDestination||"—"}<br/>${livraison?.nomReceptionnaire||""}</div>
+    <div class="who">${livraison?.nomDestination || "—"}<br/>${livraison?.nomReceptionnaire || ""}</div>
     <div class="line">Signature &amp; cachet à la livraison</div>
   </div>
 </div>
 
 <div class="footer">
   Document établi conformément à la Convention relative au contrat de transport international de marchandises par route (CMR) — Genève 19 mai 1956.
-  Référence APPLITAG : ${lot.lotNumero||"—"} · CMR ${transport?.numeroCMR||"—"} · Généré le ${date}
+  Référence APPLITAG : ${lot.lotNumero || "—"} · CMR ${transport?.numeroCMR || "—"} · Généré le ${date}
 </div>
 
 </div></body></html>`;
 };
 
-// ── RÉCEPTION DE FIN D'EXPLOITATION (F08) ────────────────────────
-export const buildReceptionExploitHTML = (lot, visite, user) => {
-  const date = new Date().toLocaleDateString("fr-FR",{day:"2-digit",month:"long",year:"numeric"});
-  const proprietaireNom = `${lot.nom||""} ${lot.prenom||""}`.trim();
-  const receptionnaire = user?.nom||user?.prenom?`${user.prenom||""} ${user.nom||""}`.trim():"L'administrateur";
+// ── RÉCEPTION DE FIN D'EXPLOITATION (F08) ────────────────────────────────────
+
+export const buildReceptionExploitHTML = (lot: LotDoc, visite: VisiteDoc | null | undefined, user: UserDoc | null | undefined): string => {
+  const date = new Date().toLocaleDateString("fr-FR", { day: "2-digit", month: "long", year: "numeric" });
+  const proprietaireNom = `${lot.nom || ""} ${lot.prenom || ""}`.trim();
+  const receptionnaire = user?.nom || user?.prenom ? `${user?.prenom || ""} ${user?.nom || ""}`.trim() : "L'administrateur";
   return `<!DOCTYPE html><html lang="fr">
 <head>
 <meta charset="UTF-8">
-<title>Réception de fin d'exploitation ${lot.lotNumero||""}</title>
+<title>Réception de fin d'exploitation ${lot.lotNumero || ""}</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:Arial,Helvetica,sans-serif;font-size:11px;color:#1A1A18;background:#fff}
@@ -408,37 +518,37 @@ td.v{font-weight:600}
   </div>
   <div class="doc-ref">
     <h2>Réception de fin d'exploitation</h2>
-    <div class="num">${lot.lotNumero||"BROUILLON"}</div>
+    <div class="num">${lot.lotNumero || "BROUILLON"}</div>
     <div class="dt">Émis le ${date}</div>
   </div>
 </div>
 
 <div class="prop-banner">
   <div>
-    <div class="name">🏠 ${proprietaireNom||"—"}</div>
-    <div class="sub">${lot.adressePostale||lot.commune||"—"}${lot.telephone?` · ${lot.telephone}`:""}</div>
+    <div class="name">🏠 ${proprietaireNom || "—"}</div>
+    <div class="sub">${lot.adressePostale || lot.commune || "—"}${lot.telephone ? ` · ${lot.telephone}` : ""}</div>
   </div>
-  <div class="lot">${lot.lotNumero||"—"}</div>
+  <div class="lot">${lot.lotNumero || "—"}</div>
 </div>
 
 <div class="sec">
   <h3>🌲 Informations du chantier</h3>
   <table>
-    <tr><td class="k">Commune</td><td class="v">${lot.commune||"—"}</td></tr>
-    <tr><td class="k">Adresse parcelle</td><td class="v">${lot.adresseParcelle||lot.adressePostale||"—"}</td></tr>
-    <tr><td class="k">Référence cadastrale</td><td class="v">${lot.refCadastrale||"—"}</td></tr>
-    <tr><td class="k">Surface</td><td class="v">${lot.surfaceHa?lot.surfaceHa+" ha":"—"}</td></tr>
-    <tr><td class="k">Type de travaux</td><td class="v">${lot.typeTravaux||"Abattage / Débardage"}</td></tr>
-    <tr><td class="k">Date de visite terrain</td><td class="v">${visite?.date||"—"}</td></tr>
+    <tr><td class="k">Commune</td><td class="v">${lot.commune || "—"}</td></tr>
+    <tr><td class="k">Adresse parcelle</td><td class="v">${lot.adresseParcelle || lot.adressePostale || "—"}</td></tr>
+    <tr><td class="k">Référence cadastrale</td><td class="v">${lot.refCadastrale || "—"}</td></tr>
+    <tr><td class="k">Surface</td><td class="v">${lot.surfaceHa ? lot.surfaceHa + " ha" : "—"}</td></tr>
+    <tr><td class="k">Type de travaux</td><td class="v">${lot.typeTravaux || "Abattage / Débardage"}</td></tr>
+    <tr><td class="k">Date de visite terrain</td><td class="v">${visite?.date || "—"}</td></tr>
   </table>
 </div>
 
 <div class="sec">
   <h3>📊 Résultats de l'exploitation</h3>
   <table>
-    <tr><td class="k">Tonnage total réceptionné</td><td class="v">${lot.tonnageCumul?fmtNum(lot.tonnageCumul,1)+" t":"—"}</td></tr>
-    <tr><td class="k">Volume bord de route</td><td class="v">${visite?.volumeEstimeT?visite.volumeEstimeT+" t":"—"}</td></tr>
-    <tr><td class="k">Essences</td><td class="v">${visite?.essences?.map(e=>`${e.label} (${e.pct}%)`).join(", ")||lot.potentiel||"—"}</td></tr>
+    <tr><td class="k">Tonnage total réceptionné</td><td class="v">${lot.tonnageCumul ? fmtNum(lot.tonnageCumul, 1) + " t" : "—"}</td></tr>
+    <tr><td class="k">Volume bord de route</td><td class="v">${visite?.volumeEstimeT ? visite.volumeEstimeT + " t" : "—"}</td></tr>
+    <tr><td class="k">Essences</td><td class="v">${visite?.essences?.map(e => `${e.label} (${e.pct}%)`).join(", ") || lot.potentiel || "—"}</td></tr>
     <tr><td class="k">Date de réception</td><td class="v">${date}</td></tr>
     <tr><td class="k">Réceptionné par</td><td class="v">${receptionnaire}</td></tr>
   </table>
@@ -447,7 +557,7 @@ td.v{font-weight:600}
 <div class="sigs">
   <div class="sig">
     <h4>Le Propriétaire</h4>
-    <div class="who">${proprietaireNom||"____________________"}</div>
+    <div class="who">${proprietaireNom || "____________________"}</div>
     <div class="line">Lu et approuvé — Fait à _____________ le ${date}</div>
   </div>
   <div class="sig">
@@ -458,22 +568,23 @@ td.v{font-weight:600}
 </div>
 
 <div class="footer">
-  Document généré automatiquement par APPLITAG · Référence ${lot.lotNumero||"—"} · ${date}
+  Document généré automatiquement par APPLITAG · Référence ${lot.lotNumero || "—"} · ${date}
 </div>
 
 </div></body></html>`;
 };
 
-// ── PV DE VISITE TERRAIN ──────────────────────────────────────
-export const buildPVVisiteHTML = (lot, visite, redacteur) => {
-  const date = new Date().toLocaleDateString("fr-FR",{day:"2-digit",month:"long",year:"numeric"});
-  const certBadge = visite?.certification&&visite.certification!=="aucune"
-    ? `${visite.certification.toUpperCase()}${visite.numeroCertification?" n° "+visite.numeroCertification:""}` : "Aucune";
-  const contraintesStr = Object.entries(visite?.contraintes||{}).filter(([,v])=>v).map(([k])=>k).join(", ")||"Aucune contrainte identifiée";
+// ── PV DE VISITE TERRAIN ──────────────────────────────────────────────────────
+
+export const buildPVVisiteHTML = (lot: LotDoc, visite: VisiteDoc | null | undefined, redacteur: string | null | undefined): string => {
+  const date = new Date().toLocaleDateString("fr-FR", { day: "2-digit", month: "long", year: "numeric" });
+  const certBadge = visite?.certification && visite.certification !== "aucune"
+    ? `${visite.certification.toUpperCase()}${visite.numeroCertification ? " n° " + visite.numeroCertification : ""}` : "Aucune";
+  const contraintesStr = Object.entries(visite?.contraintes || {}).filter(([, v]) => v).map(([k]) => k).join(", ") || "Aucune contrainte identifiée";
   return `<!DOCTYPE html><html lang="fr">
 <head>
 <meta charset="UTF-8">
-<title>PV de visite terrain ${lot.lotNumero||""}</title>
+<title>PV de visite terrain ${lot.lotNumero || ""}</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:Arial,Helvetica,sans-serif;font-size:11px;color:#1A1A18;background:#fff}
@@ -521,102 +632,103 @@ td.v{font-weight:600}
   </div>
   <div class="doc-ref">
     <h2>PV de visite de terrain</h2>
-    <div class="num">${lot.lotNumero||"BROUILLON"}</div>
-    <div class="dt">Visite du ${visite?.date||date} · Rédigé le ${date}</div>
+    <div class="num">${lot.lotNumero || "BROUILLON"}</div>
+    <div class="dt">Visite du ${visite?.date || date} · Rédigé le ${date}</div>
   </div>
 </div>
 
 <div class="sec">
   <h3>👤 Mandataire / Rédacteur</h3>
   <table>
-    <tr><td class="k">Nom du rédacteur</td><td class="v">${redacteur||"—"}</td></tr>
-    <tr><td class="k">Date de la visite</td><td class="v">${visite?.date||"—"}</td></tr>
+    <tr><td class="k">Nom du rédacteur</td><td class="v">${redacteur || "—"}</td></tr>
+    <tr><td class="k">Date de la visite</td><td class="v">${visite?.date || "—"}</td></tr>
   </table>
 </div>
 
 <div class="sec">
   <h3>🏠 Propriétaire</h3>
   <table>
-    <tr><td class="k">Nom</td><td class="v">${lot.nom||""} ${lot.prenom||""}</td></tr>
-    <tr><td class="k">Téléphone</td><td class="v">${lot.telephone||"—"}</td></tr>
-    <tr><td class="k">Adresse</td><td class="v">${lot.adressePostale||"—"}</td></tr>
+    <tr><td class="k">Nom</td><td class="v">${lot.nom || ""} ${lot.prenom || ""}</td></tr>
+    <tr><td class="k">Téléphone</td><td class="v">${lot.telephone || "—"}</td></tr>
+    <tr><td class="k">Adresse</td><td class="v">${lot.adressePostale || "—"}</td></tr>
   </table>
 </div>
 
 <div class="sec">
   <h3>🌲 Parcelle</h3>
   <table>
-    <tr><td class="k">Commune</td><td class="v">${lot.commune||"—"}</td></tr>
-    <tr><td class="k">Adresse parcelle / Lieu-dit</td><td class="v">${lot.adresseParcelle||"—"}</td></tr>
-    <tr><td class="k">Référence cadastrale</td><td class="v">${lot.refCadastrale||"—"}</td></tr>
-    <tr><td class="k">Surface visitée</td><td class="v">${visite?.surfaceHa?visite.surfaceHa+" ha":lot.surfaceHa?lot.surfaceHa+" ha":"—"}</td></tr>
-    <tr><td class="k">Coordonnées GPS</td><td class="v">${visite?.gps?`${visite.gps.lat.toFixed(5)}°N · ${visite.gps.lng.toFixed(5)}°E (±${Math.round(visite.gps.accuracy||0)} m)`:"—"}</td></tr>
+    <tr><td class="k">Commune</td><td class="v">${lot.commune || "—"}</td></tr>
+    <tr><td class="k">Adresse parcelle / Lieu-dit</td><td class="v">${lot.adresseParcelle || "—"}</td></tr>
+    <tr><td class="k">Référence cadastrale</td><td class="v">${lot.refCadastrale || "—"}</td></tr>
+    <tr><td class="k">Surface visitée</td><td class="v">${visite?.surfaceHa ? visite.surfaceHa + " ha" : lot.surfaceHa ? lot.surfaceHa + " ha" : "—"}</td></tr>
+    <tr><td class="k">Coordonnées GPS</td><td class="v">${visite?.gps ? `${visite.gps.lat.toFixed(5)}°N · ${visite.gps.lng.toFixed(5)}°E (±${Math.round(visite.gps.accuracy || 0)} m)` : "—"}</td></tr>
   </table>
 </div>
 
 <div class="sec">
   <h3>🌿 Bois sur pied</h3>
   <table>
-    <tr><td class="k">Essences</td><td class="v">${visite?.essences?.map(e=>`${e.label} (${e.pct}%)`).join(", ")||"—"}</td></tr>
-    <tr><td class="k">Volume estimé</td><td class="v">${visite?.volumeEstimeT?visite.volumeEstimeT+" t":"—"}</td></tr>
-    <tr><td class="k">Population</td><td class="v">${visite?.popParHa?visite.popParHa+" tiges/ha":"—"}</td></tr>
-    <tr><td class="k">Diamètre moyen (1,20 m)</td><td class="v">${visite?.diametreMoyen?visite.diametreMoyen+" cm":"—"}</td></tr>
-    <tr><td class="k">Certification</td><td class="v">${certBadge==="Aucune"?certBadge:`<span class="cert-badge">${certBadge}</span>`}</td></tr>
+    <tr><td class="k">Essences</td><td class="v">${visite?.essences?.map(e => `${e.label} (${e.pct}%)`).join(", ") || "—"}</td></tr>
+    <tr><td class="k">Volume estimé</td><td class="v">${visite?.volumeEstimeT ? visite.volumeEstimeT + " t" : "—"}</td></tr>
+    <tr><td class="k">Population</td><td class="v">${visite?.popParHa ? visite.popParHa + " tiges/ha" : "—"}</td></tr>
+    <tr><td class="k">Diamètre moyen (1,20 m)</td><td class="v">${visite?.diametreMoyen ? visite.diametreMoyen + " cm" : "—"}</td></tr>
+    <tr><td class="k">Certification</td><td class="v">${certBadge === "Aucune" ? certBadge : `<span class="cert-badge">${certBadge}</span>`}</td></tr>
   </table>
 </div>
 
 <div class="sec">
   <h3>🚛 Accès et logistique</h3>
   <table>
-    <tr><td class="k">Accès camion</td><td class="v">${visite?.accesCamion==="praticable"?"✓ Praticable":visite?.accesCamion==="difficile"?"⚠ Difficile":visite?.accesCamion==="impossible"?"✗ Impossible":"—"}</td></tr>
-    <tr><td class="k">Largeur accès</td><td class="v">${visite?.largeurAcces?visite.largeurAcces+" m":"—"}</td></tr>
-    <tr><td class="k">Distance plateforme</td><td class="v">${visite?.distancePlateforme?visite.distancePlateforme+" m":"—"}</td></tr>
+    <tr><td class="k">Accès camion</td><td class="v">${visite?.accesCamion === "praticable" ? "✓ Praticable" : visite?.accesCamion === "difficile" ? "⚠ Difficile" : visite?.accesCamion === "impossible" ? "✗ Impossible" : "—"}</td></tr>
+    <tr><td class="k">Largeur accès</td><td class="v">${visite?.largeurAcces ? visite.largeurAcces + " m" : "—"}</td></tr>
+    <tr><td class="k">Distance plateforme</td><td class="v">${visite?.distancePlateforme ? visite.distancePlateforme + " m" : "—"}</td></tr>
     <tr><td class="k">Contraintes terrain</td><td class="v">${contraintesStr}</td></tr>
   </table>
 </div>
 
-${visite?.replantation==="oui"?`
+${visite?.replantation === "oui" ? `
 <div class="sec">
   <h3>🌱 Replantation</h3>
   <table>
     <tr><td class="k">Replantation prévue</td><td class="v">Oui</td></tr>
-    <tr><td class="k">Essences</td><td class="v">${visite.essenceReplanT||"—"}</td></tr>
-    <tr><td class="k">Surface</td><td class="v">${visite.surfaceReplant?visite.surfaceReplant+" ha":"—"}</td></tr>
-    <tr><td class="k">Date prévue</td><td class="v">${visite.dateReplant?new Date(visite.dateReplant).toLocaleDateString("fr-FR"):"—"}</td></tr>
-    <tr><td class="k">Responsable</td><td class="v">${visite.respReplant||"—"}</td></tr>
+    <tr><td class="k">Essences</td><td class="v">${visite.essenceReplanT || "—"}</td></tr>
+    <tr><td class="k">Surface</td><td class="v">${visite.surfaceReplant ? visite.surfaceReplant + " ha" : "—"}</td></tr>
+    <tr><td class="k">Date prévue</td><td class="v">${visite.dateReplant ? new Date(visite.dateReplant).toLocaleDateString("fr-FR") : "—"}</td></tr>
+    <tr><td class="k">Responsable</td><td class="v">${visite.respReplant || "—"}</td></tr>
   </table>
-</div>`:""}
+</div>` : ""}
 
 <div class="sec">
   <h3>📷 Photos terrain</h3>
-  <div class="photos-placeholder">📷 Photos jointes lors de la visite — disponibles dans APPLITAG · Réf. ${lot.lotNumero||"—"}</div>
+  <div class="photos-placeholder">📷 Photos jointes lors de la visite — disponibles dans APPLITAG · Réf. ${lot.lotNumero || "—"}</div>
 </div>
 
 <div class="sec">
   <h3>📝 Observations</h3>
-  <div class="note">${visite?.observations||visite?.notes||"—"}</div>
+  <div class="note">${visite?.observations || visite?.notes || "—"}</div>
 </div>
 
 <div class="sig">
   <h4>Mandataire — Rédacteur du PV</h4>
-  <div class="who">${redacteur||"____________________"}</div>
+  <div class="who">${redacteur || "____________________"}</div>
   <div class="line">Signature — Fait à _____________ le ${date}</div>
 </div>
 
 <div class="footer">
-  PV de visite terrain généré par APPLITAG · Référence ${lot.lotNumero||"—"} · ${date}
+  PV de visite terrain généré par APPLITAG · Référence ${lot.lotNumero || "—"} · ${date}
 </div>
 
 </div></body></html>`;
 };
 
-// ── ORDRE DE DÉCHIQUETAGE ────────────────────────────────────────
-export const buildOrdreDechiHTML = (lot, visite, dechi) => {
-  const date = new Date().toLocaleDateString("fr-FR",{day:"2-digit",month:"long",year:"numeric"});
+// ── ORDRE DE DÉCHIQUETAGE ─────────────────────────────────────────────────────
+
+export const buildOrdreDechiHTML = (lot: LotDoc, visite: VisiteDoc | null | undefined, dechi: DechiDoc | null | undefined): string => {
+  const date = new Date().toLocaleDateString("fr-FR", { day: "2-digit", month: "long", year: "numeric" });
   return `<!DOCTYPE html><html lang="fr">
 <head>
 <meta charset="UTF-8">
-<title>Ordre de déchiquetage ${lot.lotNumero||""}</title>
+<title>Ordre de déchiquetage ${lot.lotNumero || ""}</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:Arial,Helvetica,sans-serif;font-size:11px;color:#1A1A18;background:#fff}
@@ -661,35 +773,35 @@ td{padding:7px 10px;border-bottom:1px solid #ECEAE6;font-size:10.5px}
 
 <div class="header">
   <div class="logo">
-    <h1>🌲 ${dechi?.doNom||"APPLITAG SAS"}</h1>
-    <p>${dechi?.doAdresse||"Gestion des flux bois énergie"}</p>
+    <h1>🌲 ${dechi?.doNom || "APPLITAG SAS"}</h1>
+    <p>${dechi?.doAdresse || "Gestion des flux bois énergie"}</p>
   </div>
   <div class="doc-ref">
     <h2>Ordre de déchiquetage</h2>
-    <div class="num">Réf. ${lot.lotNumero||"BROUILLON"}</div>
+    <div class="num">Réf. ${lot.lotNumero || "BROUILLON"}</div>
     <div class="dt">Émis le ${date}</div>
   </div>
 </div>
 
 <div class="objet">
   <div class="lbl">Objet</div>
-  <div class="val">Ordre de déchiquetage — Bois bord de route · Lot ${lot.lotNumero||"—"}</div>
+  <div class="val">Ordre de déchiquetage — Bois bord de route · Lot ${lot.lotNumero || "—"}</div>
 </div>
 
 <div class="two">
   <div class="card">
     <h3>🏢 Destinataire (Entreprise de déchiquetage)</h3>
     <p>
-      <strong>${dechi?.entrepriseNom||"—"}</strong><br/>
-      ${dechi?.entrepriseAdresse||"—"}<br/>
-      ${dechi?.operateur?`Opérateur : ${dechi.operateur}`:""}
+      <strong>${dechi?.entrepriseNom || "—"}</strong><br/>
+      ${dechi?.entrepriseAdresse || "—"}<br/>
+      ${dechi?.operateur ? `Opérateur : ${dechi.operateur}` : ""}
     </p>
   </div>
   <div class="card">
-    <h3>📍 Chantier — Lot ${lot.lotNumero||""}</h3>
+    <h3>📍 Chantier — Lot ${lot.lotNumero || ""}</h3>
     <p>
-      ${lot.commune||"—"}${lot.refCadastrale?` · ${lot.refCadastrale}`:""}<br/>
-      ${lot.adresseParcelle||lot.adressePostale||"—"}
+      ${lot.commune || "—"}${lot.refCadastrale ? ` · ${lot.refCadastrale}` : ""}<br/>
+      ${lot.adresseParcelle || lot.adressePostale || "—"}
     </p>
   </div>
 </div>
@@ -700,17 +812,17 @@ td{padding:7px 10px;border-bottom:1px solid #ECEAE6;font-size:10.5px}
     <tr><th>Prestation</th><th>Tonnage bord de route estimé</th><th>Machine assignée</th><th>Date prévue</th></tr>
     <tr>
       <td>Déchiquetage de bois bord de route</td>
-      <td>${lot.tonnageBordRoute?fmtNum(lot.tonnageBordRoute,1)+" t":visite?.volumeEstimeT?visite.volumeEstimeT+" t":"—"}</td>
-      <td>${dechi?.machine||"—"}</td>
-      <td>${dechi?.datePrevue||"—"}</td>
+      <td>${lot.tonnageBordRoute ? fmtNum(lot.tonnageBordRoute, 1) + " t" : visite?.volumeEstimeT ? visite.volumeEstimeT + " t" : "—"}</td>
+      <td>${dechi?.machine || "—"}</td>
+      <td>${dechi?.datePrevue || "—"}</td>
     </tr>
   </table>
   <table>
     <tr><th>Essences</th><th>Granulométrie cible</th><th>Certification</th></tr>
     <tr>
-      <td>${visite?.essences?.map(e=>e.label).join(", ")||lot.potentiel||"—"}</td>
-      <td>${dechi?.granulometrie||"P45"}</td>
-      <td>${visite?.certification&&visite.certification!=="aucune"?visite.certification.toUpperCase():"Aucune"}</td>
+      <td>${visite?.essences?.map(e => e.label).join(", ") || lot.potentiel || "—"}</td>
+      <td>${dechi?.granulometrie || "P45"}</td>
+      <td>${visite?.certification && visite.certification !== "aucune" ? visite.certification.toUpperCase() : "Aucune"}</td>
     </tr>
   </table>
 </div>
@@ -718,37 +830,38 @@ td{padding:7px 10px;border-bottom:1px solid #ECEAE6;font-size:10.5px}
 <div class="sigs">
   <div class="sig">
     <h4>Le Donneur d'ordre</h4>
-    <div class="who">${dechi?.doNom||"APPLITAG SAS"}</div>
+    <div class="who">${dechi?.doNom || "APPLITAG SAS"}</div>
     <div class="line">Signature &amp; cachet — le ${date}</div>
   </div>
   <div class="sig">
     <h4>L'Entreprise de déchiquetage (bon pour accord)</h4>
-    <div class="who">${dechi?.entrepriseNom||"____________________"}</div>
+    <div class="who">${dechi?.entrepriseNom || "____________________"}</div>
     <div class="line">Signature &amp; cachet — le ________________</div>
   </div>
 </div>
 
 <div class="footer">
-  APPLITAG — Référence ${lot.lotNumero||"—"} · Document généré le ${date}
+  APPLITAG — Référence ${lot.lotNumero || "—"} · Document généré le ${date}
 </div>
 
 </div></body></html>`;
 };
 
-// ── DOCUMENT GÉNÉRIQUE (PV visite, ordres, CMR, bon de livraison…) ─
-export const buildSimpleDocHTML = (lot, title, sections, footerNote) => {
-  const sectionsHtml = sections.map(s=>`
+// ── DOCUMENT GÉNÉRIQUE ────────────────────────────────────────────────────────
+
+export const buildSimpleDocHTML = (lot: LotDoc, title: string, sections: DocSection[], footerNote?: string | null): string => {
+  const sectionsHtml = sections.map(s => `
 <div class="sec">
   <h3>${s.icon} ${s.label}</h3>
   <table>
-    ${s.rows.map(([k,v])=>`<tr><td class="k">${k}</td><td class="v">${v??"—"}</td></tr>`).join("")}
+    ${s.rows.map(([k, v]) => `<tr><td class="k">${k}</td><td class="v">${v ?? "—"}</td></tr>`).join("")}
   </table>
 </div>`).join("");
 
   return `<!DOCTYPE html><html lang="fr">
 <head>
 <meta charset="UTF-8">
-<title>${title} ${lot.lotNumero||""}</title>
+<title>${title} ${lot.lotNumero || ""}</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:Arial,Helvetica,sans-serif;font-size:11px;color:#1A1A18;background:#fff}
@@ -786,20 +899,21 @@ td.v{font-weight:600}
   </div>
   <div class="doc-ref">
     <h2>${title}</h2>
-    <div class="num">${lot.lotNumero||"BROUILLON"}</div>
-    <div class="dt">Émis le ${new Date().toLocaleDateString("fr-FR",{day:"2-digit",month:"long",year:"numeric"})}</div>
+    <div class="num">${lot.lotNumero || "BROUILLON"}</div>
+    <div class="dt">Émis le ${new Date().toLocaleDateString("fr-FR", { day: "2-digit", month: "long", year: "numeric" })}</div>
   </div>
 </div>
 
 ${sectionsHtml}
 
-<div class="footer">${footerNote||"Document généré automatiquement par APPLITAG."}</div>
+<div class="footer">${footerNote || "Document généré automatiquement par APPLITAG."}</div>
 
 </div></body></html>`;
 };
 
-// ── BON DE COMMANDE PDF ───────────────────────────────────────
-const TYPE_TRAVAUX_OPTS = {
+// ── BON DE COMMANDE PDF ───────────────────────────────────────────────────────
+
+const TYPE_TRAVAUX_OPTS: Record<string, string> = {
   abattage_debardage:   "Abattage et débardage",
   dechiquetage:         "Déchiquetage",
   abattage_manuel:      "Abattage manuel",
@@ -809,31 +923,31 @@ const TYPE_TRAVAUX_OPTS = {
   autre:                "Autre",
 };
 
-const MODE_REGLEMENT_BC_OPTS = {cheque:"📝 Chèque",virement:"🏦 Virement",traite:"📃 Traite"};
-const DELAI_REGLEMENT_BC_OPTS = {comptant:"Comptant","30j":"30 jours","60j":"60 jours","90j":"90 jours"};
+const MODE_REGLEMENT_BC_OPTS: Record<string, string> = { cheque: "📝 Chèque", virement: "🏦 Virement", traite: "📃 Traite" };
+const DELAI_REGLEMENT_BC_OPTS: Record<string, string> = { comptant: "Comptant", "30j": "30 jours", "60j": "60 jours", "90j": "90 jours" };
 
-export const buildBonCommandeHTML = (lot, visite, extra) => {
-  const {modePrix,prixGlobal,prixHoraire,typeTravaux,entrepriseObj,nomDO,qualiteDO,dateSign,
-    conditionsParticulieres,modeReglementBC,delaiReglementBC,dateReception,observationsBC,
-    sigDataProprio,sigDataExploit,nomSignProprio,nomSignExploit} = extra;
+export const buildBonCommandeHTML = (lot: LotDoc, visite: VisiteDoc | null | undefined, extra: BonCommandeExtra): string => {
+  const { modePrix, prixGlobal, prixHoraire, typeTravaux, entrepriseObj, nomDO, qualiteDO, dateSign,
+    conditionsParticulieres, modeReglementBC, delaiReglementBC, dateReception, observationsBC,
+    sigDataProprio, sigDataExploit, nomSignProprio, nomSignExploit } = extra;
   const volumeT = visite?.volumeEstimeT || lot.volumeEstime || "—";
-  const essStr = visite?.essences?.map(e=>`${e.label} (${e.pct}%)`).join(", ") || lot.potentiel || "—";
-  const certBadge = visite?.certification&&visite.certification!=="aucune"
+  const essStr = visite?.essences?.map(e => `${e.label} (${e.pct}%)`).join(", ") || lot.potentiel || "—";
+  const certBadge = visite?.certification && visite.certification !== "aucune"
     ? `<span class="cert-badge">${visite.certification.toUpperCase()}</span>` : "";
-  const designation = TYPE_TRAVAUX_OPTS[typeTravaux] || "À préciser";
-  const certifStr = visite?.certification&&visite.certification!=="aucune"
-    ? ` — Certification ${visite.certification.toUpperCase()}${visite.numeroCertification?" n° "+visite.numeroCertification:""}`:"";
-  const plateformeStr = [visite?.adressePlateforme,visite?.cpPlateforme,visite?.villePlateforme].filter(Boolean).join(", ")||"—";
-  const surfacePlatStr = visite?.surfacePlateforme?visite.surfacePlateforme+" m²":"—";
-  const prixLabel = modePrix==="horaire"
-    ? (prixHoraire?`${fmtNum(prixHoraire,2)} €/h HT`:"À négocier")
-    : (prixGlobal?`${fmtNum(prixGlobal,2)} € HT`:"À négocier");
-  const prixTitre = modePrix==="horaire" ? "Tarif horaire unitaire" : "Prix global forfaitaire";
+  const designation = (typeTravaux ? TYPE_TRAVAUX_OPTS[typeTravaux] : undefined) || "À préciser";
+  const certifStr = visite?.certification && visite.certification !== "aucune"
+    ? ` — Certification ${visite.certification.toUpperCase()}${visite.numeroCertification ? " n° " + visite.numeroCertification : ""}` : "";
+  const plateformeStr = [visite?.adressePlateforme, visite?.cpPlateforme, visite?.villePlateforme].filter(Boolean).join(", ") || "—";
+  const surfacePlatStr = visite?.surfacePlateforme ? visite.surfacePlateforme + " m²" : "—";
+  const prixLabel = modePrix === "horaire"
+    ? (prixHoraire ? `${fmtNum(prixHoraire, 2)} €/h HT` : "À négocier")
+    : (prixGlobal ? `${fmtNum(prixGlobal, 2)} € HT` : "À négocier");
+  const prixTitre = modePrix === "horaire" ? "Tarif horaire unitaire" : "Prix global forfaitaire";
 
   return `<!DOCTYPE html><html lang="fr">
 <head>
 <meta charset="UTF-8">
-<title>Bon de commande de travaux ${lot.lotNumero||""}</title>
+<title>Bon de commande de travaux ${lot.lotNumero || ""}</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:Arial,Helvetica,sans-serif;font-size:11px;color:#1A1A18;background:#fff}
@@ -884,7 +998,6 @@ td{padding:7px 10px;border-bottom:1px solid #ECEAE6;font-size:10.5px}
 </head>
 <body><div class="page">
 
-<!-- HEADER -->
 <div class="header">
   <div class="logo">
     <h1>🌲 APPLITAG</h1>
@@ -892,69 +1005,65 @@ td{padding:7px 10px;border-bottom:1px solid #ECEAE6;font-size:10.5px}
   </div>
   <div class="doc-ref">
     <h2>Bon de commande de travaux</h2>
-    <div class="num">${lot.lotNumero||"BROUILLON"}</div>
-    <div class="dt">Émis le ${new Date().toLocaleDateString("fr-FR",{day:"2-digit",month:"long",year:"numeric"})}</div>
+    <div class="num">${lot.lotNumero || "BROUILLON"}</div>
+    <div class="dt">Émis le ${new Date().toLocaleDateString("fr-FR", { day: "2-digit", month: "long", year: "numeric" })}</div>
   </div>
 </div>
 
-<!-- PARTIES -->
 <div class="two">
   <div class="card">
     <h3>🏠 Vendeur / Propriétaire</h3>
     <p>
-      <strong>${lot.nom||""} ${lot.prenom||""}</strong><br/>
-      ${lot.estPersonneMorale&&lot.typePersonneMorale?`<span class="sub">${lot.typePersonneMorale.toUpperCase()}</span><br/>`:""}
-      ${lot.adressePostale?lot.adressePostale+"<br/>":""}
-      ${lot.complementAdresse?lot.complementAdresse+"<br/>":""}
-      ${lot.telephone?`📞 ${lot.telephone}<br/>`:""}
-      ${lot.email?`📧 ${lot.email}<br/>`:""}
-      ${lot.nomSignataire?`<br/>Signataire : <strong>${lot.nomSignataire}</strong><br/>`:""}
-      ${lot.numeroSiret?`<span class="sub">SIRET ${lot.numeroSiret}</span>`:""}
+      <strong>${lot.nom || ""} ${lot.prenom || ""}</strong><br/>
+      ${lot.estPersonneMorale && lot.typePersonneMorale ? `<span class="sub">${lot.typePersonneMorale.toUpperCase()}</span><br/>` : ""}
+      ${lot.adressePostale ? lot.adressePostale + "<br/>" : ""}
+      ${lot.complementAdresse ? lot.complementAdresse + "<br/>" : ""}
+      ${lot.telephone ? `📞 ${lot.telephone}<br/>` : ""}
+      ${lot.email ? `📧 ${lot.email}<br/>` : ""}
+      ${lot.nomSignataire ? `<br/>Signataire : <strong>${lot.nomSignataire}</strong><br/>` : ""}
+      ${lot.numeroSiret ? `<span class="sub">SIRET ${lot.numeroSiret}</span>` : ""}
     </p>
   </div>
   <div class="card">
     <h3>🏢 Acheteur / Donneur d'ordre</h3>
     <p>
-      <strong>${entrepriseObj?.nom||"APPLITAG SAS"}</strong><br/>
-      ${entrepriseObj?.adressePostale?entrepriseObj.adressePostale+"<br/>":""}
-      ${entrepriseObj?.complementAdresse?entrepriseObj.complementAdresse+"<br/>":""}
-      ${[entrepriseObj?.codePostal,entrepriseObj?.commune].filter(Boolean).join(" ")?[entrepriseObj?.codePostal,entrepriseObj?.commune].filter(Boolean).join(" ")+"<br/>":""}
-      ${entrepriseObj?.siret?`<span class="sub">SIRET ${entrepriseObj.siret}</span><br/>`:""}
-      ${entrepriseObj?.telephone?`📞 ${entrepriseObj.telephone}<br/>`:""}
-      ${entrepriseObj?.email?`📧 ${entrepriseObj.email}<br/>`:""}
-      ${nomDO?`<br/>Signataire : ${nomDO}<br/>`:""}
-      ${qualiteDO?`<span class="sub">${qualiteDO}</span>`:""}
+      <strong>${entrepriseObj?.nom || "APPLITAG SAS"}</strong><br/>
+      ${entrepriseObj?.adressePostale ? entrepriseObj.adressePostale + "<br/>" : ""}
+      ${entrepriseObj?.complementAdresse ? entrepriseObj.complementAdresse + "<br/>" : ""}
+      ${[entrepriseObj?.codePostal, entrepriseObj?.commune].filter(Boolean).join(" ") ? [entrepriseObj?.codePostal, entrepriseObj?.commune].filter(Boolean).join(" ") + "<br/>" : ""}
+      ${entrepriseObj?.siret ? `<span class="sub">SIRET ${entrepriseObj.siret}</span><br/>` : ""}
+      ${entrepriseObj?.telephone ? `📞 ${entrepriseObj.telephone}<br/>` : ""}
+      ${entrepriseObj?.email ? `📧 ${entrepriseObj.email}<br/>` : ""}
+      ${nomDO ? `<br/>Signataire : ${nomDO}<br/>` : ""}
+      ${qualiteDO ? `<span class="sub">${qualiteDO}</span>` : ""}
     </p>
   </div>
 </div>
 
-<!-- PARCELLE -->
 <div class="sec">
-  <h3>🌲 Parcelle & Ressource</h3>
+  <h3>🌲 Parcelle &amp; Ressource</h3>
   <table>
     <tr><th>Commune</th><th>Réf. cadastrale</th><th>Surface</th><th>Essences</th><th>Certification</th></tr>
     <tr>
-      <td>${lot.commune||"—"}</td>
-      <td>${lot.refCadastrale||"—"}</td>
-      <td>${lot.surfaceHa?lot.surfaceHa+" ha":"—"}</td>
+      <td>${lot.commune || "—"}</td>
+      <td>${lot.refCadastrale || "—"}</td>
+      <td>${lot.surfaceHa ? lot.surfaceHa + " ha" : "—"}</td>
       <td>${essStr}</td>
-      <td>${certBadge||"Aucune"}</td>
+      <td>${certBadge || "Aucune"}</td>
     </tr>
-    ${lot.adresseParcelle?`<tr><td colspan="5"><span class="sub">Lieu-dit : ${lot.adresseParcelle}</span></td></tr>`:""}
-    ${visite?.gps?`<tr><td colspan="5"><span class="sub">GPS parcelle : ${visite.gps.lat.toFixed(5)}°N · ${visite.gps.lng.toFixed(5)}°E · Précision ${Math.round(visite.gps.accuracy||0)} m</span></td></tr>`:""}
+    ${lot.adresseParcelle ? `<tr><td colspan="5"><span class="sub">Lieu-dit : ${lot.adresseParcelle}</span></td></tr>` : ""}
+    ${visite?.gps ? `<tr><td colspan="5"><span class="sub">GPS parcelle : ${visite.gps.lat.toFixed(5)}°N · ${visite.gps.lng.toFixed(5)}°E · Précision ${Math.round(visite.gps.accuracy || 0)} m</span></td></tr>` : ""}
   </table>
 </div>
 
-<!-- DÉSIGNATION -->
 <div class="sec">
   <h3>🪓 Désignation</h3>
   <table>
     <tr><th>Type de travaux</th><th>Certifications</th></tr>
-    <tr><td>${designation}</td><td>${certifStr?certifStr.replace(" — ",""):"Aucune"}</td></tr>
+    <tr><td>${designation}</td><td>${certifStr ? certifStr.replace(" — ", "") : "Aucune"}</td></tr>
   </table>
 </div>
 
-<!-- STOCKAGE & ACCÈS LOGISTIQUE -->
 <div class="sec">
   <h3>🏗️ Conditions de stockage et accès logistique</h3>
   <table>
@@ -962,88 +1071,82 @@ td{padding:7px 10px;border-bottom:1px solid #ECEAE6;font-size:10.5px}
     <tr>
       <td>${plateformeStr}</td>
       <td>${surfacePlatStr}</td>
-      <td>${visite?.accesCamion==="praticable"?"✓ Praticable":visite?.accesCamion==="difficile"?"⚠ Difficile":visite?.accesCamion==="impossible"?"✗ Impossible":"—"}</td>
-      <td>${visite?.largeurAcces?visite.largeurAcces+" m":"—"}</td>
+      <td>${visite?.accesCamion === "praticable" ? "✓ Praticable" : visite?.accesCamion === "difficile" ? "⚠ Difficile" : visite?.accesCamion === "impossible" ? "✗ Impossible" : "—"}</td>
+      <td>${visite?.largeurAcces ? visite.largeurAcces + " m" : "—"}</td>
     </tr>
   </table>
-  ${visite?.notesAcces?`<div class="note">📝 Modalités d'accès : ${visite.notesAcces}</div>`:""}
+  ${visite?.notesAcces ? `<div class="note">📝 Modalités d'accès : ${visite.notesAcces}</div>` : ""}
 </div>
 
-<!-- ESTIMATION & PRIX -->
 <div class="sec">
-  <h3>📊 Estimation & Conditions commerciales</h3>
+  <h3>📊 Estimation &amp; Conditions commerciales</h3>
   <table>
     <tr><th>Désignation</th><th>Volume estimé</th><th>${prixTitre}</th></tr>
     <tr>
-      <td>${designation} — ${lot.potentiel||"bois énergie"}</td>
+      <td>${designation} — ${lot.potentiel || "bois énergie"}</td>
       <td>${fmtNum(volumeT)} t</td>
       <td><strong>${prixLabel}</strong></td>
     </tr>
   </table>
-  ${conditionsParticulieres?`<div class="note">📝 Conditions particulières : ${conditionsParticulieres}</div>`:""}
+  ${conditionsParticulieres ? `<div class="note">📝 Conditions particulières : ${conditionsParticulieres}</div>` : ""}
 </div>
 
-<!-- CONDITIONS DE PAIEMENT -->
 <div class="sec">
   <h3>💳 Conditions de paiement</h3>
   <table>
     <tr><th>Mode de règlement</th><th>Délai de règlement</th></tr>
     <tr>
-      <td>${MODE_REGLEMENT_BC_OPTS[modeReglementBC]||"—"}</td>
-      <td>${DELAI_REGLEMENT_BC_OPTS[delaiReglementBC]||"—"}</td>
+      <td>${(modeReglementBC ? MODE_REGLEMENT_BC_OPTS[modeReglementBC] : undefined) || "—"}</td>
+      <td>${(delaiReglementBC ? DELAI_REGLEMENT_BC_OPTS[delaiReglementBC] : undefined) || "—"}</td>
     </tr>
   </table>
-  ${visite&&(visite.tauxTVA||visite.acompte||visite.iban)?`
+  ${visite && (visite.tauxTVA || visite.acompte || visite.iban) ? `
   <table>
     <tr><th>TVA</th><th>Acompte</th><th>IBAN</th><th>Banque</th></tr>
     <tr>
-      <td>${visite.tauxTVA?visite.tauxTVA+" %":"—"}</td>
-      <td>${visite.acompte?visite.acompte+" €":"—"}</td>
-      <td>${visite.iban||"—"}</td>
-      <td>${[visite.nomBanque,visite.villeBanque].filter(Boolean).join(" · ")||"—"}</td>
+      <td>${visite.tauxTVA ? visite.tauxTVA + " %" : "—"}</td>
+      <td>${visite.acompte ? visite.acompte + " €" : "—"}</td>
+      <td>${visite.iban || "—"}</td>
+      <td>${[visite.nomBanque, visite.villeBanque].filter(Boolean).join(" · ") || "—"}</td>
     </tr>
-  </table>`:""}
+  </table>` : ""}
 </div>
 
-<!-- RÉCEPTION & OBSERVATIONS -->
 <div class="sec">
   <h3>📅 Réception de la commande</h3>
   <table>
     <tr><th>Date de réception</th><th>Observations</th></tr>
     <tr>
-      <td>${dateReception?new Date(dateReception).toLocaleDateString("fr-FR"):"—"}</td>
-      <td>${observationsBC||"—"}</td>
+      <td>${dateReception ? new Date(dateReception).toLocaleDateString("fr-FR") : "—"}</td>
+      <td>${observationsBC || "—"}</td>
     </tr>
   </table>
 </div>
 
-<!-- EXPLOITATION -->
-${visite?`
+${visite ? `
 <div class="sec">
   <h3>🪓 Conditions d'exploitation</h3>
   <table>
     <tr><th>Accès camion</th><th>Largeur voie</th><th>Distance plateforme</th><th>Date limite</th></tr>
     <tr>
-      <td>${visite.accesCamion==="praticable"?"✓ Praticable":visite.accesCamion==="difficile"?"⚠ Difficile":"✗ Impossible"}</td>
-      <td>${visite.largeurAcces||"—"} m</td>
-      <td>${visite.distancePlateforme||"—"} m</td>
-      <td>${visite.dateLimite||"Non définie"}</td>
+      <td>${visite.accesCamion === "praticable" ? "✓ Praticable" : visite.accesCamion === "difficile" ? "⚠ Difficile" : "✗ Impossible"}</td>
+      <td>${visite.largeurAcces || "—"} m</td>
+      <td>${visite.distancePlateforme || "—"} m</td>
+      <td>${visite.dateLimite || "Non définie"}</td>
     </tr>
   </table>
-  ${Object.values(visite.contraintes||{}).some(Boolean)?`
-  <div class="note">⚠ Contraintes terrain identifiées : ${Object.entries(visite.contraintes||{}).filter(([,v])=>v).map(([k])=>k).join(", ")}</div>`:""}
-</div>`:""}
+  ${Object.values(visite.contraintes || {}).some(Boolean) ? `
+  <div class="note">⚠ Contraintes terrain identifiées : ${Object.entries(visite.contraintes || {}).filter(([, v]) => v).map(([k]) => k).join(", ")}</div>` : ""}
+</div>` : ""}
 
-<!-- REPLANTATION -->
-${visite?.replantation==="oui"?`
+${visite?.replantation === "oui" ? `
 <div class="replant">
-  🌱 <strong>Replantation prévue</strong> — ${visite.essenceReplanT||"Essences à définir"}
-  ${visite.surfaceReplant?" · "+visite.surfaceReplant+" ha":""}
-  ${visite.dateReplant?" · Prévue le "+new Date(visite.dateReplant).toLocaleDateString("fr-FR"):""}
-  ${visite.respReplant?" · Responsable : "+visite.respReplant:""}
-</div>`:""}
+  🌱 <strong>Replantation prévue</strong> — ${visite.essenceReplanT || "Essences à définir"}
+  ${visite.surfaceReplant ? " · " + visite.surfaceReplant + " ha" : ""}
+  ${visite.dateReplant ? " · Prévue le " + new Date(visite.dateReplant).toLocaleDateString("fr-FR") : ""}
+  ${visite.respReplant ? " · Responsable : " + visite.respReplant : ""}
+</div>` : ""}
 
-<!-- CG -->
 <div class="cg">
   <strong>Conditions générales :</strong><br/>
   1. Le présent bon de commande est valable 30 jours à compter de sa date d'émission.<br/>
@@ -1051,40 +1154,37 @@ ${visite?.replantation==="oui"?`
   3. Le paiement s'effectue à réception de la facture définitive après pesée à la livraison.<br/>
   4. En cas de désaccord sur les volumes, la pesée à la chaufferie fait foi.<br/>
   5. L'exploitation respectera les règles de bonne gestion forestière et les conditions d'accès définies ci-dessus.
-  ${visite?.certification==="red"?`<br/>6. Ce lot est soumis à la directive RED — traçabilité GPS requise.`:""}
+  ${visite?.certification === "red" ? `<br/>6. Ce lot est soumis à la directive RED — traçabilité GPS requise.` : ""}
 </div>
 
-<!-- SIGNATURES -->
 <div class="sigs">
   <div class="sig">
     <h4>Le Vendeur / Propriétaire</h4>
-    <div class="who">${nomSignProprio||lot.nomSignataire||lot.nom+" "+lot.prenom}</div>
+    <div class="who">${nomSignProprio || lot.nomSignataire || (lot.nom || "") + " " + (lot.prenom || "")}</div>
     ${sigDataProprio
       ? `<img src="${sigDataProprio}" style="width:100%;height:60px;object-fit:contain;margin:8px 0;border:1px solid #eee;border-radius:4px;"/>`
       : `<div style="height:60px;border:1px dashed #ccc;border-radius:4px;margin:8px 0;display:flex;align-items:center;justify-content:center;color:#ccc;font-size:10px;">Signature manuscrite</div>`}
-    <div class="line">Fait à _____________ le ${dateSign?new Date(dateSign).toLocaleDateString("fr-FR"):new Date().toLocaleDateString("fr-FR")}</div>
+    <div class="line">Fait à _____________ le ${dateSign ? new Date(dateSign).toLocaleDateString("fr-FR") : new Date().toLocaleDateString("fr-FR")}</div>
   </div>
   <div class="sig">
     <h4>Le Donneur d'ordre</h4>
-    <div class="who">${nomSignExploit||nomDO||"____________________"}<br/><span style="font-size:9px;color:#9A9892">${qualiteDO||"Qualité : ____________________"}</span></div>
+    <div class="who">${nomSignExploit || nomDO || "____________________"}<br/><span style="font-size:9px;color:#9A9892">${qualiteDO || "Qualité : ____________________"}</span></div>
     ${sigDataExploit
       ? `<img src="${sigDataExploit}" style="width:100%;height:60px;object-fit:contain;margin:8px 0;border:1px solid #eee;border-radius:4px;"/>`
       : `<div style="height:60px;border:1px dashed #ccc;border-radius:4px;margin:8px 0;display:flex;align-items:center;justify-content:center;color:#ccc;font-size:10px;">Signature manuscrite</div>`}
-    <div class="line">Fait à _____________ le ${dateSign?new Date(dateSign).toLocaleDateString("fr-FR"):new Date().toLocaleDateString("fr-FR")}</div>
+    <div class="line">Fait à _____________ le ${dateSign ? new Date(dateSign).toLocaleDateString("fr-FR") : new Date().toLocaleDateString("fr-FR")}</div>
   </div>
 </div>
 
-<!-- FOOTER -->
 <div class="footer">
-  APPLITAG — Gestion forestière terrain · Référence ${lot.lotNumero||"—"} ·
-  Document généré le ${new Date().toLocaleDateString("fr-FR")} à ${new Date().toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"})}
+  APPLITAG — Gestion forestière terrain · Référence ${lot.lotNumero || "—"} ·
+  Document généré le ${new Date().toLocaleDateString("fr-FR")} à ${new Date().toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}
 </div>
 
-<!-- PAGE 2 : CONDITIONS GÉNÉRALES -->
 <div class="page" style="page-break-before:always">
 <div style="border-bottom:2.5px solid #4CAF50;padding-bottom:10px;margin-bottom:18px;display:flex;justify-content:space-between;align-items:center">
   <div style="font-size:18px;font-weight:700;color:#1E5B3A">Conditions générales d'achats et de prestations</div>
-  <div style="font-size:9px;color:#9A9892">Réf. ${lot.lotNumero||"—"}</div>
+  <div style="font-size:9px;color:#9A9892">Réf. ${lot.lotNumero || "—"}</div>
 </div>
 <div style="font-size:10px;color:#1A1A18;line-height:1.8;columns:2;column-gap:20px">
 <p style="font-weight:700;font-size:10.5px;margin-bottom:6px">Article 1 — Objet</p>
@@ -1112,16 +1212,17 @@ ${visite?.replantation==="oui"?`
 </div></body></html>`;
 };
 
-// ── ORDRE D'EXPLOITATION ───────────────────────────────────────
-export const buildOrdreExploitationHTML = (ordre) => {
+// ── ORDRE D'EXPLOITATION ──────────────────────────────────────────────────────
+
+export const buildOrdreExploitationHTML = (ordre: OrdreExploitation): string => {
   const delaiFmt = ordre.delaiExecution
-    ? new Date(ordre.delaiExecution).toLocaleDateString("fr-FR",{day:"2-digit",month:"long",year:"numeric"})
+    ? new Date(ordre.delaiExecution).toLocaleDateString("fr-FR", { day: "2-digit", month: "long", year: "numeric" })
     : "À préciser";
-  const dateDoc = new Date().toLocaleDateString("fr-FR",{day:"2-digit",month:"long",year:"numeric"});
+  const dateDoc = new Date().toLocaleDateString("fr-FR", { day: "2-digit", month: "long", year: "numeric" });
   return `<!DOCTYPE html><html lang="fr">
 <head>
 <meta charset="UTF-8">
-<title>Ordre d'exploitation ${ordre.lotNumero||""}</title>
+<title>Ordre d'exploitation ${ordre.lotNumero || ""}</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:Arial,Helvetica,sans-serif;font-size:11px;color:#1A1A18;background:#fff}
@@ -1173,39 +1274,39 @@ td{padding:7px 10px;border-bottom:1px solid #ECEAE6;font-size:10.5px}
 
 <div class="header">
   <div class="logo">
-    <h1>🌲 ${ordre.doNom||"APPLITAG SAS"}</h1>
-    <p>${ordre.doAdresse||""}${ordre.doCP||ordre.doCommune?` · ${[ordre.doCP,ordre.doCommune].filter(Boolean).join(" ")}`:""}</p>
-    <p style="margin-top:2px">${ordre.doSiret?`SIRET ${ordre.doSiret} — `:""}${ordre.doEmail||""}</p>
+    <h1>🌲 ${ordre.doNom || "APPLITAG SAS"}</h1>
+    <p>${ordre.doAdresse || ""}${ordre.doCP || ordre.doCommune ? ` · ${[ordre.doCP, ordre.doCommune].filter(Boolean).join(" ")}` : ""}</p>
+    <p style="margin-top:2px">${ordre.doSiret ? `SIRET ${ordre.doSiret} — ` : ""}${ordre.doEmail || ""}</p>
   </div>
   <div class="doc-ref">
     <h2>Ordre d'exploitation</h2>
-    <div class="num">Réf. ${ordre.lotNumero||"BROUILLON"}</div>
+    <div class="num">Réf. ${ordre.lotNumero || "BROUILLON"}</div>
     <div class="dt">Émis le ${dateDoc}</div>
   </div>
 </div>
 
 <div class="objet">
   <div class="lbl">Objet</div>
-  <div class="val">Ordre d'exploitation forestière — ${ordre.missionLabel||"Abattage / Débardage"}</div>
+  <div class="val">Ordre d'exploitation forestière — ${ordre.missionLabel || "Abattage / Débardage"}</div>
 </div>
 
 <div class="two">
   <div class="card">
     <h3>🏢 Destinataire (Sous-traitant)</h3>
     <p>
-      <strong>${ordre.entrepriseNom||"—"}</strong><br/>
-      ${ordre.entrepriseAdresse?ordre.entrepriseAdresse+"<br/>":""}
-      ${ordre.entrepriseComplement?ordre.entrepriseComplement+"<br/>":""}
-      ${[ordre.entrepriseCP,ordre.entrepriseCommune].filter(Boolean).join(" ")||""}
-      ${ordre.entrepriseSiret?`<br/><span class="sub">SIRET ${ordre.entrepriseSiret}</span>`:""}
+      <strong>${ordre.entrepriseNom || "—"}</strong><br/>
+      ${ordre.entrepriseAdresse ? ordre.entrepriseAdresse + "<br/>" : ""}
+      ${ordre.entrepriseComplement ? ordre.entrepriseComplement + "<br/>" : ""}
+      ${[ordre.entrepriseCP, ordre.entrepriseCommune].filter(Boolean).join(" ") || ""}
+      ${ordre.entrepriseSiret ? `<br/><span class="sub">SIRET ${ordre.entrepriseSiret}</span>` : ""}
     </p>
   </div>
   <div class="card">
-    <h3>📍 Chantier — Lot ${ordre.lotNumero||""}</h3>
+    <h3>📍 Chantier — Lot ${ordre.lotNumero || ""}</h3>
     <p>
-      ${ordre.lotCommune||"—"}${ordre.lotRefCadastrale?` · Réf. cad. ${ordre.lotRefCadastrale}`:""}<br/>
-      ${ordre.lotAdresse?ordre.lotAdresse+"<br/>":""}
-      ${ordre.lotSurfaceHa?`🌲 Surface : ${ordre.lotSurfaceHa} ha`:""}
+      ${ordre.lotCommune || "—"}${ordre.lotRefCadastrale ? ` · Réf. cad. ${ordre.lotRefCadastrale}` : ""}<br/>
+      ${ordre.lotAdresse ? ordre.lotAdresse + "<br/>" : ""}
+      ${ordre.lotSurfaceHa ? `🌲 Surface : ${ordre.lotSurfaceHa} ha` : ""}
     </p>
   </div>
 </div>
@@ -1215,12 +1316,12 @@ td{padding:7px 10px;border-bottom:1px solid #ECEAE6;font-size:10.5px}
   <table>
     <tr><th>Prestation</th><th>Volume estimé</th><th>Délai d'exécution</th></tr>
     <tr>
-      <td>${ordre.missionLabel||"Abattage et débardage"}</td>
-      <td>${ordre.volumeEstime?ordre.volumeEstime+" t":"—"}</td>
+      <td>${ordre.missionLabel || "Abattage et débardage"}</td>
+      <td>${ordre.volumeEstime ? ordre.volumeEstime + " t" : "—"}</td>
       <td>${delaiFmt}</td>
     </tr>
   </table>
-  ${ordre.description?`<div class="note">📝 ${ordre.description}</div>`:""}
+  ${ordre.description ? `<div class="note">📝 ${ordre.description}</div>` : ""}
 </div>
 
 <div class="code-box">
@@ -1228,43 +1329,44 @@ td{padding:7px 10px;border-bottom:1px solid #ECEAE6;font-size:10.5px}
     <div class="lbl">Code de validation APPLITAG</div>
     <div style="font-size:9px;color:#5A5955;margin-top:3px">À saisir dans l'application pour confirmer l'acceptation du chantier</div>
   </div>
-  <div class="code">${ordre.code||"------"}</div>
+  <div class="code">${ordre.code || "------"}</div>
 </div>
 
 <div class="sigs">
   <div class="sig">
     <h4>Le Donneur d'ordre</h4>
-    <div class="who">${ordre.doNom||"APPLITAG SAS"}</div>
+    <div class="who">${ordre.doNom || "APPLITAG SAS"}</div>
     <div class="line">Fait à _____________ le ${dateDoc}</div>
   </div>
   <div class="sig">
     <h4>Le Sous-traitant (bon pour accord)</h4>
-    <div class="who">${ordre.entrepriseNom||"____________________"}</div>
+    <div class="who">${ordre.entrepriseNom || "____________________"}</div>
     <div class="line">Fait à _____________ le ________________</div>
   </div>
 </div>
 
 <div class="footer">
-  APPLITAG — Gestion des flux bois énergie · Référence ${ordre.lotNumero||"—"} ·
-  Document généré le ${new Date().toLocaleDateString("fr-FR")} à ${new Date().toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"})}
+  APPLITAG — Gestion des flux bois énergie · Référence ${ordre.lotNumero || "—"} ·
+  Document généré le ${new Date().toLocaleDateString("fr-FR")} à ${new Date().toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}
 </div>
 
 </div></body></html>`;
 };
 
-// ── AUTO-DÉCLARATION RED ──────────────────────────────────────
-export const buildRedHTML = (lot, visite, transport, livraison, typeDecl) => {
-  const date = new Date().toLocaleDateString("fr-FR",{day:"2-digit",month:"long",year:"numeric"});
+// ── AUTO-DÉCLARATION RED ──────────────────────────────────────────────────────
+
+export const buildRedHTML = (lot: LotDoc, visite: VisiteDoc | null | undefined, transport: TransportDoc | null | undefined, livraison: LivraisonDoc | null | undefined, typeDecl: string): string => {
+  const date = new Date().toLocaleDateString("fr-FR", { day: "2-digit", month: "long", year: "numeric" });
   const tonnage = livraison?.pesee || visite?.volumeEstimeT || "—";
   const gpsParc = visite?.gps ? `${visite.gps.lat.toFixed(5)}°N, ${visite.gps.lng.toFixed(5)}°E` : "—";
   const dist = visite?.redDistance || "—";
   const categorie = visite?.redCategorie || "bois_forestier";
-  const categorieLabel = {bois_forestier:"Bois forestier",residus:"Résidus forestiers",dechets:"Déchets bois"}[categorie]||categorie;
+  const categorieLabel = ({ bois_forestier: "Bois forestier", residus: "Résidus forestiers", dechets: "Déchets bois" } as Record<string, string>)[categorie] || categorie;
   const certif = visite?.numeroCertification ? `Certification ${visite.certification?.toUpperCase()} n° ${visite.numeroCertification}` : "Non certifié";
-  const typeLabels = {
-    auto:"Auto-déclaration de durabilité",
-    durabilite:"Déclaration de durabilité",
-    pos:"Preuve de durabilité (PoS)",
+  const typeLabels: Record<string, string> = {
+    auto: "Auto-déclaration de durabilité",
+    durabilite: "Déclaration de durabilité",
+    pos: "Preuve de durabilité (PoS)",
   };
 
   return `<!DOCTYPE html><html lang="fr"><head>
@@ -1312,7 +1414,7 @@ td:first-child{font-weight:600;width:45%}
     <p>Traçabilité forestière bois-énergie</p>
   </div>
   <div class="badge">
-    <h2>${typeLabels[typeDecl]}</h2>
+    <h2>${typeLabels[typeDecl] || typeDecl}</h2>
     <p>Directive RED — Biomasse bois-énergie</p>
     <p>Référence : ${lot.lotNumero} · ${date}</p>
   </div>
@@ -1328,9 +1430,9 @@ td:first-child{font-weight:600;width:45%}
   <h3>1. Identification de l'opérateur économique</h3>
   <table>
     <tr><td>Raison sociale</td><td>APPLITAG — Gestionnaire forestier</td></tr>
-    <tr><td>Référence interne</td><td>${lot.lotNumero||"—"}</td></tr>
+    <tr><td>Référence interne</td><td>${lot.lotNumero || "—"}</td></tr>
     <tr><td>Date d'émission</td><td>${date}</td></tr>
-    <tr><td>Type de déclaration</td><td>${typeLabels[typeDecl]}</td></tr>
+    <tr><td>Type de déclaration</td><td>${typeLabels[typeDecl] || typeDecl}</td></tr>
   </table>
 </div>
 
@@ -1338,12 +1440,12 @@ td:first-child{font-weight:600;width:45%}
   <h3>2. Description de la biomasse</h3>
   <table>
     <tr><td>Catégorie biomasse</td><td>${categorieLabel}</td></tr>
-    <tr><td>Pays d'origine</td><td>${visite?.redPays||"France"}</td></tr>
-    <tr><td>Commune / Parcelle</td><td>${lot.commune||"—"} — ${lot.adresseParcelle||"—"}</td></tr>
+    <tr><td>Pays d'origine</td><td>${visite?.redPays || "France"}</td></tr>
+    <tr><td>Commune / Parcelle</td><td>${lot.commune || "—"} — ${lot.adresseParcelle || "—"}</td></tr>
     <tr><td>Coordonnées GPS parcelle</td><td>${gpsParc}</td></tr>
-    <tr><td>Surface exploitée</td><td>${lot.surfaceHa||"—"} ha</td></tr>
-    <tr><td>Essences principales</td><td>${visite?.essences?.map(e=>`${e.label} (${e.pct}%)`).join(", ")||"—"}</td></tr>
-    <tr><td>Réf. cadastrale</td><td>${lot.refCadastrale||"—"}</td></tr>
+    <tr><td>Surface exploitée</td><td>${lot.surfaceHa || "—"} ha</td></tr>
+    <tr><td>Essences principales</td><td>${visite?.essences?.map(e => `${e.label} (${e.pct}%)`).join(", ") || "—"}</td></tr>
+    <tr><td>Réf. cadastrale</td><td>${lot.refCadastrale || "—"}</td></tr>
   </table>
 </div>
 
@@ -1351,25 +1453,25 @@ td:first-child{font-weight:600;width:45%}
   <h3>3. Données de traçabilité</h3>
   <table>
     <tr><td>Tonnage livré</td><td>${tonnage} tonnes</td></tr>
-    <tr><td>Humidité à réception</td><td>${livraison?.humiditeReception||visite?.humiditeMesure||"—"} %</td></tr>
-    <tr><td>Destination</td><td>${livraison?.nomDestination||"—"}</td></tr>
+    <tr><td>Humidité à réception</td><td>${livraison?.humiditeReception || visite?.humiditeMesure || "—"} %</td></tr>
+    <tr><td>Destination</td><td>${livraison?.nomDestination || "—"}</td></tr>
     <tr><td>Distance parcelle → chaufferie</td><td>${dist} km</td></tr>
-    <tr><td>N° CMR</td><td>${transport?.numeroCMR||"—"}</td></tr>
-    <tr><td>Date livraison</td><td>${livraison?.dateHeureLivraison?.slice(0,10)||"—"}</td></tr>
+    <tr><td>N° CMR</td><td>${transport?.numeroCMR || "—"}</td></tr>
+    <tr><td>Date livraison</td><td>${livraison?.dateHeureLivraison?.slice(0, 10) || "—"}</td></tr>
     <tr><td>Certification applicable</td><td>${certif}</td></tr>
   </table>
 </div>
 
-${typeDecl==="pos"?`
+${typeDecl === "pos" ? `
 <div class="sec">
   <h3>4. Informations de transfert (PoS)</h3>
   <table>
-    <tr><td>Opérateur émetteur</td><td>${lot.etfNom||"—"}</td></tr>
-    <tr><td>Opérateur récepteur</td><td>${livraison?.nomReceptionnaire||"—"}</td></tr>
+    <tr><td>Opérateur émetteur</td><td>${lot.etfNom || "—"}</td></tr>
+    <tr><td>Opérateur récepteur</td><td>${livraison?.nomReceptionnaire || "—"}</td></tr>
     <tr><td>Type de transfert</td><td>Livraison directe chaufferie</td></tr>
     <tr><td>Quantité transférée</td><td>${tonnage} tonnes</td></tr>
   </table>
-</div>`:""}
+</div>` : ""}
 
 <div class="ref">
   <strong>Critères de durabilité vérifiés (Art. 29 RED II) :</strong><br/>
@@ -1377,7 +1479,7 @@ ${typeDecl==="pos"?`
   ✓ Pays d'origine UE — France, traçabilité complète de la forêt à la chaufferie<br/>
   ✓ Catégorie biomasse identifiée — ${categorieLabel}<br/>
   ✓ Distance de transport documentée — ${dist} km (seuil recommandé : &lt;500 km)<br/>
-  ${visite?.replantation==="oui"?"✓ Replantation prévue — exigences sylvicoles respectées<br/>":""}
+  ${visite?.replantation === "oui" ? "✓ Replantation prévue — exigences sylvicoles respectées<br/>" : ""}
   ✓ Données enregistrées dans APPLITAG — système de traçabilité numérique horodaté
 </div>
 
@@ -1398,7 +1500,7 @@ ${typeDecl==="pos"?`
 </div>
 
 <div class="footer">
-  APPLITAG · Traçabilité RED bois-énergie · Lot ${lot.lotNumero||"—"} ·
+  APPLITAG · Traçabilité RED bois-énergie · Lot ${lot.lotNumero || "—"} ·
   Document généré le ${date} · Confidentiel — Usage interne
 </div>
 </div></body></html>`;

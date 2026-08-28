@@ -26,15 +26,15 @@ let _migrationFaite = false;
 
 /**
  * Lance la migration si elle n'a pas encore été faite dans cette session.
- * @param {string} tenantId — identifiant du tenant courant
- * @param {string} utilisateurId
+ * @param tenantId — identifiant du tenant courant
+ * @param utilisateurId
  */
-export async function migrerBrouillonsLocalStorage(tenantId, utilisateurId) {
+export async function migrerBrouillonsLocalStorage(tenantId: string, utilisateurId: string): Promise<void> {
   if (_migrationFaite) return;
   _migrationFaite = true;
 
   for (const { prefix, entityType } of PREFIXES) {
-    const keysToMigrate = [];
+    const keysToMigrate: string[] = [];
     for (let i = 0; i < localStorage.length; i++) {
       const key = localStorage.key(i);
       if (key && key.startsWith(prefix)) keysToMigrate.push(key);
@@ -45,8 +45,7 @@ export async function migrerBrouillonsLocalStorage(tenantId, utilisateurId) {
         const raw = localStorage.getItem(lsKey);
         if (!raw) continue;
 
-        const data = JSON.parse(raw);
-        // L'entityLocalId est la partie de la clé après le préfixe, ou un UUID généré
+        const data = JSON.parse(raw) as Record<string, unknown>;
         const entityLocalId = lsKey.slice(prefix.length).replace(/^_/, '') || crypto.randomUUID();
 
         await sauvegarderBrouillon({
@@ -56,7 +55,6 @@ export async function migrerBrouillonsLocalStorage(tenantId, utilisateurId) {
           data: { ...data, _migreDepuisLocalStorage: true, _lsKey: lsKey, utilisateurId },
         });
 
-        // Supprime la clé seulement après succès de la migration
         localStorage.removeItem(lsKey);
       } catch {
         // Brouillon corrompu : on le supprime plutôt que de bloquer
