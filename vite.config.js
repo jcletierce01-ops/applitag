@@ -63,6 +63,14 @@ export default defineConfig({
     },
   },
   plugins: [react(), cspPlugin()],
+  server: {
+    headers: {
+      'X-Content-Type-Options': 'nosniff',
+      'X-Frame-Options': 'DENY',
+      'Referrer-Policy': 'strict-origin-when-cross-origin',
+      'Permissions-Policy': 'camera=(self), microphone=(), geolocation=(), payment=(), usb=(), browsing-topics=(), display-capture=()',
+    },
+  },
   resolve: {
     alias: {
       // @/ résout vers src/ — utiliser pour les imports inter-domaines
