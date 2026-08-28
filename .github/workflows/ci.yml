@@ -1,0 +1,50 @@
+name: CI — applitag
+
+on:
+  push:
+    branches: [main, master, "hardening/**", "feat/**", "fix/**"]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  check:
+    name: Lint · Tests · Build
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Audit de sécurité des dépendances
+        run: npm audit --audit-level=high
+
+      - name: Audit licences — dépendances compatibles open source
+        run: npm run audit:licenses
+
+      - name: ESLint — zéro erreur, zéro warning
+        run: npm run lint -- --max-warnings 0
+
+      - name: Vitest — tests unitaires cœur métier
+        run: npm test
+
+      - name: Vitest — couverture avec seuils (stmt/func/lines 100%, branches 95%)
+        run: npm run test:coverage
+
+      - name: Build — mode production
+        run: npm run build:prod
+        env:
+          VITE_API_URL: https://applitag-api-production.up.railway.app
+
+      - name: Audit bundle — aucun secret dans les chunks
+        run: npm run audit:bundle
+
+      - name: Build — mode demo
+        run: npm run build:demo
