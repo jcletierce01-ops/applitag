@@ -1,18 +1,19 @@
-const ALLOWED_MODES = ['production', 'demo', 'development'];
+const ALLOWED_MODES = ['production', 'demo', 'development'] as const;
+type AllowedMode = (typeof ALLOWED_MODES)[number];
 
 /**
  * Valide les variables d'environnement au démarrage.
- * @param {object} env — defaults to import.meta.env (injectable pour les tests)
+ * @param env — defaults to import.meta.env (injectable pour les tests)
  * @throws {Error} si une variable obligatoire est absente ou invalide
  */
-export function assertEnv(env = import.meta.env) {
-  const errors = [];
+export function assertEnv(env: { VITE_APP_MODE?: string; VITE_API_URL?: string; [key: string]: string | boolean | undefined } = import.meta.env): void {
+  const errors: string[] = [];
 
   if (!env.VITE_APP_MODE) {
     errors.push(
       `VITE_APP_MODE manquant — valeurs attendues : ${ALLOWED_MODES.join(', ')}`
     );
-  } else if (!ALLOWED_MODES.includes(env.VITE_APP_MODE)) {
+  } else if (!ALLOWED_MODES.includes(env.VITE_APP_MODE as AllowedMode)) {
     errors.push(
       `VITE_APP_MODE="${env.VITE_APP_MODE}" non reconnu — valeurs attendues : ${ALLOWED_MODES.join(', ')}`
     );
