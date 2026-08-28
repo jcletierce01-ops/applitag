@@ -1,0 +1,38 @@
+{
+  "compilerOptions": {
+    /* Cible : navigateurs modernes (ES2020) */
+    "target": "ES2020",
+    "useDefineForClassFields": true,
+    "lib": ["ES2020", "DOM", "DOM.Iterable"],
+
+    /* Module : mode bundler (Vite/Rolldown) */
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
+    "isolatedModules": true,
+    "moduleDetection": "force",
+    "noEmit": true,
+    "jsx": "react-jsx",
+
+    /* Rigueur TypeScript */
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true,
+    "exactOptionalPropertyTypes": true,
+
+    /* Cohabitation JS/TS — les .js/.jsx existants sont importables
+       mais ne sont pas type-checkés (checkJs: false).
+       Migrer progressivement en renommant en .ts/.tsx. */
+    "allowJs": true,
+    "checkJs": false,
+    "skipLibCheck": true,
+
+    /* Alias @/ → src/ (idem vite.config.js) */
+    "paths": {
+      "@/*": ["./src/*"]
+    }
+  },
+  "include": ["src"],
+  "exclude": ["node_modules", "dist"]
+}

@@ -32,6 +32,9 @@ jobs:
       - name: ESLint — zéro erreur, zéro warning
         run: npm run lint -- --max-warnings 0
 
+      - name: TypeScript — vérification des types (tsc --noEmit)
+        run: npm run type-check
+
       - name: Vitest — tests unitaires cœur métier
         run: npm test
 
