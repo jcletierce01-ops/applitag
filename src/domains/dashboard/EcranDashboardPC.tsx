@@ -1,4 +1,4 @@
-﻿import { useState } from "react";
+import { useState } from "react";
 import { C, FONT_TITLE, FONT_BODY } from "../../design-system/tokens.js";
 import { fmtNum } from "../../shared/format.js";
 import { MiniBarChart } from "../../shared/ui.jsx";
@@ -8,23 +8,35 @@ import { DASHBOARD_NAV } from "./sections.constants.js";
 
 import { EcranCarte } from "../roles/RoleScreens.jsx";
 import { STATUT_LOT } from "../screens/MobileScreens.constants.js";
-export const EcranDashboardPC = ({user, contacts, visites, notifications, transports=[], livraisons=[], dechiquetages=[], pendingSyncCount=0, onLogout}) => {
+
+interface EcranDashboardPCProps {
+  user: Record<string, unknown> | null;
+  contacts: any[];
+  visites: any[];
+  notifications: any[];
+  transports?: any[];
+  livraisons?: any[];
+  dechiquetages?: any[];
+  pendingSyncCount?: number;
+  onLogout: () => void;
+}
+
+export const EcranDashboardPC = ({user, contacts, visites, notifications, transports=[], livraisons=[], dechiquetages=[], pendingSyncCount=0, onLogout}: EcranDashboardPCProps) => {
   const [section, setSection] = useState("dashboard");
-  const [lotDetail, setLotDetail] = useState(null);
+  const [lotDetail, setLotDetail] = useState<any>(null);
 
   const lots = contacts.filter(c=>c.lotNumero);
-  const _enExploitation = lots.filter(c=>["VALIDE_EXPLOITATION","EN_COURS_EXPLOITATION"].includes(c.statutLot));
   const moisCourant = new Date().toISOString().slice(0,7);
-  const livraisonsDuMois = livraisons.filter(l=>(l.dateHeureLivraison||l.dateLivraison||l.createdAt||"").slice(0,7)===moisCourant);
-  const tonnesLivreesMois = livraisonsDuMois.reduce((s,l)=>s+(parseFloat(l.pesee)||0),0);
-  const humidites = livraisons.map(l=>parseFloat(l.humiditeReception)).filter(n=>!isNaN(n));
-  const humiditeMoyenne = humidites.length ? humidites.reduce((s,n)=>s+n,0)/humidites.length : null;
+  const livraisonsDuMois = livraisons.filter((l: any)=>(l.dateHeureLivraison||l.dateLivraison||l.createdAt||"").slice(0,7)===moisCourant);
+  const tonnesLivreesMois = livraisonsDuMois.reduce((s: number,l: any)=>s+(parseFloat(l.pesee)||0),0);
+  const humidites = livraisons.map((l: any)=>parseFloat(l.humiditeReception)).filter((n: number)=>!isNaN(n));
+  const humiditeMoyenne = humidites.length ? humidites.reduce((s: number,n: number)=>s+n,0)/humidites.length : null;
 
   // Séries journalières du mois en cours (tonnage livré et humidité moyenne par jour)
   const nbJoursMois = new Date(new Date().getFullYear(), new Date().getMonth()+1, 0).getDate();
-  const tonnageParJour = Array.from({length:nbJoursMois},()=>0);
-  const humiditeParJour = Array.from({length:nbJoursMois},()=>[]);
-  livraisonsDuMois.forEach(l=>{
+  const tonnageParJour: number[] = Array.from({length:nbJoursMois},()=>0);
+  const humiditeParJour: number[][] = Array.from({length:nbJoursMois},()=>[]);
+  livraisonsDuMois.forEach((l: any)=>{
     const dateStr = l.dateHeureLivraison||l.dateLivraison||l.createdAt||"";
     const jour = parseInt(dateStr.slice(8,10),10);
     if (jour>=1 && jour<=nbJoursMois) {
@@ -34,14 +46,14 @@ export const EcranDashboardPC = ({user, contacts, visites, notifications, transp
     }
   });
   const humiditeMoyenneParJour = humiditeParJour.map(arr=>arr.length?arr.reduce((s,n)=>s+n,0)/arr.length:0);
-  const transportsEnCours = lots.filter(c=>c.statutLot==="EN_LIVRAISON").length;
-  const alertesActives = notifications.filter(n=>!n.lu);
-  const stockPlateformes = lots.filter(c=>["BORD_ROUTE","A_DECHIQUETER","EN_STOCK_PLATEFORME"].includes(c.statutLot))
-    .reduce((s,c)=>s+(parseFloat(c.tonnageCumul)||0),0);
-  const stockChaufferies = livraisons.filter(l=>l.typeDest==="chaufferie")
-    .reduce((s,l)=>s+(parseFloat(l.pesee)||0),0);
+  const transportsEnCours = lots.filter((c: any)=>c.statutLot==="EN_LIVRAISON").length;
+  const alertesActives = notifications.filter((n: any)=>!n.lu);
+  const stockPlateformes = lots.filter((c: any)=>["BORD_ROUTE","A_DECHIQUETER","EN_STOCK_PLATEFORME"].includes(c.statutLot))
+    .reduce((s: number,c: any)=>s+(parseFloat(c.tonnageCumul)||0),0);
+  const stockChaufferies = livraisons.filter((l: any)=>l.typeDest==="chaufferie")
+    .reduce((s: number,l: any)=>s+(parseFloat(l.pesee)||0),0);
   const cmrTotal = dechiquetages.length;
-  const cmrConformes = dechiquetages.filter(d=>d.numeroCMR&&d.photoCMR).length;
+  const cmrConformes = dechiquetages.filter((d: any)=>d.numeroCMR&&d.photoCMR).length;
   const tauxConformite = cmrTotal ? Math.round((cmrConformes/cmrTotal)*100) : null;
 
   const KPI_CARDS = [
@@ -81,7 +93,7 @@ export const EcranDashboardPC = ({user, contacts, visites, notifications, transp
           </div>
         </div>
         <div style={{flex:1,overflowY:"auto",overflowX:"hidden"}}>
-          {DASHBOARD_NAV.map(item=>(
+          {DASHBOARD_NAV.map((item: any)=>(
             <div key={item.id} onClick={()=>setSection(item.id)} style={{
               display:"flex",alignItems:"center",gap:10,padding:"11px 20px",cursor:"pointer",
               background:section===item.id?"rgba(255,255,255,.12)":"transparent",
@@ -102,11 +114,11 @@ export const EcranDashboardPC = ({user, contacts, visites, notifications, transp
           <div style={{width:32,height:32,borderRadius:"50%",background:C.greenL,
             color:C.greenD,display:"flex",alignItems:"center",justifyContent:"center",
             fontWeight:700,fontSize:13,flexShrink:0}}>
-            {(user?.prenom||user?.nom||"?")[0]}
+            {(String(user?.prenom||user?.nom||"?"))[0]}
           </div>
           <div style={{flex:1}}>
             <div style={{fontSize:13,fontWeight:600}}>
-              {user?.prenom ? `${user.prenom[0]}.` : ""} {user?.nom}
+              {user?.prenom ? `${String(user.prenom)[0]}.` : ""} {String(user?.nom||"")}
             </div>
             <div style={{fontSize:11,opacity:.6}}>Exploitant</div>
           </div>
@@ -118,7 +130,7 @@ export const EcranDashboardPC = ({user, contacts, visites, notifications, transp
       <div style={{flex:1,overflowY:"auto",padding:24}}>
         <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:20}}>
           <div style={{fontSize:20,fontWeight:700,fontFamily:FONT_TITLE,color:C.tx}}>
-            {DASHBOARD_NAV.find(n=>n.id===section)?.label||"Tableau de bord"}
+            {DASHBOARD_NAV.find((n: any)=>n.id===section)?.label||"Tableau de bord"}
           </div>
           <div style={{display:"flex",alignItems:"center",gap:10}}>
             {pendingSyncCount>0&&(
@@ -133,11 +145,11 @@ export const EcranDashboardPC = ({user, contacts, visites, notifications, transp
             <div style={{width:34,height:34,borderRadius:"50%",background:C.greenL,
               color:C.greenD,display:"flex",alignItems:"center",justifyContent:"center",
               fontWeight:700,fontSize:14}}>
-              {(user?.prenom||user?.nom||"?")[0]}
+              {(String(user?.prenom||user?.nom||"?"))[0]}
             </div>
             <div>
-              <div style={{fontSize:13,fontWeight:600}}>{user?.prenom} {user?.nom}</div>
-              <div style={{fontSize:11,color:C.tx3,textTransform:"capitalize"}}>{user?.role}</div>
+              <div style={{fontSize:13,fontWeight:600}}>{String(user?.prenom||"")} {String(user?.nom||"")}</div>
+              <div style={{fontSize:11,color:C.tx3,textTransform:"capitalize"}}>{String(user?.role||"")}</div>
             </div>
           </div>
         </div>
@@ -164,7 +176,7 @@ export const EcranDashboardPC = ({user, contacts, visites, notifications, transp
                 </div>
                 <div style={{flex:1,borderRadius:10,overflow:"hidden",position:"relative"}}>
                   <EcranCarte contacts={contacts} visites={visites}
-                    onOpenLot={lot=>setLotDetail(lot)}/>
+                    onOpenLot={(lot: any)=>setLotDetail(lot)}/>
                   <div style={{position:"absolute",bottom:10,left:10,background:"rgba(255,255,255,.95)",
                     borderRadius:10,padding:"8px 12px",boxShadow:"0 2px 8px rgba(0,0,0,.12)",
                     display:"flex",flexDirection:"column",gap:5,zIndex:5}}>
@@ -186,9 +198,9 @@ export const EcranDashboardPC = ({user, contacts, visites, notifications, transp
                         fontWeight:600,cursor:"pointer"}}>Voir tout</span>
                     )}
                   </div>
-                  {transports.filter(t=>!["LIVRE","LIVRE_CHAUFFERIE"].includes(t.statut)).length===0 ? (
+                  {transports.filter((t: any)=>!["LIVRE","LIVRE_CHAUFFERIE"].includes(t.statut)).length===0 ? (
                     <div style={{fontSize:13,color:C.tx3}}>Aucun transport en cours.</div>
-                  ) : transports.filter(t=>!["LIVRE","LIVRE_CHAUFFERIE"].includes(t.statut)).slice(0,3).map((t,i)=>(
+                  ) : transports.filter((t: any)=>!["LIVRE","LIVRE_CHAUFFERIE"].includes(t.statut)).slice(0,3).map((t: any,i: number)=>(
                     <div key={t.id||i} style={{marginBottom:12,paddingBottom:12,
                       borderBottom:i<2?`1px solid ${C.bd}`:"none"}}>
                       <div style={{fontFamily:"monospace",fontSize:12,fontWeight:700,color:C.tx}}>
@@ -200,9 +212,9 @@ export const EcranDashboardPC = ({user, contacts, visites, notifications, transp
                       <span style={{fontSize:10,color:C.green,fontWeight:600}}>● En route</span>
                     </div>
                   ))}
-                  {transports.filter(t=>!["LIVRE","LIVRE_CHAUFFERIE"].includes(t.statut)).length>3&&(
+                  {transports.filter((t: any)=>!["LIVRE","LIVRE_CHAUFFERIE"].includes(t.statut)).length>3&&(
                     <div style={{fontSize:11,color:C.tx3}}>
-                      + {transports.filter(t=>!["LIVRE","LIVRE_CHAUFFERIE"].includes(t.statut)).length-3} autres transports
+                      + {transports.filter((t: any)=>!["LIVRE","LIVRE_CHAUFFERIE"].includes(t.statut)).length-3} autres transports
                     </div>
                   )}
                 </div>
@@ -217,7 +229,7 @@ export const EcranDashboardPC = ({user, contacts, visites, notifications, transp
                   </div>
                   {notifications.length===0 ? (
                     <div style={{fontSize:13,color:C.tx3}}>Aucune alerte récente.</div>
-                  ) : notifications.slice(0,3).map((n,i)=>(
+                  ) : notifications.slice(0,3).map((n: any,i: number)=>(
                     <div key={n.id||i} style={{display:"flex",gap:10,marginBottom:12}}>
                       <span style={{fontSize:14}}>{n.lu?"✅":"⚠️"}</span>
                       <div style={{flex:1}}>
@@ -296,16 +308,16 @@ export const EcranDashboardPC = ({user, contacts, visites, notifications, transp
         {section==="parametres"  && <SectionParametres/>}
         {section==="reseau"      && <SectionReseau/>}
 
-        {[].includes(section) && (
+        {([] as string[]).includes(section) && (
           <div style={{background:"#fff",borderRadius:14,border:`1px solid ${C.bd}`,
             padding:40,textAlign:"center",color:C.tx3}}>
             <div style={{fontSize:32,marginBottom:10}}>🚧</div>
-            Module "{DASHBOARD_NAV.find(n=>n.id===section)?.label}" — bientôt disponible sur le tableau de bord desktop.
+            Module "{DASHBOARD_NAV.find((n: any)=>n.id===section)?.label}" — bientôt disponible sur le tableau de bord desktop.
           </div>
         )}
 
         {section==="utilisateurs" && (
-          <SectionAcces isDemo={true}/>
+          <SectionAcces _isDemo={true as any}/>
         )}
 
         {section==="abonnements" && (
@@ -317,15 +329,15 @@ export const EcranDashboardPC = ({user, contacts, visites, notifications, transp
         )}
 
         {section==="conformite_red" && (
-          <SectionConformiteRED lots={lots} visites={visites} livraisons={livraisons}/>
+          <SectionConformiteRED lots={lots as any} visites={visites as any} livraisons={livraisons as any}/>
         )}
 
         {section==="cout_reglementaire" && (
-          <SectionCoutReglementaire lots={lots} livraisons={livraisons}/>
+          <SectionCoutReglementaire lots={lots as any} livraisons={livraisons as any}/>
         )}
 
         {section==="ges" && (
-          <SectionGES lots={lots} visites={visites} livraisons={livraisons}/>
+          <SectionGES lots={lots as any} visites={visites as any} livraisons={livraisons as any}/>
         )}
 
         {section==="demo" && (
@@ -359,18 +371,17 @@ export const EcranDashboardPC = ({user, contacts, visites, notifications, transp
 
         {section==="planning" && (
           <SectionPlanning
-            contacts={contacts} visites={visites}
-            transports={transports} livraisons={livraisons}
-            onSelectLot={(lotId)=>{ const lot=contacts.find(c=>c.id===lotId); if(lot){setLotDetail(lot);setSection("lots");} }}
+            contacts={contacts as any} visites={visites as any}
+            transports={transports as any} livraisons={livraisons as any}
+            onSelectLot={(lotId: any)=>{ const lot=contacts.find((c: any)=>c.id===lotId); if(lot){setLotDetail(lot);setSection("lots");} }}
           />
         )}
 
         {section==="alertes" && <HubAlertes
-          contacts={contacts} livraisons={livraisons}
+          contacts={contacts as any} livraisons={livraisons as any}
           onGoTo={setSection}
         />}
       </div>
     </div>
   );
 };
-

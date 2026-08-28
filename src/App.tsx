@@ -1,4 +1,4 @@
-﻿// ============================================================
+// ============================================================
 // APPLITAG MOBILE — Auth QR + PIN + Multi-tenant
 // ============================================================
 
@@ -31,29 +31,29 @@ import { EcranLots, ModalDelegationVisite, ModalSuggestionETF, EcranValidationEx
 import { LoginScreen } from "./domains/auth/LoginScreen.jsx";
 
 export default function App() {
-  const [user,      setUser]      = useState(()=>getUser());
-  const [operateur, setOperateur] = useState(()=>{ try { return JSON.parse(localStorage.getItem("applitag_operateur")||"null"); } catch { return null; } });
+  const [user,      setUser]      = useState<any>(()=>getUser());
+  const [operateur, setOperateur] = useState<any>(()=>{ try { return JSON.parse(localStorage.getItem("applitag_operateur")||"null"); } catch { return null; } });
   const [screen,    setScreen]    = useState("accueil");
-  const [fiche0Prefill, setFiche0Prefill] = useState(null);
-  const [roleChoisi, setRoleChoisi] = useState(null);
-  const [contacts,  setContacts]  = useState(()=>getUser()?.demo ? DEMO_LOTS : []);
-  const [visites,   setVisites]   = useState(()=>getUser()?.demo ? DEMO_VISITES : []);
-  const [toasts,    setToasts]    = useState([]);
-  const [activeLot, setActiveLot] = useState(null);
-  const [activeContact, setActiveContact] = useState(null);
+  const [fiche0Prefill, setFiche0Prefill] = useState<any>(null);
+  const [roleChoisi, setRoleChoisi] = useState<any>(null);
+  const [contacts,  setContacts]  = useState<any[]>(()=>getUser()?.demo ? DEMO_LOTS : []);
+  const [visites,   setVisites]   = useState<any[]>(()=>getUser()?.demo ? DEMO_VISITES : []);
+  const [toasts,    setToasts]    = useState<{ id: string; msg: string; type: string }[]>([]);
+  const [activeLot, setActiveLot] = useState<any>(null);
+  const [activeContact, setActiveContact] = useState<any>(null);
   const [showQr,    setShowQr]    = useState(false);
   const [filtreLotsInitial, setFiltreLotsInitial] = useState("TOUS");
-  const [operateurs, setOperateurs] = useState([]);
+  const [operateurs, setOperateurs] = useState<any[]>([]);
   const [showEtfModal,    setShowEtfModal]    = useState(false);
   const [showDelegVisite, setShowDelegVisite] = useState(false);
   const [isDemoMode,   setIsDemoMode]   = useState(()=>!!(getUser()?.demo));
-  const [reportings,   setReportings]   = useState(()=>getUser()?.demo ? DEMO_REPORTINGS : []);
-  const [transports,   setTransports]   = useState(()=>getUser()?.demo ? DEMO_TRANSPORTS : []);
-  const [livraisons,   setLivraisons]   = useState(()=>getUser()?.demo ? DEMO_LIVRAISONS : []);
-  const [dechiquetages,setDechiquetages] = useState(()=>getUser()?.demo ? DEMO_DECHIQUETAGES : []);
-  const [avisArrivee,  setAvisArrivee]   = useState(()=>{try{const s=sessionStorage.getItem("applitag_avis_arrivee");return s?JSON.parse(s):{}}catch{return{}}});
-  const [camionsPartis,setCamionsPartis] = useState(()=>{try{const s=sessionStorage.getItem("applitag_camions_partis");return s?JSON.parse(s):{}}catch{return{}}});
-  const [gpsChantier,  setGpsChantier]  = useState({}); // {[lotId]: {lat,lng,heure}}
+  const [reportings,   setReportings]   = useState<any[]>(()=>getUser()?.demo ? DEMO_REPORTINGS : []);
+  const [transports,   setTransports]   = useState<any[]>(()=>getUser()?.demo ? DEMO_TRANSPORTS : []);
+  const [livraisons,   setLivraisons]   = useState<any[]>(()=>getUser()?.demo ? DEMO_LIVRAISONS : []);
+  const [dechiquetages,setDechiquetages] = useState<any[]>(()=>getUser()?.demo ? DEMO_DECHIQUETAGES : []);
+  const [avisArrivee,  setAvisArrivee]   = useState<any>(()=>{try{const s=sessionStorage.getItem("applitag_avis_arrivee");return s?JSON.parse(s):{}}catch{return{}}});
+  const [camionsPartis,setCamionsPartis] = useState<any>(()=>{try{const s=sessionStorage.getItem("applitag_camions_partis");return s?JSON.parse(s):{}}catch{return{}}});
+  const [gpsChantier,  setGpsChantier]  = useState<any>({}); // {[lotId]: {lat,lng,heure}}
   const entrepriseId = getEntrepriseId();
 
   // Bascule vers le tableau de bord desktop (admin) sur grand écran
@@ -73,13 +73,13 @@ export default function App() {
     resyncPendingRecords().finally(()=>setPendingSyncCount(countPendingSync()));
   },[user, isDemoMode]);
 
-  const toast = useCallback((msg,type="success")=>{
+  const toast = useCallback((msg: string, type = "success")=>{
     const id=uid();
     setToasts(t=>[...t,{id,msg,type}]);
     setTimeout(()=>setToasts(t=>t.filter(x=>x.id!==id)),4000);
   },[]);
 
-  const [notifications, setNotifications] = useState([]);
+  const [notifications, setNotifications] = useState<any[]>([]);
 
   useEffect(()=>{
     if (!user || isDemoMode) return;
@@ -88,12 +88,12 @@ export default function App() {
         if(Array.isArray(d)) {
           try {
             const deleted = deletedLotsGet();
-            const filtered = d.filter(c=>!deleted.includes(c.id));
+            const filtered = d.filter((c: any)=>!deleted.includes(c.id));
             const local = JSON.parse(localStorage.getItem("applitag_contacts")||"[]");
             if(local.length>0) {
               const ordre = ["NOUVEAU","VISITE_PREVUE","VISITE_REALISEE","VALIDE_EXPLOITATION","EN_COURS_EXPLOITATION","BORD_ROUTE","A_DECHIQUETER","EN_COURS_DECHIQUETAGE","EN_LIVRAISON","LIVRE_CHAUFFERIE"];
-              const merged = filtered.map(c=>{
-                const l = local.find(x=>x.id===c.id);
+              const merged = filtered.map((c: any)=>{
+                const l = local.find((x: any)=>x.id===c.id);
                 if(l && ordre.indexOf(l.statutLot)>ordre.indexOf(c.statutLot)) return {...c,statutLot:l.statutLot};
                 return c;
               });
@@ -123,16 +123,16 @@ export default function App() {
     }
   },[contacts, isDemoMode]);
 
-  const handleLogin = (u) => {
+  const handleLogin = (u: any) => {
     setTransitioning(true);
     setUser(u);
     setTimeout(()=>setTransitioning(false), 50);
   };
-  const handleLoginOperateur = (op) => {
+  const handleLoginOperateur = (op: any) => {
     setOperateur(op);
     try { localStorage.setItem("applitag_operateur", JSON.stringify(op)); } catch { /* noop */ }
   };
-  const handleLoginDemo = (role) => {
+  const handleLoginDemo = (role: string) => {
     if (!IS_DEMO_BUILD) return;
     setIsDemoMode(true);
     setContacts(DEMO_LOTS);
@@ -155,7 +155,7 @@ export default function App() {
     const demoKey = role === "contact" ? "contact" : role;
     const u = {...DEMO_USERS[demoKey], demo:true};
     setUser(u);
-    setAuth("demo-token", u, DEMO_ENTREPRISE_ID);
+    setAuth("demo-token", u, DEMO_ENTREPRISE_ID ?? "");
   };
   const handleLogoutOperateur = () => {
     localStorage.removeItem("applitag_operateur");
@@ -171,7 +171,7 @@ export default function App() {
   // Scroll to top on every screen change
   useEffect(()=>{
     window.scrollTo(0,0);
-    document.querySelectorAll('[data-scrollable]').forEach(el=>{ el.scrollTop=0; });
+    document.querySelectorAll('[data-scrollable]').forEach(el=>{ (el as HTMLElement).scrollTop=0; });
   },[screen]);
 
   if (transitioning) return (
@@ -188,7 +188,7 @@ export default function App() {
       fontFamily:FONT_BODY,
       maxWidth:430,margin:"0 auto",boxShadow:"0 0 40px rgba(0,0,0,.15)"}}>
       <EcranOperateur operateur={operateur} onLogout={handleLogoutOperateur} toast={toast}
-        onUpdateOperateur={op=>{ setOperateur(op); try{localStorage.setItem("applitag_operateur",JSON.stringify(op));} catch { /* noop */ } }}/>
+        onUpdateOperateur={(op: any)=>{ setOperateur(op); try{localStorage.setItem("applitag_operateur",JSON.stringify(op));} catch { /* noop */ } }}/>
     </div>
   );
 
@@ -213,7 +213,7 @@ export default function App() {
   const tousRoles = user?.roles?.length>1 ? user.roles : null;
   const roleEffectif = roleChoisi || user?.role;
   if (tousRoles && !roleChoisi) {
-    const ROLE_INFO = {
+    const ROLE_INFO: Record<string, {icon: string; label: string; desc: string}> = {
       admin:        {icon:"⚙️", label:"Administration",      desc:"Gestion complète de l'application"},
       manager:      {icon:"📊", label:"Manager",              desc:"Supervision et rapports"},
       proprietaire: {icon:"🏠", label:"Espace Propriétaire",  desc:"Mes lots et suivis"},
@@ -235,7 +235,7 @@ export default function App() {
           </div>
         </div>
         <div style={{flex:1,overflowY:"auto",padding:"0 20px 40px"}}>
-          {tousRoles.map(r=>{
+          {tousRoles.map((r: any)=>{
             const info = ROLE_INFO[r]||{icon:"👤",label:r,desc:""};
             return (
               <button key={r} onClick={()=>setRoleChoisi(r)}
@@ -282,16 +282,16 @@ export default function App() {
         <FormulaireVisite
           lot={activeLot}
           onBack={()=>{ setScreen("mandataire-lots"); setActiveLot(null); }}
-          onSaved={v=>{
+          onSaved={(v: any)=>{
             setVisites(prev=>[v,...prev]);
-            setContacts(prev=>prev.map(c=>c.id===activeLot.id?{...c,statutLot:"VISITE_REALISEE"}:c));
+            setContacts(prev=>prev.map((c: any)=>c.id===activeLot.id?{...c,statutLot:"VISITE_REALISEE"}:c));
             apiPost(`/contacts/${activeLot.id}/transition`, {action:"validerVisite"}).catch(()=>{});
             setScreen("mandataire-lots"); setActiveLot(null);
             toast("Visite enregistrée ✓");
           }}
-          toast={toast} entrepriseId={entrepriseId}/>
+          toast={toast} entrepriseId={entrepriseId} user={user}/>
       ) : (
-        <EcranRoleMandataire user={user} contacts={contacts} onSelectLot={lot=>{
+        <EcranRoleMandataire user={user} contacts={contacts} onSelectLot={(lot: any)=>{
           setActiveLot(lot); setScreen("visite-form");
         }}/>
       )}
@@ -305,14 +305,14 @@ export default function App() {
         onBack={handleLogout}
         onSaved={()=>{}}
         toast={toast}
-        contactCount={9}
+        _contactCount={9}
         entrepriseId={DEMO_ENTREPRISE_ID}
-        prefill={{
+        prefill={({
           nom:"Dubois", prenom:"Marie",
           telephone:"0386491234", email:"",
           id:"demo-prop2",
-        }}
-        comptes={[]}
+        } as any)}
+        comptes={[] as any}
       />
     </div>
   );
@@ -331,8 +331,8 @@ export default function App() {
           border:"none",color:"rgba(255,255,255,.6)",padding:"6px 10px",borderRadius:8,
           fontSize:12,cursor:"pointer"}}>⎋</button>
       </div>
-      <EcranRoleProprietaire user={user} contacts={contacts} visites={visites}
-        reportings={reportings} livraisons={livraisons} dechiquetages={dechiquetages}/>
+      <EcranRoleProprietaire user={user} contacts={contacts as any} visites={visites as any}
+        reportings={reportings as any} livraisons={livraisons as any} dechiquetages={dechiquetages as any}/>
     </div>
   );
 
@@ -349,7 +349,7 @@ export default function App() {
           border:"none",color:"rgba(255,255,255,.6)",padding:"6px 10px",borderRadius:8,
           fontSize:12,cursor:"pointer"}}>⎋</button>
       </div>
-      <EcranEntrepriseSollicitee user={user} lots={contacts} toast={toast}/>
+      <EcranEntrepriseSollicitee user={user} lots={contacts as any} toast={toast}/>
     </div>
   );
 
@@ -367,10 +367,10 @@ export default function App() {
           border:"none",color:"rgba(255,255,255,.6)",padding:"6px 10px",borderRadius:8,
           fontSize:12,cursor:"pointer"}}>⎋</button>
       </div>
-      <EcranRoleChauffeur user={user} transports={transports} dechiquetages={dechiquetages}
+      <EcranRoleChauffeur user={user} transports={transports as any} dechiquetages={dechiquetages as any}
         gpsChantier={gpsChantier}
-        onValiderArrivee={(lotId,h,nomChauffeur,capaciteM3)=>setAvisArrivee(p=>{const next={...p,[lotId]:{heure:h,nomChauffeur:nomChauffeur.trim(),capaciteM3}};try{sessionStorage.setItem("applitag_avis_arrivee",JSON.stringify(next))} catch { /* noop */ }return next;})}
-        onValiderDepart={(lotId,info)=>setCamionsPartis(p=>{const next={...p,[lotId]:info};try{sessionStorage.setItem("applitag_camions_partis",JSON.stringify(next))} catch { /* noop */ }return next;})}/>
+        onValiderArrivee={(lotId: any,h: any,nomChauffeur: any,capaciteM3: any)=>setAvisArrivee((p: any)=>{const next={...p,[lotId]:{heure:h,nomChauffeur:nomChauffeur.trim(),capaciteM3}};try{sessionStorage.setItem("applitag_avis_arrivee",JSON.stringify(next))} catch { /* noop */ }return next;})}
+        onValiderDepart={(lotId: any,info: any)=>setCamionsPartis((p: any)=>{const next={...p,[lotId]:info};try{sessionStorage.setItem("applitag_camions_partis",JSON.stringify(next))} catch { /* noop */ }return next;})}/>
     </div>
   );
 
@@ -380,10 +380,10 @@ export default function App() {
         fontFamily:FONT_BODY,maxWidth:430,margin:"0 auto",boxShadow:"0 0 40px rgba(0,0,0,.15)"}}>
         <EcranDechiquetage
           lot={activeLot}
-          operateurs={operateurs}
+          operateurs={operateurs as any}
           onBack={()=>setActiveLot(null)}
-          onSaved={(newStatut)=>{
-            setContacts(prev=>prev.map(c=>c.id===activeLot.id?{...c,statutLot:newStatut}:c));
+          onSaved={(newStatut: any)=>{
+            setContacts(prev=>prev.map((c: any)=>c.id===activeLot.id?{...c,statutLot:newStatut}:c));
             setActiveLot(null);
             toast("Déchiquetage enregistré ✓");
           }}
@@ -407,11 +407,11 @@ export default function App() {
             fontSize:12,cursor:"pointer"}}>⎋</button>
         </div>
         <EcranRoleDechiquetage user={user} contacts={contacts}
-          onLaunchDechiquetage={lot=>setActiveLot(lot)}
+          _onLaunchDechiquetage={(lot: any)=>setActiveLot(lot)}
           avisArrivee={avisArrivee}
           camionsPartis={camionsPartis}
           toast={toast}
-          onArriveeChantier={(lotId,heure,coords)=>setGpsChantier(p=>({...p,[lotId]:{heure,coords}}))}/>
+          onArriveeChantier={(lotId: any,heure: any,coords: any)=>setGpsChantier((p: any)=>({...p,[lotId]:{heure,coords}}))}/>
       </div>
     );
   }
@@ -430,7 +430,7 @@ export default function App() {
           border:"none",color:"rgba(255,255,255,.6)",padding:"6px 10px",borderRadius:8,
           fontSize:12,cursor:"pointer"}}>⎋</button>
       </div>
-      <EcranRoleChaufferie user={user} livraisons={livraisons}/>
+      <EcranRoleChaufferie user={user} livraisons={livraisons as any}/>
     </div>
   );
 
@@ -448,7 +448,7 @@ export default function App() {
           border:"none",color:"rgba(255,255,255,.6)",padding:"6px 10px",borderRadius:8,
           fontSize:12,cursor:"pointer"}}>⎋</button>
       </div>
-      <EcranRoleReceptionnaire user={user} livraisons={livraisons} contacts={contacts} visites={visites} toast={toast}/>
+      <EcranRoleReceptionnaire user={user} livraisons={livraisons as any} contacts={contacts as any} visites={visites as any} toast={toast}/>
     </div>
   );
 
@@ -465,7 +465,7 @@ export default function App() {
       : {id:"profil",  label:"Profil",  icon:"👤"},
   ].filter(Boolean);
 
-  const SCREEN_TITLES = {
+  const SCREEN_TITLES: Record<string, string> = {
     accueil:"APPLITAG", lots:"Mes lots", carte:"Carte",
     alertes:"Alertes", profil:"Profil",
   };
@@ -473,7 +473,7 @@ export default function App() {
   if (roleEffectif==="admin" && isWideScreen) return (
     <EcranDashboardPC user={user} contacts={contacts} visites={visites}
       notifications={notifications} transports={transports} livraisons={livraisons}
-      dechiquetages={dechiquetages} toasts={toasts} pendingSyncCount={pendingSyncCount}
+      dechiquetages={dechiquetages} pendingSyncCount={pendingSyncCount}
       onLogout={handleLogout}/>
   );
 
@@ -551,13 +551,13 @@ export default function App() {
       <div ref={el=>{ if(el) el.scrollTop=0; }}
         style={{flex:1,display:"flex",flexDirection:"column",overflow:"hidden"}}>
         {screen==="accueil"&&(
-          <EcranAccueil contacts={contacts} visites={visites}
+          <EcranAccueil contacts={contacts} _visites={visites as any}
             notifications={notifications} user={user}
             onNewLot={()=>setScreen("fiche0")}
-            onGoLots={(f)=>{ setFiltreLotsInitial(f); setScreen("lots"); }}
+            onGoLots={(f: any)=>{ setFiltreLotsInitial(f); setScreen("lots"); }}
             onGoAlertes={()=>setScreen("alertes")}
             onGoDelegations={()=>setScreen("delegations")}
-            onAppelerContact={c=>{ setFiche0Prefill(c); setScreen("fiche0"); }}/>
+            onAppelerContact={(c: any)=>{ setFiche0Prefill(c); setScreen("fiche0"); }}/>
         )}
         {screen==="delegations"&&(
           <EcranDelegations entrepriseId={entrepriseId} toast={toast}
@@ -566,19 +566,19 @@ export default function App() {
         {screen==="lots"&&(
           <EcranLots key={filtreLotsInitial} contacts={contacts}
             onNewLot={()=>setScreen("fiche0")}
-            onOpenLot={c=>{ setActiveContact(c); setScreen("fiche-lot"); }}
+            onOpenLot={(c: any)=>{ setActiveContact(c); setScreen("fiche-lot"); }}
             filtreInitial={filtreLotsInitial}/>
         )}
         {screen==="alertes"&&(
-          <EcranReleves entrepriseId={entrepriseId} user={user} toast={toast}
-            notifications={notifications} setNotifications={setNotifications}
+          <EcranReleves entrepriseId={entrepriseId} _user={user} toast={toast}
+            notifications={notifications as any} setNotifications={setNotifications as any}
             onGoDelegations={()=>setScreen("delegations")}/>
         )}
         {screen==="saisies"&&(
           <EcranSaisiesAdmin
-            contacts={contacts} visites={visites}
-            reportings={reportings} transports={transports}
-            livraisons={livraisons}
+            contacts={contacts as any} visites={visites as any}
+            reportings={reportings as any} transports={transports as any}
+            livraisons={livraisons as any}
             onBack={()=>setScreen("accueil")}/>
         )}
         {screen==="profil"&&(
@@ -608,19 +608,19 @@ export default function App() {
           <EcranCarte
             contacts={contacts}
             visites={visites}
-            onOpenLot={c=>{ setActiveContact(c); setScreen("fiche-lot"); }}/>
+            onOpenLot={(c: any)=>{ setActiveContact(c); setScreen("fiche-lot"); }}/>
         )}
         {screen==="fiche0"&&(
           <Fiche0 onBack={()=>{ setFiche0Prefill(null); setScreen("accueil"); }}
-            onSaved={c=>{ setFiche0Prefill(null); setContacts(prev=>[c,...prev]); setScreen("lots"); }}
-            toast={toast} contactCount={contacts.length} entrepriseId={entrepriseId}
-            prefill={fiche0Prefill} comptes={comptesLocalGet()}/>
+            onSaved={(c: any)=>{ setFiche0Prefill(null); setContacts(prev=>[c,...prev]); setScreen("lots"); }}
+            toast={toast} _contactCount={contacts.length} entrepriseId={entrepriseId}
+            prefill={fiche0Prefill as any} comptes={comptesLocalGet() as any}/>
         )}
         {screen==="fiche-lot"&&activeContact&&(
           <FicheLotCentrale
             lot={activeContact}
-            visites={visites}
-            operateurs={operateurs}
+            visites={visites as any}
+            operateurs={operateurs as any}
             onBack={()=>setScreen("lots")}
             onEdit={()=>setScreen("edit-contact")}
             onBonCommande={()=>setScreen("bon-commande")}
@@ -633,26 +633,26 @@ export default function App() {
             onLaunchFinChantier={()=>setScreen("fin-chantier")}
             onRedDeclaration={()=>setScreen("red-declaration")}
             onDeleguerVisite={()=>setShowDelegVisite(true)}
-            onDeleteLot={(user?.role==="admin"||user?.role==="manager")?async (lot)=>{
+            onDeleteLot={(user?.role==="admin"||user?.role==="manager")?async (lot: any)=>{
               deletedLotsAdd(lot.id);
               try {
                 await apiDelete(`/contacts/${lot.id}`);
               } catch { /* noop */ }
-              setContacts(prev=>prev.filter(c=>c.id!==lot.id));
+              setContacts(prev=>prev.filter((c: any)=>c.id!==lot.id));
               setActiveContact(null);
               setScreen("lots");
               toast(`Lot ${lot.lotNumero} supprimé`,"warn");
             }:undefined}
             toast={toast}
             user={user}
-            entrepriseId={entrepriseId}/>
+            _entrepriseId={entrepriseId}/>
         )}
         {screen==="red-declaration"&&activeContact&&(
           <EcranAutoDeclarationRED
             lot={activeContact}
-            visites={visites}
-            transports={transports}
-            livraisons={livraisons}
+            visites={visites as any}
+            transports={transports as any}
+            livraisons={livraisons as any}
             onBack={()=>setScreen("fiche-lot")}
             toast={toast}/>
         )}
@@ -667,7 +667,7 @@ export default function App() {
         {screen==="bon-commande"&&activeContact&&(
           <EcranBonCommande
             lot={activeContact}
-            visites={visites}
+            visites={visites as any}
             entrepriseId={entrepriseId}
             onBack={()=>setScreen("fiche-lot")}
             onGoDelegations={()=>setScreen("delegations")}
@@ -676,11 +676,11 @@ export default function App() {
         {screen==="cloture-exploitation"&&activeContact&&(
           <EcranClotureExploitation
             lot={activeContact}
-            visites={visites}
+            visites={visites as any}
             onBack={()=>setScreen("fiche-lot")}
             onSaved={()=>{
-              setContacts(prev=>prev.map(c=>c.id===activeContact.id?{...c,statutLot:"BORD_ROUTE"}:c));
-              setActiveContact(prev=>prev?{...prev,statutLot:"BORD_ROUTE"}:prev);
+              setContacts(prev=>prev.map((c: any)=>c.id===activeContact.id?{...c,statutLot:"BORD_ROUTE"}:c));
+              setActiveContact((prev: any)=>prev?{...prev,statutLot:"BORD_ROUTE"}:prev);
               setScreen("fiche-lot");
               toast("Réception de fin d'exploitation enregistrée ✓");
             }}
@@ -691,22 +691,23 @@ export default function App() {
         {screen==="dechiquetage"&&activeContact&&(
           <EcranDechiquetage
             lot={activeContact}
-            operateurs={operateurs}
+            operateurs={operateurs as any}
             onBack={()=>setScreen("fiche-lot")}
-            onSaved={(newStatut)=>{
-              setContacts(prev=>prev.map(c=>c.id===activeContact.id?{...c,statutLot:newStatut}:c));
+            onSaved={(newStatut: any)=>{
+              setContacts(prev=>prev.map((c: any)=>c.id===activeContact.id?{...c,statutLot:newStatut}:c));
               setScreen("fiche-lot");
               toast("Déchiquetage enregistré — transport créé ✓");
             }}
             toast={toast}
-            entrepriseId={entrepriseId}/>
+            entrepriseId={entrepriseId}
+            user={user}/>
         )}
         {screen==="transporteur"&&activeContact&&(
           <EcranTransporteur
             lot={activeContact}
             onBack={()=>setScreen("fiche-lot")}
-            onSaved={(newStatut)=>{
-              setContacts(prev=>prev.map(c=>c.id===activeContact.id?{...c,statutLot:newStatut}:c));
+            onSaved={(newStatut: any)=>{
+              setContacts(prev=>prev.map((c: any)=>c.id===activeContact.id?{...c,statutLot:newStatut}:c));
               setScreen("fiche-lot");
               toast("Transport enregistré ✓");
             }}
@@ -717,8 +718,8 @@ export default function App() {
           <EcranLivraison
             lot={activeContact}
             onBack={()=>setScreen("fiche-lot")}
-            onSaved={(newStatut)=>{
-              setContacts(prev=>prev.map(c=>c.id===activeContact.id?{...c,statutLot:newStatut}:c));
+            onSaved={(newStatut: any)=>{
+              setContacts(prev=>prev.map((c: any)=>c.id===activeContact.id?{...c,statutLot:newStatut}:c));
               setScreen("fiche-lot");
               toast(newStatut==="LIVRE_CHAUFFERIE"?"Livraison chaufferie validée ✓":"Entrée stock plateforme ✓");
             }}
@@ -728,20 +729,20 @@ export default function App() {
         {screen==="validation-exploitation"&&activeContact&&(
           <EcranValidationExploitation
             lot={activeContact}
-            visites={visites}
-            operateurs={operateurs}
+            visites={visites as any}
+            operateurs={operateurs as any}
             onBack={()=>setScreen("fiche-lot")}
-            onSaved={(data)=>{
+            onSaved={(data: any)=>{
               const lotId = activeContact.id;
               const newStatut = "EN_COURS_EXPLOITATION";
               const tonnageAjout = data?.tonnage||0;
-              setContacts(prev=>prev.map(c=>c.id===lotId?{
+              setContacts(prev=>prev.map((c: any)=>c.id===lotId?{
                 ...c,
                 statutLot: newStatut,
                 tonnageCumul: (parseFloat(c.tonnageCumul)||0) + tonnageAjout,
                 etfNom: data?.etfNom||c.etfNom,
               }:c));
-              setActiveContact(prev=>prev&&prev.id===lotId?{
+              setActiveContact((prev: any)=>prev&&prev.id===lotId?{
                 ...prev,
                 statutLot: newStatut,
                 tonnageCumul: (parseFloat(prev.tonnageCumul)||0) + tonnageAjout,
@@ -754,9 +755,9 @@ export default function App() {
             entrepriseId={entrepriseId}/>
         )}
         {screen==="edit-contact"&&activeContact&&(
-          <Fiche0Edit contact={activeContact}
+          <Fiche0Edit contact={activeContact as any}
             onBack={()=>setScreen("fiche-lot")}
-            onSaved={c=>{ setContacts(prev=>prev.map(x=>x.id===c.id?c:x)); setScreen("fiche-lot"); toast("Fiche mise à jour ✓"); }}
+            onSaved={(c: any)=>{ setContacts(prev=>prev.map((x: any)=>x.id===c.id?c:x)); setScreen("fiche-lot"); toast("Fiche mise à jour ✓"); }}
             toast={toast} user={user}
             onLaunchVisite={()=>{ setActiveLot(activeContact); setScreen("visite-form"); }}
             onLaunchValidation={()=>setScreen("validation-exploitation")}
@@ -766,12 +767,12 @@ export default function App() {
             onLaunchLivraison={()=>setScreen("livraison")}/>
         )}
         {screen==="visite-form"&&activeLot&&(
-          <FormulaireVisite lot={activeLot} onBack={()=>setScreen("fiche-lot")}
-            onSaved={v=>{
+          <FormulaireVisite lot={activeLot as any} onBack={()=>setScreen("fiche-lot")}
+            onSaved={(v: any)=>{
               setVisites(prev=>[v,...prev]);
-              setContacts(prev=>prev.map(c=>c.id===activeLot.id
+              setContacts(prev=>prev.map((c: any)=>c.id===activeLot.id
                 ?{...c,statutLot:"VISITE_REALISEE"}:c));
-              setActiveContact(prev=>prev?.id===activeLot.id
+              setActiveContact((prev: any)=>prev?.id===activeLot.id
                 ?{...prev,statutLot:"VISITE_REALISEE"}:prev);
               // Persister côté API — transition métier validée serveur
               apiPost(`/contacts/${activeLot.id}/transition`, {action:"validerVisite"}).catch(()=>{});
@@ -788,7 +789,7 @@ export default function App() {
         <ModalDelegationVisite
           lot={activeContact}
           operateurs={operateurs}
-          onDeleguee={(d)=>{ toast(`Code ${d.code} généré pour ${d.nomDelegue} ✓`); }}
+          onDeleguee={(d: any)=>{ toast(`Code ${d.code} généré pour ${d.nomDelegue} ✓`); }}
           onIgnorer={()=>setShowDelegVisite(false)}/>
       )}
 
@@ -799,9 +800,9 @@ export default function App() {
           visites={visites}
           operateurs={operateurs}
           rayon={100}
-          onChoisir={(etfNom)=>{
-            setContacts(prev=>prev.map(c=>c.id===activeContact.id?{...c,etfNom}:c));
-            setActiveContact(prev=>prev?{...prev,etfNom}:prev);
+          onChoisir={(etfNom: any)=>{
+            setContacts(prev=>prev.map((c: any)=>c.id===activeContact.id?{...c,etfNom}:c));
+            setActiveContact((prev: any)=>prev?{...prev,etfNom}:prev);
             setShowEtfModal(false);
             toast(`ETF ${etfNom} assignée ✓`);
           }}
@@ -813,7 +814,7 @@ export default function App() {
         <div style={{display:"flex",background:"#fff",
           borderTop:`1px solid ${C.bd}`,flexShrink:0,
           paddingBottom:"env(safe-area-inset-bottom,0px)"}}>
-          {navItems.map(item=>(
+          {navItems.map((item: any)=>(
             <button key={item.id} onClick={()=>setScreen(item.id)} style={{
               flex:1,height:60,background:"transparent",border:"none",
               display:"flex",flexDirection:"column",alignItems:"center",
@@ -828,7 +829,7 @@ export default function App() {
                 <div style={{position:"absolute",top:0,left:"25%",right:"25%",
                   height:3,borderRadius:"0 0 3px 3px",background:C.green}}/>
               )}
-              {item.badge>0&&(
+              {(item.badge??0)>0&&(
                 <span style={{position:"absolute",top:8,right:"20%",
                   background:C.red,color:"#fff",borderRadius:"50%",
                   width:16,height:16,fontSize:9,fontWeight:700,
