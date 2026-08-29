@@ -1,5 +1,4 @@
-﻿// @ts-nocheck
-import { useState, useEffect } from "react";
+﻿import { useState, useEffect } from "react";
 import { C, INPUT_H, FONT_INPUT, PADDING } from "../../design-system/tokens.js";
 import { uid } from "../../shared/utils.js";
 import { fmtNum } from "../../shared/format.js";
@@ -16,13 +15,13 @@ export const FicheLotCentrale = ({
   onLaunchVisite, onLaunchValidation, onLaunchCloture,
   onLaunchDechiquetage, onLaunchTransporteur, onLaunchLivraison, onLaunchFinChantier,
   onRedDeclaration, onDeleguerVisite, onDeleteLot,
-  toast, _entrepriseId, user,
-}) => {
+  toast, user,
+}: any) => {
   const [onglet, setOnglet] = useState(0);
   const [deleteStep, setDeleteStep] = useState(0);
-  const [releves,    setReleves]    = useState([]);
-  const [transports, setTransports] = useState([]);
-  const [livraisons, setLivraisons] = useState([]);
+  const [releves,    setReleves]    = useState<any[]>([]);
+  const [transports, setTransports] = useState<any[]>([]);
+  const [livraisons, setLivraisons] = useState<any[]>([]);
   const [loading,    setLoading]    = useState(true);
   const [showDeclMairie, setShowDeclMairie] = useState(false);
   const [mairieAdresse,  setMairieAdresse]  = useState("");
@@ -31,10 +30,10 @@ export const FicheLotCentrale = ({
 
   const st = STATUT_LOT[lot.statutLot||"NOUVEAU"] || STATUT_LOT.NOUVEAU;
   const pipelineIdx = PIPELINE.findIndex(p=>p.id===(lot.statutLot||"NOUVEAU"));
-  const visitesLot = visites.filter(v=>v.lotId===lot.id||v.lotNumero===lot.lotNumero);
+  const visitesLot = visites.filter((v: any)=>v.lotId===lot.id||v.lotNumero===lot.lotNumero);
   const derniereVisite = visitesLot[0]||null;
-  const mandataireAssigne = operateurs.find(op=>(op.assignations||[])
-    .some(a=>(a.lotId===lot.id||a.lotNumero===lot.lotNumero)&&a.typeOperation==="mandataire"));
+  const mandataireAssigne = operateurs.find((op: any)=>(op.assignations||[])
+    .some((a: any)=>(a.lotId===lot.id||a.lotNumero===lot.lotNumero)&&a.typeOperation==="mandataire"));
 
   useEffect(()=>{
     setLoading(true);
@@ -51,9 +50,9 @@ export const FicheLotCentrale = ({
   },[lot.id]);
 
   // Calculs volumes
-  const totalTonnes = releves.reduce((s,r)=>s+(parseFloat(r.poidsTotal)||0),0);
-  const totalMWh    = releves.reduce((s,r)=>s+(parseFloat(r.energieMWh)||0),0);
-  const typeRessLabel = t => TYPE_RESSOURCE_OPTS.find(([v])=>v===t)?.[2]??t;
+  const totalTonnes = releves.reduce((s,r: any)=>s+(parseFloat(r.poidsTotal)||0),0);
+  const totalMWh    = releves.reduce((s,r: any)=>s+(parseFloat(r.energieMWh)||0),0);
+  const typeRessLabel = (t: any) => TYPE_RESSOURCE_OPTS.find(([v])=>v===t)?.[2]??t;
   const isDemo = !!(user?.id?.startsWith("demo-"));
 
   const TABS = [
@@ -90,7 +89,7 @@ export const FicheLotCentrale = ({
   ].filter(Boolean);
 
   // Max 4 boutons visibles — priorité aux plus avancés
-  const actionsVisible = actions.slice(-4);
+  const actionsVisible: any[] = actions.slice(-4);
 
   return (
     <div style={{display:"flex",flexDirection:"column",height:"100%",background:C.bg}}>
@@ -269,7 +268,7 @@ export const FicheLotCentrale = ({
                     🚛 Accès {derniereVisite.accesCamion}
                     {derniereVisite.accesCamion==="praticable"?" ✓":" ⚠️"}<br/>
                     {derniereVisite.essences?.length>0&&
-                      `🌿 ${derniereVisite.essences.map(e=>`${e.label} ${e.pct}%`).join(", ")}`}
+                      `🌿 ${derniereVisite.essences.map((e: any)=>`${e.label} ${e.pct}%`).join(", ")}`}
                   </div>
                 </div>
               </>
@@ -587,7 +586,7 @@ export const FicheLotCentrale = ({
                    ["Surface",lot.surfaceHa?lot.surfaceHa+" ha":null],
                  ]},
                  {icon:"🪓",label:"Exploitation",rows:[
-                   ["Essence",derniereVisite?.essences?.map(e=>e.label).join(", ")],
+                   ["Essence",derniereVisite?.essences?.map((e: any)=>e.label).join(", ")],
                    ["Volume estimé",derniereVisite?.volumeEstimeT?derniereVisite.volumeEstimeT+" t":null],
                    ["Accès camion",derniereVisite?.accesCamion],
                  ]},
@@ -710,7 +709,7 @@ export const FicheLotCentrale = ({
               const surface  = lot.surfaceHa?lot.surfaceHa+" ha":"—";
               const volume   = derniereVisite?.volumeEstimeT?fmtNum(derniereVisite.volumeEstimeT)+" t estimées":"—";
               const dateDebut= derniereVisite?.date||"";
-              const essences = derniereVisite?.essences?.map(e=>e.label).join(", ")||"—";
+              const essences = derniereVisite?.essences?.map((e: any)=>e.label).join(", ")||"—";
               const ready    = !!(mairieAdresse&&mairieCP&&mairieVille);
               const htmlPdf  = `<!DOCTYPE html><html lang="fr"><head><meta charset="utf-8"/><style>body{font-family:Arial,sans-serif;font-size:13px;color:#111;max-width:700px;margin:0 auto;padding:40px}h1{font-size:16px;text-align:center;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px}.subtitle{text-align:center;font-size:12px;color:#555;margin-bottom:32px}.expediteur{margin-bottom:24px;font-size:12px;line-height:1.8}.destinataire{float:right;width:260px;border:1px solid #999;padding:12px;font-size:12px;line-height:1.8;margin-top:-60px}.objet{margin:32px 0 20px;font-weight:bold}.section{margin-bottom:16px}.section-title{font-weight:bold;text-decoration:underline;margin-bottom:6px}table{width:100%;border-collapse:collapse;margin-bottom:16px}td{padding:6px 10px;border:1px solid #ccc;font-size:12px;vertical-align:top}td:first-child{background:#f5f5f5;font-weight:600;width:45%}.signature{margin-top:48px;display:flex;justify-content:space-between}.sig-block{width:45%}.footer{margin-top:40px;font-size:10px;color:#888;border-top:1px solid #ddd;padding-top:8px;text-align:center}.legal{background:#fffde7;border:1px solid #f9a825;padding:10px;font-size:11px;margin:20px 0}</style></head><body>
 <div class="expediteur"><strong>${entNom||"[Entreprise exécutante]"}</strong><br/>[Adresse de l'entreprise]<br/>[Code postal] [Ville]<br/>[Téléphone] · [Email]</div>
@@ -940,18 +939,18 @@ export const FicheLotCentrale = ({
 
 
 // ── ÉCRAN FIN DE CHANTIER (7 sections) ───────────────────────
-export const EcranFinChantier = ({lot, onBack, onSaved, toast, entrepriseId}) => {
+export const EcranFinChantier = ({lot, onBack, onSaved, toast, entrepriseId}: any) => {
   const [section, setSection] = useState(0);
 
   // §1 Photos avant/après
-  const [photosAvant,   setPhotosAvant]  = useState([]);
-  const [photosApres,   setPhotosApres]  = useState([]);
-  const [photosDepot,   setPhotosDepot]  = useState([]);
-  const [photosAcces,   setPhotosAcces]  = useState([]);
+  const [photosAvant,   setPhotosAvant]  = useState<any[]>([]);
+  const [photosApres,   setPhotosApres]  = useState<any[]>([]);
+  const [photosDepot,   setPhotosDepot]  = useState<any[]>([]);
+  const [photosAcces,   setPhotosAcces]  = useState<any[]>([]);
 
   // §2 Rénovation
   const [surfaceRenovee,setSurfRenov]    = useState(0);
-  const [typeBroyage,   setTypeBroyage]  = useState([]);
+  const [typeBroyage,   setTypeBroyage]  = useState<any[]>([]);
   const [machineRenov,  setMachineRenov] = useState("");
   const [tempsRenov,    setTempsRenov]   = useState(0);
   const [nbPassages,    setNbPassages]   = useState(1);
@@ -963,14 +962,14 @@ export const EcranFinChantier = ({lot, onBack, onSaved, toast, entrepriseId}) =>
   const [coutOperateur, setCoutOp]       = useState("");
 
   // §4 Contrôle qualité (checklist 6 points)
-  const [checklist, setChecklist] = useState({
+  const [checklist, setChecklist] = useState<Record<string,boolean>>({
     depotNettoye:false, remanentsTraites:false, accesRetablis:false,
     fossesPreserves:false, pasDechets:false, respectConsignes:false,
   });
 
   // §5 Validation propriétaire
   const [sigPropFin,    setSigPropFin]   = useState(false);
-  const [sigDataFin,    setSigDataFin]   = useState(null);
+  const [sigDataFin,    setSigDataFin]   = useState<any>(null);
   const [nomPropFin,    setNomPropFin]   = useState(lot.nom||"");
   const [reserveProp,   setReserveProp]  = useState("sans_reserve"); // sans_reserve | avec_reserve
   const [commentaireProp,setComProp]     = useState("");
@@ -995,7 +994,7 @@ export const EcranFinChantier = ({lot, onBack, onSaved, toast, entrepriseId}) =>
     "Rémanents forestiers","Accotements","Souches","Invasives","Dépôt","Plateforme"
   ];
 
-  const toggleBroyage = v => setTypeBroyage(p=>p.includes(v)?p.filter(x=>x!==v):[...p,v]);
+  const toggleBroyage = (v: any) => setTypeBroyage(p=>p.includes(v)?p.filter(x=>x!==v):[...p,v]);
 
   // Calcul indice APPLITAG 0-100
   const nbCheckOK = Object.values(checklist).filter(Boolean).length;
@@ -1006,7 +1005,6 @@ export const EcranFinChantier = ({lot, onBack, onSaved, toast, entrepriseId}) =>
   const indiceValidation = sigDataFin ? 20 : (sigPropFin ? 10 : 0);
   const indiceTotal = Math.min(100, indiceDocs + indiceQualite + indiceNote + indiceValidation);
 
-  const _indiceColor = indiceTotal>=80?C.greenD:indiceTotal>=50?C.amberD:C.red;
   const indiceLabel = indiceTotal>=80?"Excellent":indiceTotal>=60?"Bon":
     indiceTotal>=40?"Conforme":indiceTotal>=20?"À améliorer":"Non conforme";
 
@@ -1035,7 +1033,7 @@ export const EcranFinChantier = ({lot, onBack, onSaved, toast, entrepriseId}) =>
     setSaving(false);
   };
 
-  const NoteEtoile = ({n}) => (
+  const NoteEtoile = ({n}: any) => (
     <button onClick={()=>setNoteQualite(n)} style={{
       fontSize:32,background:"none",border:"none",cursor:"pointer",
       opacity:noteQualite>=n?1:0.25,
@@ -1098,7 +1096,7 @@ export const EcranFinChantier = ({lot, onBack, onSaved, toast, entrepriseId}) =>
                 <div style={{fontSize:13,fontWeight:600,marginBottom:4}}>{label}</div>
                 <div style={{fontSize:11,color:C.tx3,marginBottom:10}}>{hint}</div>
                 <div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:10}}>
-                  {state.map((p,j)=>(
+                  {state.map((_p,j)=>(
                     <div key={j} style={{width:64,height:64,borderRadius:8,
                       background:C.greenL,border:`1px solid ${C.green}`,
                       display:"flex",alignItems:"center",justifyContent:"center",
@@ -1307,13 +1305,13 @@ export const EcranFinChantier = ({lot, onBack, onSaved, toast, entrepriseId}) =>
               <div style={{fontSize:13,fontWeight:600,color:C.tx2,marginBottom:12}}>
                 Grille de référence
               </div>
-              {[
+              {([
                 [5,"⭐⭐⭐⭐⭐","Excellent","Parfait, au-delà des attentes"],
                 [4,"⭐⭐⭐⭐","Bon","Chantier réalisé selon les attentes"],
                 [3,"⭐⭐⭐","Conforme","Travail correct, quelques points à améliorer"],
                 [2,"⭐⭐","À améliorer","Réserves significatives signalées"],
                 [1,"⭐","Non conforme","Non-respect des conditions du contrat"],
-              ].map(([n,_e,l,s])=>(
+              ] as any[]).map(([n,_e,l,s]: any)=>(
                 <div key={n} onClick={()=>setNoteQualite(n)} style={{
                   display:"flex",alignItems:"center",gap:10,padding:"10px 0",
                   borderBottom:n>1?`1px solid ${C.bd}`:"none",cursor:"pointer",
@@ -1430,7 +1428,7 @@ const CAPACITES_CHARGEMENT = {
   semi: 30, camion_remorque: 30, benne_ampliroll: 15,
 };
 
-export const EcranDechiquetage = ({lot, operateurs=[], onBack, onSaved, toast, entrepriseId, user}) => {
+export const EcranDechiquetage = ({lot, operateurs=[], onBack, onSaved, toast, entrepriseId, user}: any) => {
   const nomUserDechiquetage = user ? `${user.prenom||""} ${user.nom||""}`.trim() : "";
   const [lotSuggere,    _setLotSuggere]  = useState(lot.lotNumero||"");
   const [operateurDechiquetage,setOpDechiquetage] = useState(nomUserDechiquetage);
@@ -1441,13 +1439,13 @@ export const EcranDechiquetage = ({lot, operateurs=[], onBack, onSaved, toast, e
   const [erreurTonnage, setErreurTonnage] = useState("");
   const [numeroCMR,     setNumeroCMR]   = useState("");
   const [photoCMR,      setPhotoCMR]    = useState(false);
-  const [missionsTransport, setMissionsTransport] = useState([]);
+  const [missionsTransport, setMissionsTransport] = useState<any[]>([]);
   const [missionId,     setMissionId]   = useState("");
   const [immatTracteur, setImmatTract]  = useState("");
   const [immatRemorque, setImmatRemor]  = useState("");
   const [heureDebut,    setHeureDebut]  = useState("");
   const [heureFin,      setHeureFin]    = useState("");
-  const [evenements,    setEvenements]  = useState([]);
+  const [evenements,    setEvenements]  = useState<any[]>([]);
   const [autreEvenement,setAutreEv]    = useState("");
   const [saving,        setSaving]      = useState(false);
 
@@ -1462,9 +1460,9 @@ export const EcranDechiquetage = ({lot, operateurs=[], onBack, onSaved, toast, e
   // Opérateur délégué par l'entreprise prestataire missionnée sur ce lot → pré-rempli automatiquement
   useEffect(()=>{
     if (operateurDechiquetage) return; // déjà rempli (par user ou par assignation)
-    const op = operateurs.find(o=>
+    const op = operateurs.find((o: any)=>
       (o.etfId===lot.etfId || (lot.etfNom && o.etfNom===lot.etfNom)) &&
-      (o.assignations||[]).some(a=>(a.lotId===lot.id||a.lotNumero===lot.lotNumero)&&a.typeOperation==="dechiquetage")
+      (o.assignations||[]).some((a: any)=>(a.lotId===lot.id||a.lotNumero===lot.lotNumero)&&a.typeOperation==="dechiquetage")
     );
     if (op) setOpDechiquetage(`${op.nom}${op.prenom?" "+op.prenom:""}`);
   },[operateurs, lot, operateurDechiquetage]);
@@ -1476,7 +1474,7 @@ export const EcranDechiquetage = ({lot, operateurs=[], onBack, onSaved, toast, e
     setHeureDebut(`${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`);
   },[]); // eslint-disable-line react-hooks/exhaustive-deps -- initialisation unique au montage, guard empeche la reInitialisation
 
-  const handleSelectMission = (id) => {
+  const handleSelectMission = (id: any) => {
     setMissionId(id);
     const m = missionsTransport.find(x=>x.id===id);
     if (m) {
@@ -1494,9 +1492,9 @@ export const EcranDechiquetage = ({lot, operateurs=[], onBack, onSaved, toast, e
     }
   };
 
-  const handleTonnageChange = (v) => {
+  const handleTonnageChange = (v: any) => {
     setTonnageCharge(v);
-    const max = CAPACITES_CHARGEMENT[typeChargement];
+    const max = (CAPACITES_CHARGEMENT as Record<string, number>)[typeChargement];
     const num = parseFloat(v);
     if (!isNaN(num) && num > max) {
       setErreurTonnage(`Capacité maximale dépassée (${max} t)`);
@@ -1516,7 +1514,7 @@ export const EcranDechiquetage = ({lot, operateurs=[], onBack, onSaved, toast, e
     ["autre","📝","Autre"],
   ];
 
-  const toggleEv = v => setEvenements(prev=>prev.includes(v)?prev.filter(x=>x!==v):[...prev,v]);
+  const toggleEv = (v: any) => setEvenements(prev=>prev.includes(v)?prev.filter(x=>x!==v):[...prev,v]);
 
   const erreurCMR = numeroCMR ? validateCMR(numeroCMR) : null;
   const erreurImmatTract = immatTracteur ? validateImmat(immatTracteur) : null;
@@ -1615,7 +1613,7 @@ export const EcranDechiquetage = ({lot, operateurs=[], onBack, onSaved, toast, e
 
         <SectionTitle icon="📄" label="CMR"/>
         <MInput label="Numéro CMR" value={numeroCMR} onChange={v=>setNumeroCMR(formatCMR(v))}
-          placeholder="CMR-2026-0001" hint="Format : CMR-AAAA-NNNN" required error={erreurCMR}/>
+          placeholder="CMR-2026-0001" hint="Format : CMR-AAAA-NNNN" required error={erreurCMR as any}/>
 
         <div onClick={handlePhotoCMR} style={{
           display:"flex",alignItems:"center",justifyContent:"space-between",
@@ -1655,9 +1653,9 @@ export const EcranDechiquetage = ({lot, operateurs=[], onBack, onSaved, toast, e
         )}
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
           <MInput label="Immat. tracteur" value={immatTracteur} onChange={v=>setImmatTract(formatImmat(v))}
-            placeholder="AB-123-CD" required error={erreurImmatTract}/>
+            placeholder="AB-123-CD" required error={erreurImmatTract as any}/>
           <MInput label="Immat. remorque" value={immatRemorque} onChange={v=>setImmatRemor(formatImmat(v))}
-            placeholder="AB-456-CD" hint="optionnel" error={erreurImmatRemor}/>
+            placeholder="AB-456-CD" hint="optionnel" error={erreurImmatRemor as any}/>
         </div>
 
         <SectionTitle icon="⏱️" label="Horaires de chargement"/>
@@ -1665,7 +1663,7 @@ export const EcranDechiquetage = ({lot, operateurs=[], onBack, onSaved, toast, e
           <MInput label="Heure début" value={heureDebut} onChange={setHeureDebut}
             type="time" required/>
           <MInput label="Heure fin (photo CMR)" value={heureFin} onChange={setHeureFin}
-            type="time" required error={erreurHeureFin}/>
+            type="time" required error={erreurHeureFin as any}/>
         </div>
 
         <SectionTitle icon="📋" label="Événements du jour"/>
@@ -1728,7 +1726,7 @@ export const EcranDechiquetage = ({lot, operateurs=[], onBack, onSaved, toast, e
 };
 
 // ── ÉCRAN TRANSPORTEUR ────────────────────────────────────────
-export const EcranTransporteur = ({lot, onBack, onSaved, toast, entrepriseId}) => {
+export const EcranTransporteur = ({lot, onBack, onSaved, toast, entrepriseId}: any) => {
   // Côté entreprise
   const [typeVehicule,    setTypeVeh]    = useState("semi");
   const [immatTracteur,   setImmatTract] = useState("");
@@ -1895,11 +1893,11 @@ export const EcranTransporteur = ({lot, onBack, onSaved, toast, entrepriseId}) =
 };
 
 // ── ÉCRAN LIVRAISON ───────────────────────────────────────────
-export const EcranLivraison = ({lot, onBack, onSaved, toast, entrepriseId}) => {
+export const EcranLivraison = ({lot, onBack, onSaved, toast, entrepriseId}: any) => {
   const [typeDest,       setTypeDest]    = useState("chaufferie"); // chaufferie | plateforme
   const [numeroCMR,      setNumeroCMR]   = useState("");
   const [nomDestination, setNomDest]     = useState("");
-  const [gpsLivraison,   setGpsLivr]     = useState(null);
+  const [gpsLivraison,   setGpsLivr]     = useState<any>(null);
   const [gpsLoading,     setGpsLoading]  = useState(false);
   const [pesee,          setPesee]       = useState("");
   const [humiditeReception,setHumRecep]  = useState(30);
