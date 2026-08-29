@@ -1,5 +1,4 @@
-﻿// @ts-nocheck
-import { useState, useEffect, useRef } from "react";
+﻿import { useState, useEffect, useRef } from "react";
 import { STATUT_LOT } from "./MobileScreens.constants.js";
 import { C, BTN_H, INPUT_H, FONT_INPUT, FONT_TITLE, PADDING } from "../../design-system/tokens.js";
 import { todayS, nowISO, uid, genCode } from "../../shared/utils.js";
@@ -15,8 +14,7 @@ import { FormulaireVisite } from "../../domains/visites/FormulaireVisite.jsx";
 import { ORIGINE_OPTS, TYPE_CONTACT_OPTS, TYPE_RESSOURCE_OPTS, PRIORITE_OPTS, STATUT_OPTS } from "../../domains/contacts/constants.js";
 import { TYPES_PRESTATION_ANNONCE, STATUTS_ANNONCE, ORDRE_STATUTS_ANNONCE } from "../../domains/connect/constants.js";
 import { indicesPonderes } from "../../metier/formules.js";
-export const QrCodeAdmin = ({entrepriseId, entrepriseNom, onClose}) => {
-  const _canvasRef = useRef(null);
+export const QrCodeAdmin = ({entrepriseId, entrepriseNom, onClose}: any) => {
   const [qrUrl, setQrUrl] = useState("");
 
   useEffect(()=>{
@@ -52,7 +50,7 @@ export const QrCodeAdmin = ({entrepriseId, entrepriseNom, onClose}) => {
 };
 
 // ── FICHE 0 ───────────────────────────────────────────────────
-export const Fiche0 = ({onBack, onSaved, toast, _contactCount, entrepriseId, prefill=null, comptes=[]}) => {
+export const Fiche0 = ({onBack, onSaved, toast, entrepriseId, prefill=null, comptes=[]}: any) => {
   const [origine,       setOrigine]  = useState(prefill?"appel_applitag":"");
   const [nomApporteur,  setApporteur]= useState("");
   const [dateContact,   setDateC]    = useState(todayS());
@@ -72,7 +70,7 @@ export const Fiche0 = ({onBack, onSaved, toast, _contactCount, entrepriseId, pre
   const [surfaceHa,     setSurface]  = useState("");
   const [refCadastrale, setRef]      = useState("");
   const [typeRessource, setRessource]= useState("");
-  const [mixteDetails,  setMixteD]   = useState([]);
+  const [mixteDetails,  setMixteD]   = useState<any[]>([]);
   const [priorite,      setPriorite] = useState("moyenne");
   const [statut,        setStatut]   = useState("nouveau");
   const [commentaire,   setComment]  = useState("");
@@ -80,10 +78,10 @@ export const Fiche0 = ({onBack, onSaved, toast, _contactCount, entrepriseId, pre
   const [conclusion,    setConclusion]=useState("");
   const [exploitationAutorisee, setExploitAuth] = useState("");
   const [saving,  setSaving]  = useState(false);
-  const [errors,  setErrors]  = useState({});
+  const [errors,  setErrors]  = useState<Record<string,any>>({});
 
   const validate = () => {
-    const e = {};
+    const e: Record<string,any> = {};
     if (!nom.trim())        e.nom = "Obligatoire";
     if (!telephone.trim())  e.telephone = "Obligatoire";
     else { const err=validatePhone(telephone); if(err) e.telephone=err; }
@@ -110,7 +108,7 @@ export const Fiche0 = ({onBack, onSaved, toast, _contactCount, entrepriseId, pre
       // lotNumero omis volontairement : généré côté serveur (P0.5)
     };
     try {
-      const saved = await apiPost(`/contacts`, contact);
+      const saved: any = await apiPost(`/contacts`, contact);
       const lotNumero = saved.lotNumero;
       toast(`Fiche créée — ${lotNumero}`);
       const html = buildCompteRenduContactHTML(saved);
@@ -151,15 +149,15 @@ export const Fiche0 = ({onBack, onSaved, toast, _contactCount, entrepriseId, pre
             <div style={{fontSize:13,fontWeight:600,color:"#E65100",marginBottom:8}}>
               📲 Contact APPLITAG Connect à rappeler
             </div>
-            {comptes.filter(c=>!c.rapportAppel).length===0&&(
+            {comptes.filter((c: any)=>!c.rapportAppel).length===0&&(
               <div style={{fontSize:13,color:C.tx3}}>Aucun contact en attente de rappel</div>
             )}
-            {comptes.filter(c=>!c.rapportAppel).length>0&&(
+            {comptes.filter((c: any)=>!c.rapportAppel).length>0&&(
               <select value={compteSelec}
                 onChange={e=>{
                   const id=e.target.value;
                   setCompteSelec(id);
-                  const c=comptes.find(x=>x.id===id);
+                  const c=comptes.find((x: any)=>x.id===id);
                   if(c){
                     const parts=(c.nom||"").trim().split(" ");
                     setNom(parts[0]||"");
@@ -172,26 +170,26 @@ export const Fiche0 = ({onBack, onSaved, toast, _contactCount, entrepriseId, pre
                   border:"1.5px solid #FFB74D",background:"#fff",
                   fontFamily:"inherit",fontSize:14,color:C.tx,outline:"none",marginBottom:8}}>
                 <option value="">— Sélectionner un contact —</option>
-                {comptes.filter(c=>!c.rapportAppel).map(c=>(
+                {comptes.filter((c: any)=>!c.rapportAppel).map((c: any)=>(
                   <option key={c.id} value={c.id}>
                     {c.nom} {c.trancheHoraire?`(${c.trancheHoraire})`:""}
                   </option>
                 ))}
               </select>
             )}
-            {compteSelec&&comptes.find(x=>x.id===compteSelec)&&(
+            {compteSelec&&comptes.find((x: any)=>x.id===compteSelec)&&(
               <div style={{background:"rgba(255,255,255,.6)",borderRadius:8,padding:"8px 10px",fontSize:12,color:"#5D4037",marginTop:4}}>
-                {comptes.find(x=>x.id===compteSelec).natureDemande?.length>0&&(
+                {comptes.find((x: any)=>x.id===compteSelec).natureDemande?.length>0&&(
                   <div style={{marginBottom:4}}>
                     <span style={{fontWeight:600}}>Demande(s) : </span>
-                    {comptes.find(x=>x.id===compteSelec).natureDemande.join(" · ")}
+                    {comptes.find((x: any)=>x.id===compteSelec).natureDemande.join(" · ")}
                   </div>
                 )}
-                {comptes.find(x=>x.id===compteSelec).trancheHoraire&&(
-                  <div><span style={{fontWeight:600}}>Rappel souhaité : </span>{comptes.find(x=>x.id===compteSelec).trancheHoraire}</div>
+                {comptes.find((x: any)=>x.id===compteSelec).trancheHoraire&&(
+                  <div><span style={{fontWeight:600}}>Rappel souhaité : </span>{comptes.find((x: any)=>x.id===compteSelec).trancheHoraire}</div>
                 )}
-                {comptes.find(x=>x.id===compteSelec).email&&(
-                  <div style={{marginTop:4}}><span style={{fontWeight:600}}>Email : </span>{comptes.find(x=>x.id===compteSelec).email}</div>
+                {comptes.find((x: any)=>x.id===compteSelec).email&&(
+                  <div style={{marginTop:4}}><span style={{fontWeight:600}}>Email : </span>{comptes.find((x: any)=>x.id===compteSelec).email}</div>
                 )}
               </div>
             )}
@@ -339,92 +337,16 @@ export const Fiche0 = ({onBack, onSaved, toast, _contactCount, entrepriseId, pre
   );
 };
 
-// ── LISTE CONTACTS ────────────────────────────────────────────
-const _ListeContacts = ({contacts, onNew, onNewVisite, onEdit}) => {
-  const typeRessourceLabel = t => TYPE_RESSOURCE_OPTS.find(([v])=>v===t)?.[2] ?? t;
-  const statutColor = s => ({
-    nouveau:      {bg:C.bg2,     color:C.tx3},
-    a_rappeler:   {bg:C.amberL,  color:C.amberD},
-    qualifie:     {bg:C.blueL,   color:C.blueD},
-    visite_prevue:{bg:C.purpleL, color:C.purpleD},
-    perdu:        {bg:C.redL,    color:C.red},
-  }[s] ?? {bg:C.bg2,color:C.tx2});
-
-  return (
-    <div style={{display:"flex",flexDirection:"column",height:"100%"}}>
-      <div data-scrollable="1" style={{flex:1,overflowY:"auto",padding:PADDING}}>
-        {contacts.length===0 ? (
-          <div style={{textAlign:"center",padding:"48px 0",color:C.tx3}}>
-            <div style={{fontSize:40,marginBottom:12}}>📋</div>
-            <div style={{fontSize:16,fontWeight:500,marginBottom:6}}>Aucune fiche</div>
-            <div style={{fontSize:13}}>Créez votre première fiche contact</div>
-          </div>
-        ) : contacts.map(c=>{
-          const sc = statutColor(c.statut);
-          return (
-            <div key={c.id} style={{background:"#fff",border:`1px solid ${C.bd}`,
-              borderRadius:14,padding:16,marginBottom:10}}>
-              <div style={{display:"flex",justifyContent:"space-between",
-                alignItems:"flex-start",marginBottom:8}}>
-                <div>
-                  <div style={{fontSize:15,fontWeight:700,color:C.tx}}>
-                    {c.nom}{c.prenom?` ${c.prenom}`:""}
-                  </div>
-                  {c.lotNumero&&(
-                    <div style={{fontFamily:"monospace",fontSize:11,
-                      color:C.greenD,marginTop:2}}>🏷 {c.lotNumero}</div>
-                  )}
-                </div>
-                <span style={{fontSize:10,padding:"3px 8px",borderRadius:6,
-                  background:sc.bg,color:sc.color,fontWeight:600,whiteSpace:"nowrap"}}>
-                  {STATUT_OPTS.find(([v])=>v===c.statut)?.[2]??c.statut}
-                </span>
-              </div>
-              <div style={{fontSize:12,color:C.tx3,lineHeight:1.8}}>
-                📞 {c.telephone}
-                {c.email&&<><br/>📧 {c.email}</>}
-                <br/>📍 {c.commune}{c.refCadastrale?` · ${c.refCadastrale}`:""}
-                {c.surfaceHa&&<><br/>🌲 {c.surfaceHa} ha</>}
-                {c.potentiel&&<><br/>🪵 {typeRessourceLabel(c.potentiel)}</>}
-                {c.nomApporteur&&<><br/>🤝 Via {c.nomApporteur}</>}
-              </div>
-              {c.lotNumero&&(
-                <div>
-                  <button onClick={()=>onNewVisite(c)} style={{
-                    marginTop:10,width:"100%",height:40,borderRadius:10,
-                    background:C.greenL,color:C.greenD,border:`1px solid ${C.green}`,
-                    fontFamily:"inherit",fontSize:13,fontWeight:600,cursor:"pointer",
-                    WebkitTapHighlightColor:"transparent",
-                  }}>🔭 Lancer la visite terrain</button>
-                  <button onClick={()=>onEdit(c)} style={{
-                    marginTop:6,width:"100%",height:40,borderRadius:10,
-                    background:C.purpleL,color:C.purpleD,border:`1px solid ${C.purple}`,
-                    fontFamily:"inherit",fontSize:13,fontWeight:600,cursor:"pointer",
-                    WebkitTapHighlightColor:"transparent",
-                  }}>✏️ Modifier la fiche</button>
-                </div>
-              )}
-            </div>
-          );
-        })}
-      </div>
-      <div style={{padding:"12px 16px 24px",flexShrink:0}}>
-        <BigBtn onClick={onNew} bg={C.purple} icon="📋">Nouvelle fiche contact</BigBtn>
-      </div>
-    </div>
-  );
-};
-
 // ── VISITE TERRAIN ────────────────────────────────────────────
 // MSlider importé depuis ./shared/ui.jsx
 
-export const EcranReleves = ({entrepriseId, _user, toast, notifications=[], setNotifications, onGoDelegations}) => {
+export const EcranReleves = ({entrepriseId, toast, notifications=[], setNotifications, onGoDelegations}: any) => {
   const [sousOnglet, setSousOnglet] = useState("notifs");
-  const [operateurs, setOperateurs] = useState([]);
-  const [acces, setAcces] = useState([]);
-  const [contacts, setContacts] = useState([]);
-  const [entreprises, setEntreprises] = useState([]);
-  const [annonces, setAnnonces] = useState([]);
+  const [operateurs, setOperateurs] = useState<any[]>([]);
+  const [acces, setAcces] = useState<any[]>([]);
+  const [contacts, setContacts] = useState<any[]>([]);
+  const [entreprises, setEntreprises] = useState<any[]>([]);
+  const [annonces, setAnnonces] = useState<any[]>([]);
   const [showNew, setShowNew] = useState(false);
   const [showNewAcces, setShowNewAcces] = useState(false);
   const [opNom, setOpNom] = useState("");
@@ -433,7 +355,7 @@ export const EcranReleves = ({entrepriseId, _user, toast, notifications=[], setN
   const [opPin, setOpPin] = useState("");
   const [opRoles, setOpRoles] = useState(["abattage","debardage"]);
   const [opSaving, setOpSaving] = useState(false);
-  const [selOp, setSelOp] = useState(null);
+  const [selOp, setSelOp] = useState<any>(null);
   const [assignLotId, setAssignLotId] = useState("");
   const [assignLotNumero, setAssignLotNumero] = useState("");
   const [assignType, setAssignType] = useState("abattage");
@@ -447,7 +369,7 @@ export const EcranReleves = ({entrepriseId, _user, toast, notifications=[], setN
 
   // Lots déjà assignés à un opérateur (tous opérateurs confondus) — à exclure du menu d'assignation
   const lotsDejaAssignes = new Set(
-    operateurs.flatMap(op=>(op.assignations||[]).map(a=>a.lotId))
+    operateurs.flatMap((op: any)=>(op.assignations||[]).map((a: any)=>a.lotId))
   );
 
   useEffect(()=>{
@@ -461,24 +383,24 @@ export const EcranReleves = ({entrepriseId, _user, toast, notifications=[], setN
         const d = await apiGet(`/annonces/entreprise/${entrepriseId}`);
         if (Array.isArray(d)) fromApi = d;
       } catch { /* noop */ }
-      const fromLocal = annoncesLocalGet().filter(a=>a.entrepriseId===entrepriseId);
-      const ids = new Set(fromApi.map(a=>a.id));
-      setAnnonces([...fromApi, ...fromLocal.filter(a=>!ids.has(a.id))]
-        .sort((a,b)=>new Date(b.dateEnvoi)-new Date(a.dateEnvoi)));
+      const fromLocal = (annoncesLocalGet() as any[]).filter((a: any)=>a.entrepriseId===entrepriseId);
+      const ids = new Set(fromApi.map((a: any)=>a.id));
+      setAnnonces([...fromApi, ...fromLocal.filter((a: any)=>!ids.has(a.id))]
+        .sort((a: any,b: any)=>+new Date(b.dateEnvoi)-+new Date(a.dateEnvoi)));
     })();
   },[entrepriseId]);
 
-  const handleTraiterAnnonce = async (annonce, statut) => {
+  const handleTraiterAnnonce = async (annonce: any, statut: any) => {
     try {
       await apiPatch(`/annonces/${annonce.id}`, { statut });
     } catch {
       toast("Pas de connexion — statut mis à jour localement","warn");
     }
-    annoncesLocalSave(annoncesLocalGet().map(a=>a.id===annonce.id?{...a,statut}:a));
-    setAnnonces(prev=>prev.map(a=>a.id===annonce.id?{...a,statut}:a));
+    annoncesLocalSave((annoncesLocalGet() as any[]).map((a: any)=>a.id===annonce.id?{...a,statut}:a));
+    setAnnonces(prev=>prev.map((a: any)=>a.id===annonce.id?{...a,statut}:a));
   };
 
-  const handleCreerLotDepuisAnnonce = async (annonce) => {
+  const handleCreerLotDepuisAnnonce = async (annonce: any) => {
     const contact = {
       nom: annonce.nom, telephone: annonce.telephone, commune: annonce.commune, codePostal: annonce.codePostal||"",
       potentiel: annonce.typeBois||annonce.essence||"", commentaire: annonce.commentaire||"",
@@ -504,7 +426,7 @@ export const EcranReleves = ({entrepriseId, _user, toast, notifications=[], setN
     setOpSaving(true);
     const entrepriseMandante = opMandate ? entreprises.find(e=>e.id===opEntrepriseMandanteId) : null;
     try {
-      const saved = await apiPost(`/operateurs`, {nom:opNom,prenom:opPrenom,etfNom:entrepriseSel.nom,etfId:entrepriseSel.id,pin:opPin,roles:opRoles,profil:opProfil,
+      const saved: any = await apiPost(`/operateurs`, {nom:opNom,prenom:opPrenom,etfNom:entrepriseSel.nom,etfId:entrepriseSel.id,pin:opPin,roles:opRoles,profil:opProfil,
           entrepriseMandanteId:entrepriseMandante?.id||null,entrepriseMandanteNom:entrepriseMandante?.nom||null,entrepriseId});
       setOperateurs(prev=>[{...saved,etfNom:entrepriseSel.nom,etfId:entrepriseSel.id,roles:opRoles,profil:opProfil,
         entrepriseMandanteId:entrepriseMandante?.id||null,entrepriseMandanteNom:entrepriseMandante?.nom||null,assignations:[]},...prev]);
@@ -520,8 +442,8 @@ export const EcranReleves = ({entrepriseId, _user, toast, notifications=[], setN
     if (!assignLotId||!selOp) return;
     setAssignSaving(true);
     try {
-      const saved = await apiPost(`/operateurs/${selOp.id}/assigner`, {lotId:assignLotId,lotNumero:assignLotNumero,typeOperation:assignType});
-      setOperateurs(prev=>prev.map(op=>op.id===selOp.id?
+      const saved: any = await apiPost(`/operateurs/${selOp.id}/assigner`, {lotId:assignLotId,lotNumero:assignLotNumero,typeOperation:assignType});
+      setOperateurs(prev=>prev.map((op: any)=>op.id===selOp.id?
         {...op,assignations:[...(op.assignations||[]),saved]}:op));
       setSelOp(null);
       setAssignLotId(""); setAssignLotNumero("");
@@ -534,7 +456,7 @@ export const EcranReleves = ({entrepriseId, _user, toast, notifications=[], setN
     if (!lotId||!etfNom) { toast("Sélectionnez un lot et saisissez l'ETF","warn"); return; }
     setAccesSaving(true);
     try {
-      const saved = await apiPost(`/acces-lot`, {lotId,lotNumero,entrepriseId,etfNom,etfContact,typeOperation});
+      const saved: any = await apiPost(`/acces-lot`, {lotId,lotNumero,entrepriseId,etfNom,etfContact,typeOperation});
       setAcces(prev=>[saved,...prev]);
       setShowNewAcces(false);
       setEtfNom(""); setEtfContact(""); setLotId(""); setLotNumero("");
@@ -543,21 +465,21 @@ export const EcranReleves = ({entrepriseId, _user, toast, notifications=[], setN
     setAccesSaving(false);
   };
 
-  const handleDesactiver = async (id) => {
+  const handleDesactiver = async (id: any) => {
     try {
       await apiPatch(`/acces-lot/${id}/desactiver`);
-      setAcces(prev=>prev.map(a=>a.id===id?{...a,actif:false}:a));
+      setAcces(prev=>prev.map((a: any)=>a.id===id?{...a,actif:false}:a));
       toast("Accès désactivé");
     } catch { toast("Erreur","warn"); }
   };
 
-  const typeLabel = t=>({"mandataire":"🔭 Visite terrain","abattage":"🪓 Abattage","debardage":"🚜 Débardage","dechiquetage":"🌀 Déchiquetage"}[t]||t);
+  const typeLabel = (t: any)=>({"mandataire":"🔭 Visite terrain","abattage":"🪓 Abattage","debardage":"🚜 Débardage","dechiquetage":"🌀 Déchiquetage"} as Record<string,any>)[t]||t;
   const PROFILS_OPERATEUR = {
     terrain:        {label:"Opérateur terrain",  icon:"👷", desc:"Saisie abattage et débardage uniquement", roles:["abattage","debardage"]},
     charge_mission: {label:"Chargé de mission",  icon:"🔭", desc:"Visite terrain uniquement",               roles:["mandataire"]},
   };
   const [opProfil, setOpProfil] = useState("terrain");
-  const choisirProfilOp = p => { setOpProfil(p); setOpRoles(PROFILS_OPERATEUR[p].roles); if(p!=="charge_mission"){ setOpMandate(false); setOpEntrepriseMandanteId(""); } };
+  const choisirProfilOp = (p: any) => { setOpProfil(p); setOpRoles((PROFILS_OPERATEUR as Record<string,any>)[p].roles); if(p!=="charge_mission"){ setOpMandate(false); setOpEntrepriseMandanteId(""); } };
   const [opMandate, setOpMandate] = useState(false); // chargé de mission nommé par une entreprise tierce
   const [opEntrepriseMandanteId, setOpEntrepriseMandanteId] = useState("");
 
@@ -654,7 +576,7 @@ export const EcranReleves = ({entrepriseId, _user, toast, notifications=[], setN
                       <option value="">— Sélectionner dans le répertoire —</option>
                       {entreprises.map(e=>(
                         <option key={e.id} value={e.id}>
-                          {e.nom}{e.typesProposes?.length?` · ${e.typesProposes.map(t=>TYPES_TRAVAUX_DELEGATION.find(([v])=>v===t)?.[2]||t).join(", ")}`:""}
+                          {e.nom}{e.typesProposes?.length?` · ${e.typesProposes.map((t: any)=>TYPES_TRAVAUX_DELEGATION.find(([v])=>v===t)?.[2]||t).join(", ")}`:""}
                         </option>
                       ))}
                     </select>
@@ -777,8 +699,8 @@ export const EcranReleves = ({entrepriseId, _user, toast, notifications=[], setN
                         <div style={{fontSize:15,fontWeight:700}}>{op.nom}{op.prenom?` ${op.prenom}`:""}</div>
                         <div style={{fontSize:12,color:C.tx3,marginTop:2}}>{op.etfNom}</div>
                         <div style={{fontSize:11,color:C.green,fontWeight:600,marginTop:2}}>
-                          {PROFILS_OPERATEUR[op.profil||(op.roles?.includes("mandataire")?"charge_mission":"terrain")]?.icon}{" "}
-                          {PROFILS_OPERATEUR[op.profil||(op.roles?.includes("mandataire")?"charge_mission":"terrain")]?.label}
+                          {(PROFILS_OPERATEUR as Record<string,any>)[op.profil||(op.roles?.includes("mandataire")?"charge_mission":"terrain")]?.icon}{" "}
+                          {(PROFILS_OPERATEUR as Record<string,any>)[op.profil||(op.roles?.includes("mandataire")?"charge_mission":"terrain")]?.label}
                         </div>
                         {op.entrepriseMandanteNom&&(
                           <div style={{fontSize:11,color:C.purpleD,marginTop:2}}>
@@ -793,7 +715,7 @@ export const EcranReleves = ({entrepriseId, _user, toast, notifications=[], setN
                     </div>
                     {op.roles&&op.roles.length>0&&(
                       <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:10}}>
-                        {op.roles.map(r=>(
+                        {op.roles.map((r: any)=>(
                           <span key={r} style={{fontSize:10,padding:"3px 8px",borderRadius:6,
                             background:C.bg2,color:C.tx2,fontWeight:500}}>{typeLabel(r)}</span>
                         ))}
@@ -801,7 +723,7 @@ export const EcranReleves = ({entrepriseId, _user, toast, notifications=[], setN
                     )}
                     {op.assignations&&op.assignations.length>0&&(
                       <div style={{marginBottom:10}}>
-                        {op.assignations.map(a=>(
+                        {op.assignations.map((a: any)=>(
                           <div key={a.id} style={{display:"flex",alignItems:"center",gap:8,
                             padding:"6px 10px",borderRadius:8,background:C.bg2,marginBottom:4,fontSize:12}}>
                             <span>{typeLabel(a.typeOperation)}</span>
@@ -932,12 +854,12 @@ export const EcranReleves = ({entrepriseId, _user, toast, notifications=[], setN
                 <div style={{fontSize:16,fontWeight:500,marginBottom:6}}>Aucune annonce</div>
                 <div style={{fontSize:13}}>Les propositions de bois et offres de service apparaîtront ici</div>
               </div>
-            ) : annonces.map(a=>{
-              const meta = {
+            ) : annonces.map((a: any)=>{
+              const meta = ({
                 gisement:{icon:"🌲",label:"Proposition de bois",bg:C.greenL,color:C.greenD},
                 service:{icon:"🛠️",label:"Offre de service",bg:C.blueL,color:C.blueD},
                 demande:{icon:"🪵",label:"Demande de plaquettes",bg:C.amberL,color:C.amberD},
-              }[a.type]||{icon:"📢",label:a.type,bg:C.bg2,color:C.tx3};
+              } as Record<string,any>)[a.type]||{icon:"📢",label:a.type,bg:C.bg2,color:C.tx3};
               const statutInfo = STATUTS_ANNONCE[a.statut]||STATUTS_ANNONCE.recu;
               const archivee = a.statut==="archive";
               return (
@@ -958,12 +880,12 @@ export const EcranReleves = ({entrepriseId, _user, toast, notifications=[], setN
                     {a.etatBois&&<><br/>🌲 {a.etatBois==="sur_pied"?"Bois sur pied":"Bord de route"}</>}
                     {a.surfaceHa&&<><br/>🌲 {a.surfaceHa} ha estimés</>}
                     {a.essence&&<><br/>🪵 {a.essence}</>}
-                    {a.prestations?.length>0&&<><br/>🛠️ {a.prestations.map(p=>TYPES_PRESTATION_ANNONCE.find(([v])=>v===p)?.[2]||p).join(", ")}</>}
+                    {a.prestations?.length>0&&<><br/>🛠️ {a.prestations.map((p: any)=>TYPES_PRESTATION_ANNONCE.find(([v])=>v===p)?.[2]||p).join(", ")}</>}
                     {a.commentaire&&<><br/>💬 {a.commentaire}</>}
                   </div>
                   {a.photos?.length>0&&(
                     <div style={{display:"flex",gap:6,marginBottom:10}}>
-                      {a.photos.map((p,i)=>(
+                      {a.photos.map((p: any, i: any)=>(
                         <img key={i} src={p} style={{width:48,height:48,borderRadius:8,objectFit:"cover"}}/>
                       ))}
                     </div>
@@ -1009,7 +931,7 @@ export const EcranReleves = ({entrepriseId, _user, toast, notifications=[], setN
                 <div style={{fontSize:40,marginBottom:12}}>🔔</div>
                 <div style={{fontSize:16,fontWeight:500}}>Aucune notification</div>
               </div>
-            ) : notifications.map(n=>(
+            ) : notifications.map((n: any)=>(
               <div key={n.id} style={{background:"#fff",border:`1px solid ${C.bd}`,
                 borderRadius:14,padding:16,marginBottom:10,
                 borderLeft:`4px solid ${n.type==="CRITIQUE"?C.red:n.type==="WARNING"?C.amber:C.blue}`}}>
@@ -1029,7 +951,7 @@ export const EcranReleves = ({entrepriseId, _user, toast, notifications=[], setN
                 <div style={{fontSize:13,color:C.tx2,marginBottom:10}}>{n.message}</div>
                 <button onClick={async()=>{
                   await apiPatch(`/notifications/${n.id}/lu`);
-                  setNotifications(prev=>prev.filter(x=>x.id!==n.id));
+                  setNotifications((prev: any)=>prev.filter((x: any)=>x.id!==n.id));
                 }} style={{width:"100%",height:36,borderRadius:8,
                   background:C.bg2,color:C.tx2,border:"none",
                   fontFamily:"inherit",fontSize:12,cursor:"pointer",
@@ -1061,7 +983,7 @@ const CHAMP_LABELS = {
   numeroSiret:"SIRET", nomSignataire:"Signataire", qualiteSignataire:"Qualité signataire",
 };
 
-export const Fiche0Edit = ({contact, onBack, onSaved, toast, user, onLaunchVisite, onLaunchValidation, onLaunchCloture, onLaunchDechiquetage, onLaunchTransporteur, onLaunchLivraison}) => {
+export const Fiche0Edit = ({contact, onBack, onSaved, toast, user, onLaunchVisite, onLaunchValidation, onLaunchCloture, onLaunchDechiquetage, onLaunchTransporteur, onLaunchLivraison}: any) => {
   const [nom,           setNom]      = useState(contact.nom||"");
   const [prenom,        setPrenom]   = useState(contact.prenom||"");
   const [telephone,     setTel]      = useState(contact.telephone||"");
@@ -1086,12 +1008,12 @@ export const Fiche0Edit = ({contact, onBack, onSaved, toast, user, onLaunchVisit
   const [qualiteSignataire,setQualite]=useState(contact.qualiteSignataire||"");
   const [saving, setSaving] = useState(false);
   const [showHistorique, setShowHistorique] = useState(false);
-  const [historique, setHistorique] = useState([]);
+  const [historique, setHistorique] = useState<any[]>([]);
 
   useEffect(()=>{
     if (showHistorique) {
       apiGet(`/contacts/${contact.id}/historique`)
-        .then(d=>{ if(Array.isArray(d)) setHistorique(d); }).catch(()=>{});
+        .then((d: any)=>{ if(Array.isArray(d)) setHistorique(d); }).catch(()=>{});
     }
   },[showHistorique, contact.id]);
 
@@ -1152,12 +1074,12 @@ export const Fiche0Edit = ({contact, onBack, onSaved, toast, user, onLaunchVisit
               <div style={{textAlign:"center",padding:"32px 0",color:C.tx3,fontSize:13}}>
                 Aucune modification enregistrée
               </div>
-            ) : historique.map(h=>(
+            ) : historique.map((h: any)=>(
               <div key={h.id} style={{background:"#fff",border:`1px solid ${C.bd}`,
                 borderRadius:12,padding:12,marginBottom:8}}>
                 <div style={{display:"flex",justifyContent:"space-between",marginBottom:4}}>
                   <span style={{fontSize:13,fontWeight:600,color:C.tx}}>
-                    {CHAMP_LABELS[h.champ]||h.champ}
+                    {(CHAMP_LABELS as Record<string,any>)[h.champ]||h.champ}
                   </span>
                   <span style={{fontSize:11,color:C.tx3}}>
                     {new Date(h.createdAt).toLocaleString('fr-FR')}
@@ -1192,7 +1114,7 @@ export const Fiche0Edit = ({contact, onBack, onSaved, toast, user, onLaunchVisit
                 showDechi     && {icon:"🌀",label:"Déchi.",    bg:"#FAECE7",bd:"#D85A30", color:"#D85A30", action:onLaunchDechiquetage},
                 showTransp    && {icon:"🚛",label:"Transp.",   bg:C.purpleL,bd:C.purple,  color:C.purpleD, action:onLaunchTransporteur},
                 showLivraison && {icon:"📦",label:"Livraison", bg:C.greenL, bd:C.green,  color:C.greenD,  action:onLaunchLivraison},
-              ].filter(Boolean);
+              ].filter(Boolean) as any[];
               if (!btns.length) return null;
               const cols = btns.length <= 3 ? btns.length : 4;
               return (
@@ -1229,7 +1151,7 @@ export const Fiche0Edit = ({contact, onBack, onSaved, toast, user, onLaunchVisit
               <MInput label="Réf. cadastrale" value={refCadastrale} onChange={setRef} hint="optionnel" placeholder="ex: B 142"/>
             </div>
 
-            <div onClick={()=>setEstPM(v=>!v)} style={{
+            <div onClick={()=>setEstPM((v: any)=>!v)} style={{
               display:"flex",alignItems:"center",justifyContent:"space-between",
               padding:"14px",borderRadius:12,marginBottom:14,
               background:estPersonneMorale?C.purpleL:"#fff",
@@ -1309,9 +1231,9 @@ export const Fiche0Edit = ({contact, onBack, onSaved, toast, user, onLaunchVisit
 // la saisie de relevé terrain n'est plus pertinente pour l'opérateur.
 const STATUTS_CLOTURES = ["BORD_ROUTE","A_DECHIQUETER","EN_COURS_DECHIQUETAGE","EN_LIVRAISON","LIVRE_CHAUFFERIE"];
 
-export const EcranOperateur = ({operateur, onLogout, toast, onUpdateOperateur}) => {
+export const EcranOperateur = ({operateur, onLogout, toast, onUpdateOperateur}: any) => {
   const [screen, setScreen] = useState("lots"); // lots | releve | profil
-  const [activeLot, setActiveLot] = useState(null);
+  const [activeLot, setActiveLot] = useState<any>(null);
   const [typeOp, setTypeOp] = useState(null);
   const [saving, setSaving] = useState(false);
 
@@ -1338,9 +1260,9 @@ export const EcranOperateur = ({operateur, onLogout, toast, onUpdateOperateur}) 
     toast?.("PIN modifié ✓");
     setScreen("lots");
   };
-  const [lotsStatus, setLotsStatus] = useState({}); // {lotId: statutLot} — rafraîchi depuis le serveur
-  const [visites, setVisites] = useState([]);
-  const [contactsFull, setContactsFull] = useState([]); // lots complets — requis pour la visite terrain (mandataire)
+  const [lotsStatus, setLotsStatus] = useState<Record<string,any>>({}); // {lotId: statutLot} — rafraîchi depuis le serveur
+  const [visites, setVisites] = useState<any[]>([]);
+  const [contactsFull, setContactsFull] = useState<any[]>([]); // lots complets — requis pour la visite terrain (mandataire)
 
   // Rafraîchit le statut réel des lots assignés, pour ne jamais bloquer
   // l'accès à la saisie tant que la clôture n'a pas eu lieu (et le couper après).
@@ -1348,8 +1270,8 @@ export const EcranOperateur = ({operateur, onLogout, toast, onUpdateOperateur}) 
     apiGet(`/contacts`)
       .then(d=>{
         if (!Array.isArray(d)) return;
-        const map = {};
-        d.forEach(c=>{ map[c.id]=c.statutLot; });
+        const map: Record<string,any> = {};
+        d.forEach((c: any)=>{ map[c.id]=c.statutLot; });
         setLotsStatus(map);
         setContactsFull(d);
       })
@@ -1400,7 +1322,7 @@ export const EcranOperateur = ({operateur, onLogout, toast, onUpdateOperateur}) 
 
   // Composition essences de la visite (pondérée, source ITEBE) — sinon mélange par défaut
   const essenceVisite = visiteActiveLot?.essences?.length
-    ? visiteActiveLot.essences.map(e=>`${e.label} ${e.pct}%`).join(", ")
+    ? visiteActiveLot.essences.map((e: any)=>`${e.label} ${e.pct}%`).join(", ")
     : "Mélange (composition inconnue)";
   const indices = indicesPonderes(visiteActiveLot?.essences);
   const poidsTotal    = Math.round(volReel    * indices.densite / 1000 * 100) / 100;
@@ -1452,13 +1374,12 @@ export const EcranOperateur = ({operateur, onLogout, toast, onUpdateOperateur}) 
       poidsTotal,
     };
     try {
-      let _res;
       try {
-        _res = modeModif && releveExistantId
-          ? await apiPatch(`${endpoint}/${releveExistantId}`, payload)
-          : await apiPost(endpoint, payload);
+        await (modeModif && releveExistantId
+          ? apiPatch(`${endpoint}/${releveExistantId}`, payload)
+          : apiPost(endpoint, payload));
       } catch(apiErr) {
-        const msg = apiErr?.message || "";
+        const msg = (apiErr as any)?.message || "";
         if (msg.includes("DOUBLON:")) {
           const id = msg.split("DOUBLON:")[1];
           setReleveExistantId(id);
@@ -1515,9 +1436,9 @@ export const EcranOperateur = ({operateur, onLogout, toast, onUpdateOperateur}) 
 
   // Profil de l'opérateur : "terrain" (abattage/débardage uniquement) ou "charge_mission" (visite uniquement).
   // Filtre défensif au cas où des assignations historiques ne correspondraient plus au profil.
-  const estChargeMission = operateur.profil==="charge_mission" || (!operateur.profil && operateur.roles?.includes("mandataire") && !operateur.roles?.some(r=>["abattage","debardage"].includes(r)));
+  const estChargeMission = operateur.profil==="charge_mission" || (!operateur.profil && operateur.roles?.includes("mandataire") && !operateur.roles?.some((r: any)=>["abattage","debardage"].includes(r)));
   const typesAutorises = estChargeMission ? ["mandataire"] : ["abattage","debardage"];
-  const assignations = (operateur.assignations||[]).filter(a=>typesAutorises.includes(a.typeOperation));
+  const assignations = (operateur.assignations||[]).filter((a: any)=>typesAutorises.includes(a.typeOperation));
 
   // Mandataire — visite terrain : écran plein avec le formulaire de visite habituel
   if (screen==="visite" && activeLot) {
@@ -1527,8 +1448,8 @@ export const EcranOperateur = ({operateur, onLogout, toast, onUpdateOperateur}) 
     return (
       <FormulaireVisite lot={lotComplet} entrepriseId={operateur.entrepriseId}
         onBack={()=>{ setActiveLot(null); setScreen("lots"); }}
-        onSaved={v=>{
-          setVisites(prev=>[v,...prev]);
+        onSaved={(v: any)=>{
+          setVisites((prev: any)=>[v,...prev]);
           setActiveLot(null);
           setScreen("lots");
           toast("Visite enregistrée ✓");
@@ -1613,18 +1534,18 @@ export const EcranOperateur = ({operateur, onLogout, toast, onUpdateOperateur}) 
                 <div style={{fontSize:16,fontWeight:500}}>Aucun lot assigné</div>
                 <div style={{fontSize:13,marginTop:6}}>Contactez votre administrateur</div>
               </div>
-            ) : assignations.map(a=>{
+            ) : assignations.map((a: any)=>{
               const statut = lotsStatus[a.lotId]||lotsStatus[a.id];
               const cloture = statut && STATUTS_CLOTURES.includes(statut);
               const estMandataire = a.typeOperation==="mandataire";
-              const visiteFaite = estMandataire && visites.some(v=>v.lotId===a.lotId||v.lotNumero===a.lotNumero);
+              const visiteFaite = estMandataire && visites.some((v: any)=>v.lotId===a.lotId||v.lotNumero===a.lotNumero);
               return (
               <div key={a.id} style={{background:"#fff",border:`1px solid ${C.bd}`,
                 borderRadius:14,padding:16,marginBottom:10}}>
                 <div style={{fontFamily:"monospace",fontSize:13,fontWeight:700,
                   color:C.greenD,marginBottom:8}}>🏷 {a.lotNumero}</div>
                 <div style={{fontSize:12,color:C.tx3,marginBottom:12}}>
-                  {{"mandataire":"🔭 Visite terrain","abattage":"🪓 Abattage","debardage":"🚜 Débardage","dechiquetage":"🌀 Déchiquetage"}[a.typeOperation]||a.typeOperation}
+                  {({"mandataire":"🔭 Visite terrain","abattage":"🪓 Abattage","debardage":"🚜 Débardage","dechiquetage":"🌀 Déchiquetage"} as Record<string,any>)[a.typeOperation]||a.typeOperation}
                 </div>
                 {estMandataire ? (
                   visiteFaite ? (
@@ -1737,7 +1658,7 @@ export const EcranOperateur = ({operateur, onLogout, toast, onUpdateOperateur}) 
                     [0.40,"Très vrac","Bois fraîchement débardé","🪵"],
                     [0.55,"Débardé en tas","État habituel après débardage","🚜"],
                     [0.65,"Bien empilé","Bois rangé soigneusement","📐"],
-                  ].map(([v,l,s,e])=>(
+                  ].map(([v,l,s,e]: any)=>(
                     <div key={v} onClick={()=>setFoisDeb(v)} style={{
                       padding:"12px 14px",borderRadius:12,cursor:"pointer",
                       border:`2px solid ${foisDeb===v?C.purple:C.bd}`,
@@ -1806,7 +1727,7 @@ export const EcranOperateur = ({operateur, onLogout, toast, onUpdateOperateur}) 
                       🍽️ Pause déjeuner (optionnel)
                     </div>
                     <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
-                      {[["Début pause",pauseDebutDeb,setPauseDebDeb],["Fin pause",pauseFinDeb,setPauseFinDeb]].map(([lbl,val,set],i)=>(
+                      {[["Début pause",pauseDebutDeb,setPauseDebDeb],["Fin pause",pauseFinDeb,setPauseFinDeb]].map(([lbl,val,set]: any,i: any)=>(
                         <div key={i}>
                           <div style={{fontSize:11,color:"#795548",marginBottom:6}}>{lbl}</div>
                           <input type="time" value={val} onChange={e=>set(e.target.value)}
@@ -1827,7 +1748,7 @@ export const EcranOperateur = ({operateur, onLogout, toast, onUpdateOperateur}) 
                   </div>
                   {/* Calcul temps net */}
                   {heureDebDeb&&heureFinDeb&&(()=>{
-                    const toMins = t=>{ const [h,m]=t.split(":").map(Number); return h*60+m; };
+                    const toMins = (t: any)=>{ const [h,m]=t.split(":").map(Number); return h*60+m; };
                     const brut = toMins(heureFinDeb)-toMins(heureDebDeb);
                     const pause = (pauseDebutDeb&&pauseFinDeb) ? toMins(pauseFinDeb)-toMins(pauseDebutDeb) : 0;
                     const net = brut - Math.max(0,pause);
@@ -1886,7 +1807,7 @@ export const EcranOperateur = ({operateur, onLogout, toast, onUpdateOperateur}) 
                     [0.40,"Très vrac","Bois fraîchement abattu, mal empilé","🪵"],
                     [0.55,"Débardé en tas","État habituel après débardage","🚜"],
                     [0.65,"Bien empilé","Bois rangé soigneusement","📐"],
-                  ].map(([v,l,s,e])=>(
+                  ].map(([v,l,s,e]: any)=>(
                     <div key={v} onClick={()=>setFoison(v)} style={{
                       padding:"12px 14px",borderRadius:12,cursor:"pointer",
                       border:`2px solid ${foisonnement===v?C.green:C.bd}`,
@@ -1925,7 +1846,7 @@ export const EcranOperateur = ({operateur, onLogout, toast, onUpdateOperateur}) 
                       🍽️ Pause déjeuner (optionnel)
                     </div>
                     <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
-                      {[["Début pause",pauseDebutAb,setPauseDebAb],["Fin pause",pauseFinAb,setPauseFinAb]].map(([lbl,val,set],i)=>(
+                      {[["Début pause",pauseDebutAb,setPauseDebAb],["Fin pause",pauseFinAb,setPauseFinAb]].map(([lbl,val,set]: any,i: any)=>(
                         <div key={i}>
                           <div style={{fontSize:11,color:"#795548",marginBottom:6}}>{lbl}</div>
                           <input type="time" value={val} onChange={e=>set(e.target.value)}
@@ -1946,7 +1867,7 @@ export const EcranOperateur = ({operateur, onLogout, toast, onUpdateOperateur}) 
                   </div>
                   {/* Calcul temps net */}
                   {heureDebAb&&heureFinAb&&(()=>{
-                    const toMins = t=>{ const [h,m]=t.split(":").map(Number); return h*60+m; };
+                    const toMins = (t: any)=>{ const [h,m]=t.split(":").map(Number); return h*60+m; };
                     const brut = toMins(heureFinAb)-toMins(heureDebAb);
                     const pause = (pauseDebutAb&&pauseFinAb) ? toMins(pauseFinAb)-toMins(pauseDebutAb) : 0;
                     const net = brut - Math.max(0,pause);
@@ -2028,29 +1949,29 @@ export const EcranOperateur = ({operateur, onLogout, toast, onUpdateOperateur}) 
 // ── COULEURS STATUT LOT ───────────────────────────────────────
 
 // ── ÉCRAN ACCUEIL ─────────────────────────────────────────────
-export const EcranAccueil = ({contacts, _visites, notifications, user, onNewLot, onGoLots, onGoAlertes, onGoDelegations, onAppelerContact}) => {
+export const EcranAccueil = ({contacts, notifications, user, onNewLot, onGoLots, onGoAlertes, onGoDelegations, onAppelerContact}: any) => {
   const STATUTS_EXPLOITATION = ["VALIDE_EXPLOITATION","EN_COURS_EXPLOITATION","BORD_ROUTE","A_DECHIQUETER","EN_COURS_DECHIQUETAGE","EN_LIVRAISON","LIVRE_CHAUFFERIE","EN_STOCK_PLATEFORME","LIVRE"];
-  const lotsAVisiter = contacts.filter(c=>c.lotNumero&&(c.statutLot==="VISITE_PREVUE"||c.statutLot==="NOUVEAU"||!c.statutLot)&&!STATUTS_EXPLOITATION.includes(c.statutLot));
-  const chantiersJour = contacts.filter(c=>["EN_COURS_EXPLOITATION","VALIDE_EXPLOITATION"].includes(c.statutLot));
-  const alertes = notifications.filter(n=>!n.lu);
+  const lotsAVisiter = contacts.filter((c: any)=>c.lotNumero&&(c.statutLot==="VISITE_PREVUE"||c.statutLot==="NOUVEAU"||!c.statutLot)&&!STATUTS_EXPLOITATION.includes(c.statutLot));
+  const chantiersJour = contacts.filter((c: any)=>["EN_COURS_EXPLOITATION","VALIDE_EXPLOITATION"].includes(c.statutLot));
+  const alertes = notifications.filter((n: any)=>!n.lu);
 
-  const [comptes, setComptes] = useState(()=>comptesLocalGet());
+  const [comptes, setComptes] = useState<any[]>(()=>comptesLocalGet() as any[]);
   const [showInscrits, setShowInscrits] = useState(false);
-  const [ficheCompte, setFicheCompte] = useState(null);
+  const [ficheCompte, setFicheCompte] = useState<any>(null);
   const [rapportTexte, setRapportTexte] = useState("");
 
   useEffect(()=>{
     apiGet(`/comptes-contact`)
       .then(d=>{ if(Array.isArray(d)){
-        const local = comptesLocalGet();
-        const nonSynced = local.filter(c=>!c.synced && !d.some(a=>a.id===c.id));
+        const local = comptesLocalGet() as any[];
+        const nonSynced = local.filter((c: any)=>!c.synced && !d.some((a: any)=>a.id===c.id));
         const merged = [...nonSynced, ...d];
         setComptes(merged); comptesLocalSave(merged);
       } })
       .catch(()=>{});
   },[]);
 
-  const sauvegarderRapport = (compte) => {
+  const sauvegarderRapport = (compte: any) => {
     if (!rapportTexte.trim()) return;
     const updated = comptes.map(c=>c.id===compte.id?{...c,rapportAppel:rapportTexte,dateRapport:nowISO()}:c);
     setComptes(updated); comptesLocalSave(updated);
@@ -2185,7 +2106,7 @@ export const EcranAccueil = ({contacts, _visites, notifications, user, onNewLot,
               <div style={{marginBottom:12}}>
                 <div style={{fontSize:11,fontWeight:600,color:C.tx3,marginBottom:6,textTransform:"uppercase",letterSpacing:".05em"}}>Nature de la demande</div>
                 {ficheCompte.natureDemande?.length>0?(
-                  ficheCompte.natureDemande.map(n=>(
+                  ficheCompte.natureDemande.map((n: any)=>(
                     <div key={n} style={{display:"inline-block",marginRight:6,marginBottom:6,
                       padding:"4px 10px",borderRadius:20,background:C.purpleL,
                       border:`1px solid ${C.purple}`,fontSize:12,color:C.purpleD||C.purple}}>
@@ -2266,9 +2187,9 @@ export const EcranAccueil = ({contacts, _visites, notifications, user, onNewLot,
         {[
           {icon:"🔭",label:"À visiter",count:lotsAVisiter.length,color:C.amber,bg:C.amberL,action:()=>onGoLots("VISITE_PREVUE")},
           {icon:"🪓",label:"En exploitation",count:chantiersJour.length,color:C.blue,bg:C.blueL,action:()=>onGoLots("EN_COURS_EXPLOITATION")},
-          {icon:"📦",label:"Bord de route",count:contacts.filter(c=>c.statutLot==="BORD_ROUTE").length,color:C.brown,bg:C.brownL,action:()=>onGoLots("BORD_ROUTE")},
-          {icon:"🚛",label:"Transports",count:contacts.filter(c=>c.statutLot==="EN_LIVRAISON").length,color:C.purple,bg:C.purpleL,action:()=>onGoLots("EN_LIVRAISON")},
-          {icon:"✅",label:"Livraisons",count:contacts.filter(c=>c.statutLot==="LIVRE_CHAUFFERIE").length,color:C.green,bg:C.greenL,action:()=>onGoLots("LIVRE_CHAUFFERIE")},
+          {icon:"📦",label:"Bord de route",count:contacts.filter((c: any)=>c.statutLot==="BORD_ROUTE").length,color:C.brown,bg:C.brownL,action:()=>onGoLots("BORD_ROUTE")},
+          {icon:"🚛",label:"Transports",count:contacts.filter((c: any)=>c.statutLot==="EN_LIVRAISON").length,color:C.purple,bg:C.purpleL,action:()=>onGoLots("EN_LIVRAISON")},
+          {icon:"✅",label:"Livraisons",count:contacts.filter((c: any)=>c.statutLot==="LIVRE_CHAUFFERIE").length,color:C.green,bg:C.greenL,action:()=>onGoLots("LIVRE_CHAUFFERIE")},
           {icon:"⚠️",label:"Alertes critiques",count:alertes.length,color:C.red,bg:C.redL,action:onGoAlertes},
         ].map((card,i)=>(
           <div key={i} onClick={card.action} style={{
@@ -2286,7 +2207,7 @@ export const EcranAccueil = ({contacts, _visites, notifications, user, onNewLot,
       {chantiersJour.length===0&&(
         <div style={{fontSize:13,color:C.tx3,marginBottom:14}}>Aucun chantier en cours.</div>
       )}
-      {chantiersJour.slice(0,5).map(c=>{
+      {chantiersJour.slice(0,5).map((c: any)=>{
         const st = STATUT_LOT[c.statutLot||"NOUVEAU"]||STATUT_LOT.NOUVEAU;
         return (
           <div key={c.id} onClick={()=>onGoLots("EN_COURS_EXPLOITATION")}
@@ -2321,9 +2242,9 @@ const TYPES_TRAVAUX_DELEGATION = [
   ["autre","…","Autre"],
 ];
 
-export const EcranDelegations = ({entrepriseId, toast, onBack}) => {
-  const [entreprises,  setEntreprises]  = useState([]);
-  const [contacts,     setContacts]     = useState([]);
+export const EcranDelegations = ({entrepriseId, toast, onBack}: any) => {
+  const [entreprises,  setEntreprises]  = useState<any[]>([]);
+  const [contacts,     setContacts]     = useState<any[]>([]);
   const [showNew,      setShowNew]      = useState(false);
   const [saving,       setSaving]       = useState(false);
 
@@ -2340,7 +2261,7 @@ export const EcranDelegations = ({entrepriseId, toast, onBack}) => {
   const [contactPrenom, setContactPrenom]= useState("");
   const [contactTel,    setContactTel]   = useState("");
   const [contactFonction,setContactFonction] = useState("");
-  const [typesProposes, setTypesProp]    = useState([]);
+  const [typesProposes, setTypesProp]    = useState<any[]>([]);
 
   // Mission sur un lot
   const [selEntId,      setSelEntId]     = useState("");
@@ -2350,20 +2271,20 @@ export const EcranDelegations = ({entrepriseId, toast, onBack}) => {
     const d=new Date(); d.setDate(d.getDate()+14); return d.toISOString().slice(0,10);
   });
   const [missionSaving, setMissionSaving]= useState(false);
-  const [ordreGenere,   setOrdreGenere]  = useState(null);
-  const [ordresLocaux,  setOrdresLocaux] = useState(()=>ordresExplLocalGet());
+  const [ordreGenere,   setOrdreGenere]  = useState<any>(null);
+  const [ordresLocaux,  setOrdresLocaux] = useState<any[]>(()=>ordresExplLocalGet() as any[]);
 
   // Filtrage croisé lots ↔ entreprises ↔ type
   const DELAI_ATTENTE_MS = 5 * 24 * 60 * 60 * 1000; // 5 jours
   // Types bloquants par lot : ordre en_attente < 5 jours OU accepte. Exclut refuse et en_attente expiré.
-  const typesCouvertsParLot = ordresLocaux.reduce((acc,o)=>{
+  const typesCouvertsParLot: Record<string,any> = ordresLocaux.reduce((acc: any,o: any)=>{
     const age = Date.now() - new Date(o.dateEmission).getTime();
     const bloquant = o.statut==="accepte" || (o.statut==="en_attente" && age < DELAI_ATTENTE_MS);
     if (!bloquant) return acc;
     if (!acc[o.lotId]) acc[o.lotId]=new Set();
     acc[o.lotId].add(o.missionType);
     return acc;
-  },{});
+  },{} as Record<string,any>);
   const entSelec = entreprises.find(e=>e.id===selEntId);
   const typesEntreprise = entSelec?.typesProposes?.length ? entSelec.typesProposes : null;
   // Lots dispo : ont un lotNumero + le type courant n'est pas déjà commandé + si entreprise sélectionnée, au moins un de ses types n'est pas couvert
@@ -2372,7 +2293,7 @@ export const EcranDelegations = ({entrepriseId, toast, onBack}) => {
     const couverts = typesCouvertsParLot[c.id] || new Set();
     if (typesEntreprise) {
       // au moins un type de l'entreprise n'est pas encore couvert sur ce lot
-      return typesEntreprise.some(t=>!couverts.has(t));
+      return typesEntreprise.some((t: any)=>!couverts.has(t));
     }
     return true;
   });
@@ -2402,7 +2323,7 @@ export const EcranDelegations = ({entrepriseId, toast, onBack}) => {
   // Répertoire — filtres
   const [filtreDept,       setFiltreDept]       = useState("");
   const [filtreSpecialite, setFiltreSpecialite] = useState("");
-  const deptOf = e => e.codePostal ? String(e.codePostal).slice(0,2) : null;
+  const deptOf = (e: any) => e.codePostal ? String(e.codePostal).slice(0,2) : null;
   const deptsDisponibles = [...new Set(entreprises.map(deptOf).filter(Boolean))].sort();
   const entreprisesFiltrees = entreprises.filter(e=>
     (!filtreDept||deptOf(e)===filtreDept) &&
@@ -2417,7 +2338,7 @@ export const EcranDelegations = ({entrepriseId, toast, onBack}) => {
       .then(d=>{ if(Array.isArray(d)) setContacts(d); }).catch(()=>{});
   },[entrepriseId]);
 
-  const toggleType = v => setTypesProp(prev=>prev.includes(v)?prev.filter(x=>x!==v):[...prev,v]);
+  const toggleType = (v: any) => setTypesProp(prev=>prev.includes(v)?prev.filter((x: any)=>x!==v):[...prev,v]);
 
   const handleCreate = async () => {
     if (!nom.trim()) { toast("Le nom de l'entreprise est obligatoire","warn"); return; }
@@ -2428,7 +2349,7 @@ export const EcranDelegations = ({entrepriseId, toast, onBack}) => {
       typesProposes, entrepriseId,
     };
     try {
-      const saved = await apiPost(`/entreprises`, entreprise);
+      const saved: any = await apiPost(`/entreprises`, entreprise);
       setEntreprises(prev=>{ const next=[saved,...prev]; try{localStorage.setItem(`applitag_entreprises_${entrepriseId}`,JSON.stringify(next));} catch { /* noop */ } return next; });
       toast(`Entreprise ${nom} créée ✓`);
     } catch {
@@ -2499,7 +2420,7 @@ export const EcranDelegations = ({entrepriseId, toast, onBack}) => {
         </div>
       </div>
 
-      <div ref={el=>{ if(el) el._scrollTopRef=el; }} data-scrollable="1" id="delegations-scroll" style={{flex:1,overflowY:"auto",padding:PADDING,paddingBottom:40}}>
+      <div ref={el=>{ if(el) (el as any)._scrollTopRef=el; }} data-scrollable="1" id="delegations-scroll" style={{flex:1,overflowY:"auto",padding:PADDING,paddingBottom:40}}>
 
         <SectionTitle icon="📖" label="Répertoire des entreprises"/>
         {entreprises.length>0&&(
@@ -2510,7 +2431,7 @@ export const EcranDelegations = ({entrepriseId, toast, onBack}) => {
                 background:"#fff",color:C.tx,outline:"none"}}>
               <option value="">Tous départements</option>
               {deptsDisponibles.map(d=>(
-                <option key={d} value={d}>Département {d}</option>
+                <option key={d as string} value={d as string}>Département {d}</option>
               ))}
             </select>
             <select value={filtreSpecialite} onChange={e=>setFiltreSpecialite(e.target.value)}
@@ -2547,7 +2468,7 @@ export const EcranDelegations = ({entrepriseId, toast, onBack}) => {
             </div>
             {e.typesProposes?.length>0&&(
               <div style={{display:"flex",gap:6,flexWrap:"wrap",marginTop:8}}>
-                {e.typesProposes.map(t=>{
+                {e.typesProposes.map((t: any)=>{
                   const d = TYPES_TRAVAUX_DELEGATION.find(([v])=>v===t);
                   return d&&(
                     <span key={t} style={{fontSize:11,padding:"3px 8px",borderRadius:6,
@@ -2682,7 +2603,7 @@ export const EcranDelegations = ({entrepriseId, toast, onBack}) => {
                   background:"#fff",color:C.tx,outline:"none"}}>
                 <option value="">— Sélectionner —</option>
                 {entreprisesCompatibles.map(e=>(
-                  <option key={e.id} value={e.id}>{e.nom}{e.typesProposes?.length?` · ${e.typesProposes.map(t=>TYPES_TRAVAUX_DELEGATION.find(([v])=>v===t)?.[2]||t).join(", ")}`:"" }</option>
+                  <option key={e.id} value={e.id}>{e.nom}{e.typesProposes?.length?` · ${e.typesProposes.map((t: any)=>TYPES_TRAVAUX_DELEGATION.find(([v])=>v===t)?.[2]||t).join(", ")}`:"" }</option>
                 ))}
               </select>
             </div>
