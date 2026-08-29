@@ -1,5 +1,4 @@
-﻿// @ts-nocheck
-import { useState, useEffect, useRef } from "react";
+﻿import { useState, useEffect, useRef } from "react";
 import { C, BTN_H, INPUT_H, FONT_INPUT, PADDING } from "../../design-system/tokens.js";
 import { IS_DEMO_BUILD } from "../../config/env.js";
 import { uid, nowISO, todayS } from "../../shared/utils.js";
@@ -9,14 +8,14 @@ import { apiPost } from "../../services/api.service.js";
 import { BigBtn, MInput, SectionTitle, MSlider, CheckItem } from "../../shared/ui.jsx";
 import { SignatureCanvas } from "../../shared/SignatureCanvas.jsx";
 import { TEXTES_REGL, CLAUSE_RESERVE, STATUT_REGL, VSS_RECONNUS } from "../../domains/dashboard/sections.constants.js";
-export const MapZonesProtegees = ({gps}) => {
-  const divRef = useRef(null);
-  const mapRef = useRef(null);
+export const MapZonesProtegees = ({gps}: any) => {
+  const divRef = useRef<any>(null);
+  const mapRef = useRef<any>(null);
   useEffect(()=>{
     if(!gps||!divRef.current) return;
     if(mapRef.current){mapRef.current.remove();mapRef.current=null;}
     const init=()=>{
-      const L=window.L;
+      const L=(window as any).L;
       const map=L.map(divRef.current,{zoomControl:true,attributionControl:false})
         .setView([gps.lat,gps.lng],12);
       mapRef.current=map;
@@ -26,7 +25,7 @@ export const MapZonesProtegees = ({gps}) => {
       const rad=15000, olat=gps.lat, olng=gps.lng;
       const oq=`[out:json][timeout:25];(way["natural"="wetland"](around:${rad},${olat},${olng});way["leisure"="nature_reserve"](around:${rad},${olat},${olng});way["boundary"="protected_area"](around:${rad},${olat},${olng}););out geom;`;
       const endpoints=['https://overpass-api.de/api/interpreter','https://overpass.kumi.systems/api/interpreter'];
-      const tryFetch=(urls)=>{
+      const tryFetch=(urls: any): any =>{
         if(!urls.length) return Promise.resolve(null);
         return fetch(urls[0],{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:'data='+encodeURIComponent(oq)})
           .then(r=>r.text()).then(txt=>{
@@ -34,19 +33,18 @@ export const MapZonesProtegees = ({gps}) => {
             catch{return tryFetch(urls.slice(1));}
           }).catch(()=>tryFetch(urls.slice(1)));
       };
-      tryFetch(endpoints).then(data=>{
+      tryFetch(endpoints).then((data: any)=>{
         if(!data?.elements||!mapRef.current) return;
         let n=0;
-        data.elements.forEach(el=>{
+        data.elements.forEach((el: any)=>{
           try{
             if(!el.geometry?.length||el.geometry.length<3) return;
             const wet=el.tags?.natural==='wetland';
             const bog=['bog','fen','marsh','swamp'].includes(el.tags?.wetland);
-            const _res=el.tags?.leisure==='nature_reserve'||el.tags?.boundary==='protected_area';
             const color=bog?'#5D4037':wet?'#1565C0':'#2E7D32';
             const name=el.tags?.name||el.tags?.['name:fr']||(bog?'TourbiÃ¨re/Marais':wet?'Zone humide':'RÃ©serve naturelle');
             const label=bog?'ðŸŸ¤ TourbiÃ¨re/Marais':wet?'ðŸ”µ Zone humide':'ðŸŸ¢ Aire protÃ©gÃ©e';
-            L.polygon(el.geometry.map(p=>[p.lat,p.lon]),{
+            L.polygon(el.geometry.map((p: any)=>[p.lat,p.lon]),{
               color,weight:2,fillColor:color,fillOpacity:0.22,opacity:0.85
             }).bindPopup(`<b>${name}</b><br/>${label}`).addTo(mapRef.current);
             n++;
@@ -63,7 +61,7 @@ export const MapZonesProtegees = ({gps}) => {
       L.marker([gps.lat,gps.lng],{icon}).addTo(map)
         .bindPopup(`ðŸ“ ${gps.lat.toFixed(5)}Â°N Â· ${gps.lng.toFixed(5)}Â°E`).openPopup();
     };
-    if(window.L){init();}
+    if((window as any).L){init();}
     else{
       const lk=document.createElement('link');
       lk.rel='stylesheet';lk.href='https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
@@ -95,7 +93,7 @@ export const MapZonesProtegees = ({gps}) => {
   );
 };
 
-export const GpsWidget = ({value,onChange,_required}) => {
+export const GpsWidget = ({value,onChange}: any) => {
   const [loading,setLoading] = useState(false);
   const capture = () => {
     setLoading(true);
@@ -146,15 +144,15 @@ export const GpsWidget = ({value,onChange,_required}) => {
 
 // CheckItem importÃ© depuis ./shared/ui.jsx
 
-export const PhotosWidget = ({photos,onChange,required=2}) => {
-  const addPhoto = (type) => {
+export const PhotosWidget = ({photos,onChange,required=2}: any) => {
+  const addPhoto = (type: any) => {
     const emojis = {face:"ðŸ“·",profil:"ðŸ“¸",zone:"ðŸŒ³",acces:"ðŸ›¤ï¸",autre:"ðŸ–¼ï¸"};
-    onChange([...photos,{id:uid(),type,emoji:emojis[type]||"ðŸ“·",capturedAt:nowISO()}]);
+    onChange([...photos,{id:uid(),type,emoji:(emojis as Record<string,any>)[type]||"ðŸ“·",capturedAt:nowISO()}]);
   };
   return (
     <div>
       <div style={{display:"flex",flexWrap:"wrap",gap:8,marginBottom:10}}>
-        {photos.map(p=>(
+        {photos.map((p: any)=>(
           <div key={p.id} style={{position:"relative"}}>
             <div style={{width:72,height:72,borderRadius:12,background:C.greenL,
               border:`1.5px solid ${C.green}`,display:"flex",flexDirection:"column",
@@ -162,7 +160,7 @@ export const PhotosWidget = ({photos,onChange,required=2}) => {
               {p.emoji}
               <div style={{fontSize:9,color:C.greenD,marginTop:3}}>{p.type}</div>
             </div>
-            <button onClick={()=>onChange(photos.filter(x=>x.id!==p.id))}
+            <button onClick={()=>onChange(photos.filter((x: any)=>x.id!==p.id))}
               style={{position:"absolute",top:-6,right:-6,width:20,height:20,
                 borderRadius:"50%",background:C.red,color:"#fff",border:"2px solid #fff",
                 cursor:"pointer",fontSize:10,display:"flex",alignItems:"center",
@@ -208,38 +206,38 @@ const LISTE_ESSENCES_ITEBE = [
 
 // indicesPonderes et poidsAjusteHumidite importÃ©s depuis src/metier/formules.js
 
-export const EssenceEditor = ({essences,onChange}) => {
+export const EssenceEditor = ({essences,onChange}: any) => {
   const LISTE = LISTE_ESSENCES_ITEBE;
-  const total = essences.reduce((s,e)=>s+e.pct,0);
+  const total = essences.reduce((s: any,e: any)=>s+e.pct,0);
   const addEssence = () => {
     if (total>=100) return;
-    const used = new Set(essences.map(e=>e.id));
+    const used = new Set(essences.map((e: any)=>e.id));
     const next = LISTE.find(([v])=>!used.has(v));
     if (!next) return;
     onChange([...essences,{id:next[0],emoji:next[1],label:next[2],pct:Math.max(0,100-total)}]);
   };
-  const setPct = (i,val) => {
-    const autresTotal = essences.reduce((s,e,j)=>j===i?s:s+e.pct,0);
+  const setPct = (i: any,val: any) => {
+    const autresTotal = essences.reduce((s: any,e: any,j: any)=>j===i?s:s+e.pct,0);
     const maxAutorise = Math.max(0,100-autresTotal);
     const clamped = Math.min(parseInt(val)||0, maxAutorise);
-    onChange(essences.map((x,j)=>j===i?{...x,pct:clamped}:x));
+    onChange(essences.map((x: any,j: any)=>j===i?{...x,pct:clamped}:x));
   };
   return (
     <div>
-      {essences.map((e,i)=>(
+      {essences.map((e: any,i: any)=>(
         <div key={e.id} style={{background:C.bg2,borderRadius:12,padding:"12px 14px",marginBottom:8}}>
           <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:10}}>
             <span style={{fontSize:22}}>{e.emoji}</span>
-            <select value={e.id} onChange={ev=>{
+            <select value={e.id} onChange={(ev: any)=>{
               const found=LISTE.find(([v])=>v===ev.target.value);
-              onChange(essences.map((x,j)=>j===i?{...x,id:ev.target.value,
+              onChange(essences.map((x: any,j: any)=>j===i?{...x,id:ev.target.value,
                 emoji:found?.[1]||"ðŸŒ³",label:found?.[2]||""}:x));
             }} style={{flex:1,height:44,padding:"0 10px",borderRadius:9,
               border:`1px solid ${C.bd}`,fontSize:14,fontFamily:"inherit",
               background:"#fff",outline:"none"}}>
               {LISTE.map(([v,em,l])=><option key={v} value={v}>{em} {l}</option>)}
             </select>
-            <button onClick={()=>onChange(essences.filter((_,j)=>j!==i))}
+            <button onClick={()=>onChange(essences.filter((_: any,j: any)=>j!==i))}
               style={{width:36,height:36,borderRadius:8,background:C.redL,
                 color:C.red,border:"none",cursor:"pointer",fontSize:18,
                 WebkitTapHighlightColor:"transparent"}}>âœ•</button>
@@ -347,8 +345,8 @@ export const ChecklistChantier = ({showOperateur=false}) => {
     const saved = sessionStorage.getItem("checklist_chantier");
     return saved ? JSON.parse(saved) : {};
   });
-  const toggle = (key) => {
-    setChecked(prev=>{
+  const toggle = (key: any) => {
+    setChecked((prev: any)=>{
       const next = {...prev, [key]:!prev[key]};
       sessionStorage.setItem("checklist_chantier", JSON.stringify(next));
       return next;
@@ -452,7 +450,7 @@ const DRAFT_KEY = "applitag_visite_draft";
 
 // âš  NON_VALIDEE (formules.js:FORMULE_CUBAGE_CYLINDRE) â€” formule cylindrique sans coefficient de forme Vf ;
 // surestime le volume rÃ©el de 40-150%. Utiliser tarifs de cubage INRAE pour usage probant.
-const calcVolumeParHa = (popParHa, diametreMoyenCm, surfaceHa, indices) => {
+const calcVolumeParHa = (popParHa: any, diametreMoyenCm: any, surfaceHa: any, indices: any) => {
   const nbTigesHa = parseFloat(popParHa)||0;
   const dM = (parseFloat(diametreMoyenCm)||0)/100;
   const volUnitaireM3 = (Math.PI/4) * dM*dM * (indices?.hauteurMoy||20);
@@ -461,13 +459,13 @@ const calcVolumeParHa = (popParHa, diametreMoyenCm, surfaceHa, indices) => {
   return Math.round(poidsTonnes*100)/100;
 };
 
-export const FormulaireVisite = ({lot, onBack, onSaved, toast, entrepriseId, user}) => {
+export const FormulaireVisite = ({lot, onBack, onSaved, toast, entrepriseId, user}: any) => {
   const [step,     setStep]    = useState(0);
-  const [returnStep, setReturnStep] = useState(null); // retour direct au rÃ©capitulatif aprÃ¨s "ComplÃ©ter"
-  const [gps,      setGps]     = useState(null);
-  const [photos,   setPhotos]  = useState([]);
+  const [returnStep, setReturnStep] = useState<any>(null); // retour direct au rÃ©capitulatif aprÃ¨s "ComplÃ©ter"
+  const [gps,      setGps]     = useState<any>(null);
+  const [photos,   setPhotos]  = useState<any[]>([]);
   const [typeBiomasse, setTypeBiomasse] = useState("");
-  const [essences, setEssences]= useState([{id:"peuplier",emoji:"ðŸŒ¾",label:"Peuplier",pct:100}]);
+  const [essences, setEssences]= useState<any[]>([{id:"peuplier",emoji:"ðŸŒ¾",label:"Peuplier",pct:100}]);
   const [volumeT,  setVolumeT] = useState(0);
   const [modeVolume, setModeVolume] = useState("manuel"); // manuel | slider | parha
   const [popParHa, setPopParHa] = useState("");
@@ -488,8 +486,8 @@ export const FormulaireVisite = ({lot, onBack, onSaved, toast, entrepriseId, use
   // Signatures terrain
   const [sigProprio,  setSigProprio] = useState(false);
   const [sigExploit,  setSigExploit] = useState(false);
-  const [sigDataProprio, setSigDataProprio] = useState(null);
-  const [sigDataExploit, setSigDataExploit] = useState(null);
+  const [sigDataProprio, setSigDataProprio] = useState<any>(null);
+  const [sigDataExploit, setSigDataExploit] = useState<any>(null);
   const [nomSignProprio,_setNomSigPr] = useState(lot.nomSignataire||lot.nom||"");
   const [nomSignExploit,_setNomSigEx] = useState("");
   const [coupeAutorisee,        setCoupeAutorisee]        = useState("");   // "oui"|"non"
@@ -499,7 +497,7 @@ export const FormulaireVisite = ({lot, onBack, onSaved, toast, entrepriseId, use
   const [cpGestionnaire,        setCpGestionnaire]          = useState("");
   const [villeGestionnaire,     setVilleGestionnaire]       = useState("");
   const [zoneProtegee,          setZoneProtegee]           = useState("");   // "oui"|"non"
-  const [contraintes,setCont]  = useState({
+  const [contraintes,setCont]  = useState<Record<string,boolean>>({
     ligneEDF:false, lignesTelecom:false, penteForte:false,
     zoneHumide:false, tourbieres:false, solsVulnerables:false,
     voisinage:false, accesDifficile:false,
@@ -507,7 +505,7 @@ export const FormulaireVisite = ({lot, onBack, onSaved, toast, entrepriseId, use
     autorisationVoirie:false, prevenir_mairie:false, prevenir_voisinage:false,
   });
   // DÃ©tails contraintes avec responsable
-  const [detailsContraintes, setDetailsCont] = useState({});
+  const [detailsContraintes, setDetailsCont] = useState<Record<string,any>>({});
   const [accesCamion,setAcces] = useState("praticable");
   const [largeurAcces,setLarg] = useState(4);
   const [distancePlateforme,setDist] = useState(500);
@@ -567,7 +565,7 @@ export const FormulaireVisite = ({lot, onBack, onSaved, toast, entrepriseId, use
   const [platBordee,     setPlatBord]   = useState("chemin_public");
   const [platAccesCam,   setPlatAccCam] = useState("direct");
   const [platPosBroyeur, setPlatPosBr]  = useState("devant");
-  const [platGps,        setPlatGps]    = useState(null);
+  const [platGps,        setPlatGps]    = useState<any>(null);
   const [platGpsLoading, setPlatGpsL]   = useState(false);
   const [platAutorisation,setPlatAutor] = useState(false);
   const [platQuiAutoris, setPlatQui]    = useState("");
@@ -592,7 +590,7 @@ export const FormulaireVisite = ({lot, onBack, onSaved, toast, entrepriseId, use
   },[replantation, surfaceHa, surfaceReplant]);
 
   // Scroll en haut Ã  chaque changement d'Ã©tape
-  const scrollRef = useRef(null);
+  const scrollRef = useRef<any>(null);
   useEffect(()=>{
     if(scrollRef.current) scrollRef.current.scrollTop = 0;
   },[step]);
@@ -616,7 +614,7 @@ export const FormulaireVisite = ({lot, onBack, onSaved, toast, entrepriseId, use
   const [redDestination,  setRedDestination] = useState("");
   const [redForetPrimaire,setRedForetPrimaire] = useState("");  // confirmÃ©|a_verifier|non_concerne
   const [redDocGestion,   setRedDocGestion]   = useState("");  // psg|cbps|amenagement|aucun
-  const [redBoisMort,     setRedBoisMort]     = useState({souches:false,boisMort:false,coupeRase:false});
+  const [redBoisMort,     setRedBoisMort]     = useState<Record<string,boolean>>({souches:false,boisMort:false,coupeRase:false});
   const [statutRed,       setStatutRed]       = useState("");
 
   // Arbitrage SNBC 3
@@ -646,7 +644,7 @@ export const FormulaireVisite = ({lot, onBack, onSaved, toast, entrepriseId, use
   const [decisionAttributive, setDecisionAttr] = useState("");
 
   const isDemo = !!(user?.id?.startsWith("demo-"));
-  const stepValid = {
+  const stepValid: Record<number, boolean> = {
     0:true, 1:isDemo||!!gps, 2:isDemo||photos.length>=2,
     3:!!typeBiomasse&&essences.length>0&&Math.abs(essences.reduce((s,e)=>s+e.pct,0)-100)<=1&&volumeT>0,
     4:parseFloat(prixTonne)>0, 5:true, 6:true, 7:true, 8:true, 9:true, 10:clauseReserveOk||isDemo, 11:true,
@@ -1002,7 +1000,7 @@ export const FormulaireVisite = ({lot, onBack, onSaved, toast, entrepriseId, use
             {/* RÃ©cap HT / TVA / TTC */}
             {prixTonne&&volumeT>0&&(()=>{
               const ht = volumeT*parseFloat(prixTonne);
-              const tva = ht*(parseFloat(tauxTVA||20)/100);
+              const tva = ht*(parseFloat(tauxTVA||"20")/100);
               const ttc = ht+tva;
               return (
                 <div style={{background:C.greenL,borderRadius:12,padding:14,marginBottom:14,
@@ -1013,7 +1011,7 @@ export const FormulaireVisite = ({lot, onBack, onSaved, toast, entrepriseId, use
                   <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8}}>
                     {[
                       [fmtNum(ht,2)+" â‚¬","Total HT"],
-                      [fmtNum(tva,2)+" â‚¬",`TVA ${tauxTVA||20}%`],
+                      [fmtNum(tva,2)+" â‚¬",`TVA ${tauxTVA||"20"}%`],
                       [fmtNum(ttc,2)+" â‚¬","Total TTC"],
                     ].map(([v,l],i)=>(
                       <div key={i} style={{textAlign:"center",
@@ -1051,7 +1049,7 @@ export const FormulaireVisite = ({lot, onBack, onSaved, toast, entrepriseId, use
             {acompte&&prixTonne&&volumeT>0&&(
               <div style={{background:C.blueL,borderRadius:10,padding:12,marginBottom:14,
                 border:`1px solid ${C.blue}`,fontSize:12,color:C.blueD}}>
-                Acompte : {fmtNum(acompte,2)} â‚¬ Â· Solde : {fmtNum(Math.max(0,volumeT*parseFloat(prixTonne)*(1+parseFloat(tauxTVA||20)/100)-parseFloat(acompte)),2)} â‚¬ ({delaiSolde})
+                Acompte : {fmtNum(acompte,2)} â‚¬ Â· Solde : {fmtNum(Math.max(0,volumeT*parseFloat(prixTonne)*(1+parseFloat(tauxTVA||"20")/100)-parseFloat(acompte)),2)} â‚¬ ({delaiSolde})
               </div>
             )}
 
@@ -1275,7 +1273,7 @@ export const FormulaireVisite = ({lot, onBack, onSaved, toast, entrepriseId, use
                   background:platBordee===v?C.purpleL:"#fff",
                   WebkitTapHighlightColor:"transparent"}}>
                   <div style={{fontSize:14,fontWeight:platBordee===v?600:400,
-                    color:platBordee===v?C.purpleD:C.tx}}>{labels[v]}</div>
+                    color:platBordee===v?C.purpleD:C.tx}}>{(labels as Record<string,string>)[v]}</div>
                 </div>
               );
             })}
@@ -1344,7 +1342,7 @@ export const FormulaireVisite = ({lot, onBack, onSaved, toast, entrepriseId, use
             <SectionTitle icon="ðŸ”‘" label="Autorisation nÃ©cessaire"/>
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:12}}>
               {[[false,"âœ… Non","Aucune autorisation"],[true,"âš ï¸ Oui","DÃ©marche requise"]].map(([v,l,s])=>(
-                <div key={String(v)} onClick={()=>setPlatAutor(v)} style={{
+                <div key={String(v)} onClick={()=>setPlatAutor(v as any)} style={{
                   padding:"12px",borderRadius:10,cursor:"pointer",textAlign:"center",
                   border:`2px solid ${platAutorisation===v?(v?C.amber:C.green):C.bd}`,
                   background:platAutorisation===v?(v?C.amberL:C.greenL):"#fff",
@@ -1811,7 +1809,7 @@ export const FormulaireVisite = ({lot, onBack, onSaved, toast, entrepriseId, use
                     {[
                       ["conforme",    "âœ…","Conforme",    C.green,  C.greenL,  C.greenD],
                       ["a_verifier",  "ðŸ”","Ã€ vÃ©rifier",  C.amber,  C.amberL,  C.amber],
-                      ["incomplet",   "âš ï¸","Incomplet",   C.orange||"#E65100", "#FFF3E0","#E65100"],
+                      ["incomplet",   "âš ï¸","Incomplet",   (C as any).orange||"#E65100", "#FFF3E0","#E65100"],
                       ["non_conforme","âŒ","Non conforme", C.red,    "#FFEBEE",  "#B71C1C"],
                     ].map(([v,e,l,border,bg,col])=>(
                       <button key={v} onClick={()=>setStatutRed(v)} style={{
@@ -2153,7 +2151,7 @@ export const FormulaireVisite = ({lot, onBack, onSaved, toast, entrepriseId, use
   );
 };
 
-export const ListeVisites = ({visites}) => (
+export const ListeVisites = ({visites}: any) => (
   <div data-scrollable="1" style={{flex:1,overflowY:"auto",padding:PADDING}}>
     {visites.length===0 ? (
       <div style={{textAlign:"center",padding:"48px 0",color:C.tx3}}>
@@ -2161,7 +2159,7 @@ export const ListeVisites = ({visites}) => (
         <div style={{fontSize:16,fontWeight:500}}>Aucune visite</div>
         <div style={{fontSize:13,marginTop:6}}>Lancez une visite depuis une fiche contact</div>
       </div>
-    ) : visites.map(v=>(
+    ) : visites.map((v: any)=>(
       <div key={v.id} style={{background:"#fff",border:`1px solid ${C.bd}`,
         borderRadius:14,padding:16,marginBottom:10}}>
         <div style={{display:"flex",justifyContent:"space-between",marginBottom:8}}>
