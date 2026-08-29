@@ -1,5 +1,4 @@
-﻿// @ts-nocheck
-import { useState, useEffect, useRef } from "react";
+﻿import { useState, useEffect, useRef } from "react";
 import { C, PADDING } from "../../design-system/tokens.js";
 import { todayS } from "../../shared/utils.js";
 import { fmtNum } from "../../shared/format.js";
@@ -8,9 +7,9 @@ import { BigBtn, MInput, SectionTitle } from "../../shared/ui.jsx";
 import { generatePdfFromHtml, buildRedHTML } from "../../domains/documents/pdf-templates.js";
 import { validateCMR, formatCMR, formatImmat, validateImmat } from "../../shared/validators.js";
 import { STATUT_LOT } from "../../domains/screens/MobileScreens.constants.js";
-export const EcranRoleMandataire = ({user, contacts, onSelectLot}) => {
-  const mesLots = contacts.filter(c=>c.mandataireId===user.id);
-  const [selLot, setSelLot] = useState(null);
+export const EcranRoleMandataire = ({user, contacts, onSelectLot}: any) => {
+  const mesLots = contacts.filter((c: any)=>c.mandataireId===user.id);
+  const [selLot, setSelLot] = useState<any>(null);
 
   if (selLot) {
     const st = STATUT_LOT[selLot.statutLot||"NOUVEAU"]||STATUT_LOT.NOUVEAU;
@@ -79,7 +78,7 @@ export const EcranRoleMandataire = ({user, contacts, onSelectLot}) => {
           <div style={{fontSize:32}}>📋</div>
           <div style={{marginTop:8}}>Aucun lot attribué pour le moment</div>
         </div>
-      ) : mesLots.map(lot=>{
+      ) : mesLots.map((lot: any)=>{
         const st = STATUT_LOT[lot.statutLot||"NOUVEAU"]||STATUT_LOT.NOUVEAU;
         return (
           <div key={lot.id} onClick={()=>setSelLot(lot)}
@@ -116,32 +115,32 @@ export const EcranRoleMandataire = ({user, contacts, onSelectLot}) => {
   );
 };
 
-export const EcranRoleProprietaire = ({user, contacts, visites, reportings=[], livraisons=[], dechiquetages=[]}) => {
-  const mesSLots = contacts.filter(c=>c.nom?.toLowerCase()===user.nom?.toLowerCase());
+export const EcranRoleProprietaire = ({user, contacts, visites, reportings=[], livraisons=[], dechiquetages=[]}: any) => {
+  const mesSLots = contacts.filter((c: any)=>c.nom?.toLowerCase()===user.nom?.toLowerCase());
 
   const today = todayS();
 
-  const dateDebutOperation = (lot, typeMatch) => {
+  const dateDebutOperation = (lot: any, typeMatch: any) => {
     const dates = reportings
-      .filter(r=>(r.lotId===lot.id||r.lotNumero===lot.lotNumero)&&typeMatch(r.typeOperationJour||""))
-      .map(r=>r.dateJour).filter(Boolean).sort();
+      .filter((r: any)=>(r.lotId===lot.id||r.lotNumero===lot.lotNumero)&&typeMatch(r.typeOperationJour||""))
+      .map((r: any)=>r.dateJour).filter(Boolean).sort();
     return dates[0]||null;
   };
 
-  const suiviJour = (lot) => {
-    const rToday = reportings.filter(r=>
+  const suiviJour = (lot: any) => {
+    const rToday = reportings.filter((r: any)=>
       (r.lotId===lot.id||r.lotNumero===lot.lotNumero) && (r.dateJour||"").startsWith(today));
     const abattageM3 = rToday
-      .filter(r=>["abattage","abattage_debardage"].includes(r.typeOperationJour))
-      .reduce((s,r)=>s+(parseFloat(r.volumeJour)||0), 0);
+      .filter((r: any)=>["abattage","abattage_debardage"].includes(r.typeOperationJour))
+      .reduce((s: any,r: any)=>s+(parseFloat(r.volumeJour)||0), 0);
     const debardageM3 = rToday
-      .filter(r=>["debardage","abattage_debardage"].includes(r.typeOperationJour))
-      .reduce((s,r)=>s+(parseFloat(r.volumeJour)||0), 0);
-    const dToday = dechiquetages.filter(d=>
+      .filter((r: any)=>["debardage","abattage_debardage"].includes(r.typeOperationJour))
+      .reduce((s: any,r: any)=>s+(parseFloat(r.volumeJour)||0), 0);
+    const dToday = dechiquetages.filter((d: any)=>
       (d.lotId===lot.id||d.lotNumero===lot.lotNumero) &&
       ((d.dateJour||d.createdAt||"").startsWith(today)));
-    const dechiqT  = dToday.reduce((s,d)=>s+(parseFloat(d.tonnageCharge)||0), 0);
-    const dechiqM3 = dToday.reduce((s,d)=>s+(parseFloat(d.cubageCharge)||0), 0);
+    const dechiqT  = dToday.reduce((s: any,d: any)=>s+(parseFloat(d.tonnageCharge)||0), 0);
+    const dechiqM3 = dToday.reduce((s: any,d: any)=>s+(parseFloat(d.cubageCharge)||0), 0);
     return {abattageM3, debardageM3, dechiqT, dechiqM3, hasData: abattageM3>0||debardageM3>0||dechiqT>0||dechiqM3>0};
   };
 
@@ -157,20 +156,20 @@ export const EcranRoleProprietaire = ({user, contacts, visites, reportings=[], l
           <div style={{fontSize:32}}>🌲</div>
           <div style={{marginTop:8}}>Aucune parcelle assignée</div>
         </div>
-      ):mesSLots.map(lot=>{
+      ):mesSLots.map((lot: any)=>{
         const st=STATUT_LOT[lot.statutLot||"NOUVEAU"]||STATUT_LOT.NOUVEAU;
-        const visite=visites.find(v=>v.lotId===lot.id||v.lotNumero===lot.lotNumero);
+        const visite=visites.find((v: any)=>v.lotId===lot.id||v.lotNumero===lot.lotNumero);
 
         const livraisonsChaufferie = livraisons
-          .filter(l=>(l.lotId===lot.id||l.lotNumero===lot.lotNumero)&&l.typeDest==="chaufferie")
-          .sort((a,b)=>new Date(a.dateHeureLivraison||0)-new Date(b.dateHeureLivraison||0));
-        const poidsCumule = livraisonsChaufferie.reduce((s,l)=>s+(parseFloat(l.pesee)||0),0);
+          .filter((l: any)=>(l.lotId===lot.id||l.lotNumero===lot.lotNumero)&&l.typeDest==="chaufferie")
+          .sort((a: any,b: any)=>+new Date(a.dateHeureLivraison||0)-+new Date(b.dateHeureLivraison||0));
+        const poidsCumule = livraisonsChaufferie.reduce((s: any,l: any)=>s+(parseFloat(l.pesee)||0),0);
         const prixTonne = parseFloat(visite?.prixTonne)||0;
         const sommeDue = poidsCumule*prixTonne;
 
-        const dateAbattage = dateDebutOperation(lot, t=>t.startsWith("abattage"));
-        const dateDebardage = dateDebutOperation(lot, t=>t.includes("debardage"));
-        const dechiq = dechiquetages.find(d=>d.lotId===lot.id||d.lotNumero===lot.lotNumero);
+        const dateAbattage = dateDebutOperation(lot, (t: any)=>t.startsWith("abattage"));
+        const dateDebardage = dateDebutOperation(lot, (t: any)=>t.includes("debardage"));
+        const dechiq = dechiquetages.find((d: any)=>d.lotId===lot.id||d.lotNumero===lot.lotNumero);
         const dateDechiquetage = dechiq?.dateJour||dechiq?.date||null;
 
         return (
@@ -193,7 +192,7 @@ export const EcranRoleProprietaire = ({user, contacts, visites, reportings=[], l
               <div style={{background:C.greenL,borderRadius:10,padding:12,marginBottom:10,
                 fontSize:12,color:C.tx,lineHeight:1.8}}>
                 <div style={{fontWeight:700,color:C.greenD,marginBottom:4}}>🔭 Visite terrain — {visite.date}</div>
-                {visite.essences?.length>0&&<>🌿 {visite.essences.map(e=>`${e.label} (${e.pct}%)`).join(", ")}<br/></>}
+                {visite.essences?.length>0&&<>🌿 {visite.essences.map((e: any)=>`${e.label} (${e.pct}%)`).join(", ")}<br/></>}
                 ⚖️ Volume estimé : {fmtNum(visite.volumeEstimeT||0)} t<br/>
                 {visite.gps?.lat&&<>🛰️ GPS : {visite.gps.lat.toFixed(5)}°N · {visite.gps.lng.toFixed(5)}°E<br/></>}
                 🚛 Accès : {visite.accesCamion==="praticable"?"Praticable":visite.accesCamion==="difficile"?"Difficile":visite.accesCamion||"—"}
@@ -293,7 +292,7 @@ export const EcranRoleProprietaire = ({user, contacts, visites, reportings=[], l
               </div>
               {livraisonsChaufferie.length===0?(
                 <div style={{fontSize:12,color:C.tx3}}>Aucune livraison enregistrée à ce jour</div>
-              ):livraisonsChaufferie.map((l,i)=>(
+              ):livraisonsChaufferie.map((l: any,i: any)=>(
                 <div key={l.id||i} style={{display:"flex",justifyContent:"space-between",
                   fontSize:12,padding:"4px 0",borderBottom:`1px solid ${C.bd}`}}>
                   <span style={{color:C.tx2}}>
@@ -330,18 +329,18 @@ export const EcranRoleProprietaire = ({user, contacts, visites, reportings=[], l
   );
 };
 
-export const EcranRoleChauffeur = ({user, transports=[], dechiquetages=[], gpsChantier={}, onValiderArrivee, onValiderDepart}) => {
-  const mesTransports = transports.filter(t=>t.nomChauffeur?.toLowerCase().includes(user.nom.toLowerCase()));
-  const [confirmed, setConfirmed] = useState({});
-  const [heuresArriveeEst, setHeuresArriveeEst] = useState({});
-  const [heuresValidees, setHeuresValidees] = useState({});
-  const [heuresArriveSite, setHeuresArriveSite] = useState({});
-  const [heuresDebutCharg, setHeuresDebutCharg] = useState({});
-  const [heuresFinCharg, setHeuresFinCharg] = useState({});
-  const [justifModal, setJustifModal] = useState(null); // {tid, dureeMin}
+export const EcranRoleChauffeur = ({user, transports=[], dechiquetages=[], gpsChantier={}, onValiderArrivee, onValiderDepart}: any) => {
+  const mesTransports = transports.filter((t: any)=>t.nomChauffeur?.toLowerCase().includes(user.nom.toLowerCase()));
+  const [confirmed, setConfirmed] = useState<Record<string,any>>({});
+  const [heuresArriveeEst, setHeuresArriveeEst] = useState<Record<string,any>>({});
+  const [heuresValidees, setHeuresValidees] = useState<Record<string,any>>({});
+  const [heuresArriveSite, setHeuresArriveSite] = useState<Record<string,any>>({});
+  const [heuresDebutCharg, setHeuresDebutCharg] = useState<Record<string,any>>({});
+  const [heuresFinCharg, setHeuresFinCharg] = useState<Record<string,any>>({});
+  const [justifModal, setJustifModal] = useState<any>(null); // {tid, dureeMin}
   const [justifChoix, setJustifChoix] = useState("");
   const [justifTexte, setJustifTexte] = useState("");
-  const [justifValidees, setJustifValidees] = useState({});
+  const [justifValidees, setJustifValidees] = useState<Record<string,any>>({});
 
   // Prise de poste : capacité véhicule
   const storageKey = `applitag_capacite_${user.id||user.nom}`;
@@ -350,11 +349,11 @@ export const EcranRoleChauffeur = ({user, transports=[], dechiquetages=[], gpsCh
   const [posteValide, setPosteValide] = useState(()=>{try{return !!localStorage.getItem(storageKey)}catch{return false}});
 
   // Bloquer le retour arrière navigateur quand "DÉBUT DE CHARGEMENT" est en attente
-  const blockingTransportId = mesTransports.find(t=>confirmed[t.id+"arrivePlace"]&&!heuresDebutCharg[t.id])?.id||null;
+  const blockingTransportId = mesTransports.find((t: any)=>confirmed[t.id+"arrivePlace"]&&!heuresDebutCharg[t.id])?.id||null;
   useEffect(()=>{
     if(!blockingTransportId) return;
     window.history.pushState({chargBloque:true},"");
-    const handler=(e)=>{
+    const handler=(e: any)=>{
       if(e.state?.chargBloque===undefined){
         window.history.pushState({chargBloque:true},"");
       }
@@ -364,7 +363,7 @@ export const EcranRoleChauffeur = ({user, transports=[], dechiquetages=[], gpsCh
   },[blockingTransportId]);
 
   const getNow=()=>{const n=new Date();return String(n.getHours()).padStart(2,"0")+":"+String(n.getMinutes()).padStart(2,"0");};
-  const diffMin=(h1,h2)=>{
+  const diffMin=(h1: any,h2: any)=>{
     const [ah,am]=h1.split(":").map(Number);
     const [bh,bm]=h2.split(":").map(Number);
     return (bh*60+bm)-(ah*60+am);
@@ -432,7 +431,7 @@ export const EcranRoleChauffeur = ({user, transports=[], dechiquetages=[], gpsCh
           </div>
         </div>
       ):(
-        mesTransports.map(t=>(
+        mesTransports.map((t: any)=>(
           <div key={t.id} style={{background:"#fff",borderRadius:16,padding:20,marginBottom:14,
             border:`2px solid ${C.green}`}}>
             <div style={{fontFamily:"monospace",fontSize:16,fontWeight:700,color:C.greenD,marginBottom:12}}>
@@ -444,7 +443,7 @@ export const EcranRoleChauffeur = ({user, transports=[], dechiquetages=[], gpsCh
               🏢 {t.societeTransp}
             </div>
             {(()=>{
-              const dech = dechiquetages.find(d=>d.lotId===t.lotId && d.operateurDechiquetage);
+              const dech = dechiquetages.find((d: any)=>d.lotId===t.lotId && d.operateurDechiquetage);
               return (t.adresse||t.codePostal||t.commune||t.departement||dech)&&(
                 <div style={{background:C.bg2,borderRadius:10,padding:"10px 14px",
                   marginBottom:16,border:`1px solid ${C.bd}`}}>
@@ -496,7 +495,7 @@ export const EcranRoleChauffeur = ({user, transports=[], dechiquetages=[], gpsCh
                               📡 Position chantier
                             </div>
                             {gps.coords?(
-                              <a href={mapsUrl} target="_blank" rel="noreferrer"
+                              <a href={mapsUrl||undefined} target="_blank" rel="noreferrer"
                                 style={{fontSize:12,color:C.green,fontWeight:600,
                                   textDecoration:"none",display:"flex",alignItems:"center",gap:4}}>
                                 🗺️ Ouvrir dans Maps (±{gps.coords.precision} m)
@@ -755,13 +754,13 @@ export const EcranRoleChauffeur = ({user, transports=[], dechiquetages=[], gpsCh
 };
 
 // ─── Flux déchiquetage multi-camions (espace opérateur rôle) ────────────────
-const FluxDechiquetageRole = ({lot, user, onFinChantier, onRetour, toast}) => {
+const FluxDechiquetageRole = ({lot, user, onFinChantier, onRetour, toast}: any) => {
   // phase: demarrage | en_cours | saisie_fin | entre_camions | cloture
   const [phase,        setPhase]       = useState("demarrage");
   const [machine,      setMachine]     = useState(()=>{ try { return localStorage.getItem(`applitag_dech_machine_${user?.id||""}`)||""; } catch { return ""; } });
   const [heureDebut,   setHeureDebut]  = useState("");
   const [dateDebut,    setDateDebut]   = useState("");
-  const [chargements,  setChargements] = useState([]); // [{type,cubage,tonnage,cmr,immatTract,immatRemor,heureFin}]
+  const [chargements,  setChargements] = useState<any[]>([]); // [{type,cubage,tonnage,cmr,immatTract,immatRemor,heureFin}]
   // Saisie fin de chargement
   const [typeCharg,    setTypeCharg]   = useState("semi");
   const [cubage,       setCubage]      = useState("");
@@ -773,7 +772,7 @@ const FluxDechiquetageRole = ({lot, user, onFinChantier, onRetour, toast}) => {
   const [saving,       setSaving]      = useState(false);
 
   const [chrono,       setChrono]       = useState(0); // secondes écoulées
-  const chronoRef = useRef(null);
+  const chronoRef = useRef<any>(null);
 
   useEffect(()=>{
     if(phase==="en_cours"){
@@ -785,7 +784,7 @@ const FluxDechiquetageRole = ({lot, user, onFinChantier, onRetour, toast}) => {
     return ()=>clearInterval(chronoRef.current);
   },[phase]);
 
-  const fmtChrono = (s) => {
+  const fmtChrono = (s: any) => {
     const h = Math.floor(s/3600);
     const m = Math.floor((s%3600)/60);
     const sec = s%60;
@@ -847,7 +846,7 @@ const FluxDechiquetageRole = ({lot, user, onFinChantier, onRetour, toast}) => {
         message:`Chantier de déchiquetage terminé sur le lot ${lot.lotNumero}. ${chargements.length} camion(s) chargé(s), ${payload.tonnageTotal.toFixed(1)} t au total. Réception à effectuer.`,
         date:new Date().toISOString() });
     } catch(e) {
-      toast&&toast(`Erreur enregistrement chantier — ${e.message||"vérifiez la connexion"}`, "warn");
+      toast&&toast(`Erreur enregistrement chantier — ${(e as any).message||"vérifiez la connexion"}`, "warn");
       setSaving(false);
       return;
     }
@@ -987,9 +986,9 @@ const FluxDechiquetageRole = ({lot, user, onFinChantier, onRetour, toast}) => {
           </div>
           <MInput label="Tonnage estimé chargé (t)" value={tonnage} onChange={setTonnage} type="number" placeholder="ex: 28" required/>
           <MInput label="Cubage chargé estimé (m³)" value={cubage} onChange={setCubage} type="number" placeholder="ex: 85"/>
-          <MInput label="Numéro CMR" value={cmr} onChange={v=>setCmr(formatCMR(v))} placeholder="CMR-2026-0001" hint="CMR-AAAA-NNNN" required error={cmr?validateCMR(cmr):null}/>
-          <MInput label="Immat. tracteur" value={immatTract} onChange={v=>setImmatTract(formatImmat(v))} placeholder="AB-123-CD" error={immatTract?validateImmat(immatTract):null}/>
-          <MInput label="Immat. remorque" value={immatRemor} onChange={v=>setImmatRemor(formatImmat(v))} placeholder="EF-456-GH" error={immatRemor?validateImmat(immatRemor):null}/>
+          <MInput label="Numéro CMR" value={cmr} onChange={v=>setCmr(formatCMR(v))} placeholder="CMR-2026-0001" hint="CMR-AAAA-NNNN" required error={cmr?validateCMR(cmr) as any:undefined}/>
+          <MInput label="Immat. tracteur" value={immatTract} onChange={v=>setImmatTract(formatImmat(v))} placeholder="AB-123-CD" error={immatTract?validateImmat(immatTract) as any:undefined}/>
+          <MInput label="Immat. remorque" value={immatRemor} onChange={v=>setImmatRemor(formatImmat(v))} placeholder="EF-456-GH" error={immatRemor?validateImmat(immatRemor) as any:undefined}/>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:14}}>
             <div>
               <div style={{fontSize:12,fontWeight:600,color:C.tx2,marginBottom:6}}>Heure début chargement</div>
@@ -1064,14 +1063,14 @@ const FluxDechiquetageRole = ({lot, user, onFinChantier, onRetour, toast}) => {
 };
 
 // ────────────────────────────────────────────────────────────────────────────
-export const EcranRoleDechiquetage = ({user, contacts, _onLaunchDechiquetage, avisArrivee={}, camionsPartis={}, onArriveeChantier, toast}) => {
-  const lotsABroyer = contacts.filter(c=>["BORD_ROUTE","A_DECHIQUETER"].includes(c.statutLot));
-  const [actif, _setActif] = useState(null);
-  const [avisLus, setAvisLus] = useState({});
+export const EcranRoleDechiquetage = ({user, contacts, avisArrivee={}, camionsPartis={}, onArriveeChantier, toast}: any) => {
+  const lotsABroyer = contacts.filter((c: any)=>["BORD_ROUTE","A_DECHIQUETER"].includes(c.statutLot));
+  const [actif, _setActif] = useState<any>(null);
+  const [avisLus, setAvisLus] = useState<Record<string,any>>({});
   const arriveeKey = `applitag_arrivee_op_${user.id||user.nom}`;
   const [arriveeGlobale, setArriveeGlobale] = useState(()=>{try{const s=localStorage.getItem(arriveeKey);return s?JSON.parse(s):null}catch{return null}});
-  const [recapOuvert, setRecapOuvert] = useState(null); // "enRoute" | "partis" | null
-  const [lotActif, setLotActif] = useState(null); // lot en cours de déchiquetage
+  const [recapOuvert, setRecapOuvert] = useState<any>(null); // "enRoute" | "partis" | null
+  const [lotActif, setLotActif] = useState<any>(null); // lot en cours de déchiquetage
 
   // ── Rendu du flux multi-camions si un lot est actif ──────────────────────
   if (lotActif) return (
@@ -1079,7 +1078,7 @@ export const EcranRoleDechiquetage = ({user, contacts, _onLaunchDechiquetage, av
       lot={lotActif}
       user={user}
       toast={toast}
-      onFinChantier={(_lotId)=>{
+      onFinChantier={(_lotId: any)=>{
         // Retirer le lot de la liste locale (statut mis à jour côté API)
         setLotActif(null);
       }}
@@ -1116,7 +1115,6 @@ export const EcranRoleDechiquetage = ({user, contacts, _onLaunchDechiquetage, av
       onArriveeChantier&&onArriveeChantier("global", h, null);
     }
   };
-  const _avisActifs = Object.entries(avisArrivee).filter(([lotId])=>!avisLus[lotId]);
   return (
     <div data-scrollable="1" style={{flex:1,overflowY:"auto",padding:PADDING,background:C.bg}}>
       <div style={{textAlign:"center",padding:"24px 0 16px"}}>
@@ -1132,7 +1130,7 @@ export const EcranRoleDechiquetage = ({user, contacts, _onLaunchDechiquetage, av
         return (
           <div style={{display:"flex",gap:8,marginBottom:14}}>
             {nbEnRoute>0&&(
-              <button onClick={()=>setRecapOuvert(r=>r==="enRoute"?null:"enRoute")}
+              <button onClick={()=>setRecapOuvert((r: any)=>r==="enRoute"?null:"enRoute")}
                 style={{flex:1,padding:"10px 8px",borderRadius:12,border:"none",fontFamily:"inherit",
                   fontSize:12,fontWeight:700,cursor:"pointer",
                   background:recapOuvert==="enRoute"?"#FFC107":"#FFF8E1",
@@ -1141,7 +1139,7 @@ export const EcranRoleDechiquetage = ({user, contacts, _onLaunchDechiquetage, av
               </button>
             )}
             {nbPartis>0&&(
-              <button onClick={()=>setRecapOuvert(r=>r==="partis"?null:"partis")}
+              <button onClick={()=>setRecapOuvert((r: any)=>r==="partis"?null:"partis")}
                 style={{flex:1,padding:"10px 8px",borderRadius:12,border:"none",fontFamily:"inherit",
                   fontSize:12,fontWeight:700,cursor:"pointer",
                   background:recapOuvert==="partis"?"#A5D6A7":"#E8F5E9",
@@ -1161,10 +1159,10 @@ export const EcranRoleDechiquetage = ({user, contacts, _onLaunchDechiquetage, av
             🚛 Camions en route vers ce chantier
           </div>
           {Object.entries(avisArrivee).map(([lotId,avis])=>{
-            const heure     = typeof avis==="object" ? avis.heure      : avis;
-            const chauffeur = typeof avis==="object" ? avis.nomChauffeur : "—";
-            const capacite  = typeof avis==="object" ? avis.capaciteM3  : null;
-            const lot = contacts.find(c=>c.id===lotId||c.lotId===lotId);
+            const heure     = avis!=null&&typeof avis==="object" ? (avis as any).heure      : avis;
+            const chauffeur = avis!=null&&typeof avis==="object" ? (avis as any).nomChauffeur : "—";
+            const capacite  = avis!=null&&typeof avis==="object" ? (avis as any).capaciteM3  : null;
+            const lot = contacts.find((c: any)=>c.id===lotId||c.lotId===lotId);
             return (
               <div key={lotId} style={{display:"flex",gap:10,alignItems:"flex-start",
                 padding:"8px 0",borderBottom:"1px solid #FFE082"}}>
@@ -1189,7 +1187,7 @@ export const EcranRoleDechiquetage = ({user, contacts, _onLaunchDechiquetage, av
           <div style={{fontSize:13,fontWeight:700,color:"#2E7D32",marginBottom:10}}>
             ✅ Camions chargés et partis
           </div>
-          {Object.entries(camionsPartis).map(([lotId,info])=>(
+          {Object.entries(camionsPartis).map(([lotId,info]: any)=>(
             <div key={lotId} style={{display:"flex",gap:10,alignItems:"flex-start",
               padding:"8px 0",borderBottom:"1px solid #C8E6C9"}}>
               <span style={{fontSize:18}}>✅</span>
@@ -1208,10 +1206,10 @@ export const EcranRoleDechiquetage = ({user, contacts, _onLaunchDechiquetage, av
       )}
 
       {Object.entries(avisArrivee).map(([lotId,avis])=>{
-        const heure = typeof avis==="object" ? avis.heure : avis;
-        const nomChauffeur = typeof avis==="object" ? avis.nomChauffeur : "Le chauffeur";
-        const capacite = typeof avis==="object" ? avis.capaciteM3 : null;
-        const lot = contacts.find(c=>c.id===lotId||c.lotId===lotId);
+        const heure = avis!=null&&typeof avis==="object" ? (avis as any).heure : avis;
+        const nomChauffeur = avis!=null&&typeof avis==="object" ? (avis as any).nomChauffeur : "Le chauffeur";
+        const capacite = avis!=null&&typeof avis==="object" ? (avis as any).capaciteM3 : null;
+        const lot = contacts.find((c: any)=>c.id===lotId||c.lotId===lotId);
         const lu = !!avisLus[lotId];
         return lu ? (
           /* Trace archivée après "Compris" */
@@ -1256,7 +1254,7 @@ export const EcranRoleDechiquetage = ({user, contacts, _onLaunchDechiquetage, av
           <div style={{fontSize:32,marginBottom:8}}>✅</div>
           <div style={{fontSize:14,color:C.tx3}}>Aucun lot à déchiqueter actuellement</div>
         </div>
-      ):lotsABroyer.map(lot=>(
+      ):lotsABroyer.map((lot: any)=>(
         <div key={lot.id} style={{background:"#fff",borderRadius:14,padding:16,marginBottom:12,
           border:`1.5px solid ${actif===lot.id?"#D85A30":C.bd}`}}>
           <div style={{display:"flex",justifyContent:"space-between",marginBottom:8}}>
@@ -1346,7 +1344,7 @@ const FONCTIONS_ETF = [
   {value:"chauffeur",     label:"Chauffeur camion"},
 ];
 
-export const EcranEntrepriseSollicitee = ({user, lots=[], toast}) => {
+export const EcranEntrepriseSollicitee = ({user, lots=[], toast}: any) => {
   const storageKey = `applitag_etf_operateurs_${user.id}`;
   const [operateurs, setOperateurs] = useState(()=>{
     try{const s=localStorage.getItem(storageKey);return s?JSON.parse(s):[]}catch{return[]}
@@ -1357,12 +1355,12 @@ export const EcranEntrepriseSollicitee = ({user, lots=[], toast}) => {
   const [fonction, setFonction] = useState("abattage");
   const [lotId,    setLotId]    = useState("");
 
-  const lotsEtf = lots.filter(l=>
+  const lotsEtf = lots.filter((l: any)=>
     l.etfNom===(user.nomEntreprise||user.nom) ||
     l.etfId===user.id
   );
 
-  const save = (list) => {
+  const save = (list: any) => {
     setOperateurs(list);
     try{localStorage.setItem(storageKey,JSON.stringify(list))} catch { /* noop */ }
   };
@@ -1375,7 +1373,7 @@ export const EcranEntrepriseSollicitee = ({user, lots=[], toast}) => {
       id: Date.now().toString(),
       nom: nom.trim(), prenom: prenom.trim(),
       fonction, lotId,
-      lotNumero: lots.find(l=>l.id===lotId)?.lotNumero||lotId,
+      lotNumero: lots.find((l: any)=>l.id===lotId)?.lotNumero||lotId,
       dateCreation: new Date().toLocaleDateString("fr-FR"),
     };
     save([...operateurs, nouvel]);
@@ -1384,9 +1382,9 @@ export const EcranEntrepriseSollicitee = ({user, lots=[], toast}) => {
     toast("Opérateur ajouté ✓");
   };
 
-  const handleSupprimer = (id) => save(operateurs.filter(o=>o.id!==id));
+  const handleSupprimer = (id: any) => save(operateurs.filter((o: any)=>o.id!==id));
 
-  const fonctionLabel = (v) => FONCTIONS_ETF.find(f=>f.value===v)?.label||v;
+  const fonctionLabel = (v: any) => FONCTIONS_ETF.find(f=>f.value===v)?.label||v;
 
   return (
     <div data-scrollable="1" style={{flex:1,overflowY:"auto",padding:PADDING,background:C.bg}}>
@@ -1405,7 +1403,7 @@ export const EcranEntrepriseSollicitee = ({user, lots=[], toast}) => {
           <div style={{fontSize:12,fontWeight:700,color:C.tx2,marginBottom:8,textTransform:"uppercase",letterSpacing:".5px"}}>
             Lots attribués à votre entreprise
           </div>
-          {lotsEtf.map(lot=>(
+          {lotsEtf.map((lot: any)=>(
             <div key={lot.id} style={{background:"#fff",borderRadius:12,padding:"10px 14px",
               marginBottom:8,border:`1px solid ${C.bd}`,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
               <div>
@@ -1414,7 +1412,7 @@ export const EcranEntrepriseSollicitee = ({user, lots=[], toast}) => {
               </div>
               <span style={{fontSize:10,padding:"2px 8px",borderRadius:6,
                 background:"#EDE7F6",color:C.purpleD,fontWeight:600}}>
-                {operateurs.filter(o=>o.lotId===lot.id).length} opér.
+                {operateurs.filter((o: any)=>o.lotId===lot.id).length} opér.
               </span>
             </div>
           ))}
@@ -1465,8 +1463,8 @@ export const EcranEntrepriseSollicitee = ({user, lots=[], toast}) => {
                 fontFamily:"inherit",fontSize:13,color:C.tx}}>
               <option value="">— Choisir un lot —</option>
               {lotsEtf.length>0
-                ? lotsEtf.map(l=><option key={l.id} value={l.id}>{l.lotNumero} · {l.commune}</option>)
-                : lots.map(l=><option key={l.id} value={l.id}>{l.lotNumero} · {l.commune}</option>)
+                ? lotsEtf.map((l: any)=><option key={l.id} value={l.id}>{l.lotNumero} · {l.commune}</option>)
+                : lots.map((l: any)=><option key={l.id} value={l.id}>{l.lotNumero} · {l.commune}</option>)
               }
             </select>
           </div>
@@ -1484,7 +1482,7 @@ export const EcranEntrepriseSollicitee = ({user, lots=[], toast}) => {
         <div style={{background:C.bg2,borderRadius:14,padding:20,textAlign:"center",color:C.tx3,fontSize:13}}>
           Aucun opérateur créé pour l'instant.<br/>Appuyez sur "+ Ajouter" pour commencer.
         </div>
-      ):operateurs.map(op=>(
+      ):operateurs.map((op: any)=>(
         <div key={op.id} style={{background:"#fff",borderRadius:14,padding:"12px 14px",
           marginBottom:10,border:`1px solid ${C.bd}`,
           display:"flex",alignItems:"center",gap:12}}>
@@ -1511,8 +1509,8 @@ export const EcranEntrepriseSollicitee = ({user, lots=[], toast}) => {
   );
 };
 
-export const EcranRoleChaufferie = ({user, livraisons=[]}) => {
-  const [confirmee, setConfirmee] = useState({});
+export const EcranRoleChaufferie = ({user, livraisons=[]}: any) => {
+  const [confirmee, setConfirmee] = useState<Record<string,any>>({});
   return (
     <div data-scrollable="1" style={{flex:1,overflowY:"auto",padding:PADDING,background:C.bg}}>
       <div style={{textAlign:"center",padding:"24px 0 16px"}}>
@@ -1523,8 +1521,8 @@ export const EcranRoleChaufferie = ({user, livraisons=[]}) => {
       {/* Stats rapides */}
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:16}}>
         {[
-          [livraisons.filter(l=>l.typeDest==="chaufferie").length+" liv.","Livraisons reçues"],
-          [fmtNum(livraisons.reduce((s,l)=>s+(parseFloat(l.pesee)||0),0),1)+" t","Tonnage reçu"],
+          [livraisons.filter((l: any)=>l.typeDest==="chaufferie").length+" liv.","Livraisons reçues"],
+          [fmtNum(livraisons.reduce((s: any,l: any)=>s+(parseFloat(l.pesee)||0),0),1)+" t","Tonnage reçu"],
         ].map(([v,l],i)=>(
           <div key={i} style={{background:i===0?C.greenL:C.amberL,borderRadius:12,padding:14,
             border:`1px solid ${i===0?C.green:C.amber}`}}>
@@ -1533,7 +1531,7 @@ export const EcranRoleChaufferie = ({user, livraisons=[]}) => {
           </div>
         ))}
       </div>
-      {livraisons.map((l,i)=>(
+      {livraisons.map((l: any,i: any)=>(
         <div key={l.id||i} style={{background:"#fff",borderRadius:14,padding:16,marginBottom:10,
           border:`1.5px solid ${confirmee[l.id]?C.green:C.bd}`}}>
           <div style={{display:"flex",justifyContent:"space-between",marginBottom:8}}>
@@ -1578,26 +1576,26 @@ export const EcranRoleChaufferie = ({user, livraisons=[]}) => {
 };
 
 // ── RÉCEPTIONNAIRE PLATEFORME DE STOCKAGE ─────────────────────
-export const EcranRoleReceptionnaire = ({user, livraisons=[], contacts=[], visites=[], toast}) => {
+export const EcranRoleReceptionnaire = ({user, livraisons=[], contacts=[], visites=[], toast}: any) => {
   const [onglet, setOnglet] = useState("attente"); // "attente" | "stock" | "historique"
-  const [humidite, setHumidite] = useState({});
-  const [confirmes, setConfirmes] = useState({});
-  const [lotStockSelec, setLotStockSelec] = useState(null); // lot contact ouvert dans "En stock"
+  const [humidite, setHumidite] = useState<Record<string,any>>({});
+  const [confirmes, setConfirmes] = useState<Record<string,any>>({});
+  const [lotStockSelec, setLotStockSelec] = useState<any>(null); // lot contact ouvert dans "En stock"
   const [rechercheHisto, setRechercheHisto] = useState("");
 
-  const platLivs = livraisons.filter(l=>l.typeDest==="plateforme");
-  const enAttente = platLivs.filter(l=>!l.statut||l.statut==="en_attente");
-  const recues    = platLivs.filter(l=>l.statut==="recu"||confirmes[l.id]);
-  const enStock   = contacts.filter(c=>["BORD_ROUTE","A_DECHIQUETER","EN_STOCK_PLATEFORME"].includes(c.statutLot));
-  const tonnageStock = platLivs.filter(l=>l.statut==="recu"||confirmes[l.id]).reduce((s,l)=>s+(parseFloat(l.pesee)||0),0);
-  const tonnageRecus = recues.reduce((s,l)=>s+(parseFloat(l.pesee)||0),0);
+  const platLivs = livraisons.filter((l: any)=>l.typeDest==="plateforme");
+  const enAttente = platLivs.filter((l: any)=>!l.statut||l.statut==="en_attente");
+  const recues    = platLivs.filter((l: any)=>l.statut==="recu"||confirmes[l.id]);
+  const enStock   = contacts.filter((c: any)=>["BORD_ROUTE","A_DECHIQUETER","EN_STOCK_PLATEFORME"].includes(c.statutLot));
+  const tonnageStock = platLivs.filter((l: any)=>l.statut==="recu"||confirmes[l.id]).reduce((s: any,l: any)=>s+(parseFloat(l.pesee)||0),0);
+  const tonnageRecus = recues.reduce((s: any,l: any)=>s+(parseFloat(l.pesee)||0),0);
 
-  const handleConfirmer = (l) => {
+  const handleConfirmer = (l: any) => {
     setConfirmes(p=>({...p,[l.id]:true}));
     toast("Réception enregistrée ✓");
   };
 
-  const enAttenteVisibles = enAttente.filter(l=>!confirmes[l.id]);
+  const enAttenteVisibles = enAttente.filter((l: any)=>!confirmes[l.id]);
   const tabs = [
     {id:"attente",   label:"En attente",  badge:enAttenteVisibles.length},
     {id:"stock",     label:"En stock",    badge:enStock.length},
@@ -1654,9 +1652,9 @@ export const EcranRoleReceptionnaire = ({user, livraisons=[], contacts=[], visit
               <div style={{marginTop:8}}>Aucune livraison en attente</div>
             </div>
           )}
-          {enAttente.filter(l=>!confirmes[l.id]).map((l,i)=>{
+          {enAttente.filter((l: any)=>!confirmes[l.id]).map((l: any,i: any)=>{
             const h = humidite[l.id]||"";
-            const visite = visites.find(v=>v.lotId===l.lotId);
+            const visite = visites.find((v: any)=>v.lotId===l.lotId);
             const isRed = visite?.certification==="red";
             return (
               <div key={l.id||i} style={{background:"#fff",borderRadius:14,padding:16,
@@ -1737,9 +1735,9 @@ export const EcranRoleReceptionnaire = ({user, livraisons=[], contacts=[], visit
               <div style={{marginTop:8}}>Aucun lot en stock actuellement</div>
             </div>
           )}
-          {enStock.map(c=>{
-            const entrees = platLivs.filter(l=>l.lotId===c.id&&(l.statut==="recu"||confirmes[l.id]));
-            const tonnageLot = entrees.reduce((s,l)=>s+(parseFloat(l.pesee)||0),0);
+          {enStock.map((c: any)=>{
+            const entrees = platLivs.filter((l: any)=>l.lotId===c.id&&(l.statut==="recu"||confirmes[l.id]));
+            const tonnageLot = entrees.reduce((s: any,l: any)=>s+(parseFloat(l.pesee)||0),0);
             return (
               <div key={c.id} onClick={()=>setLotStockSelec(c)}
                 style={{background:"#fff",borderRadius:14,padding:14,marginBottom:10,
@@ -1791,12 +1789,12 @@ export const EcranRoleReceptionnaire = ({user, livraisons=[], contacts=[], visit
           <div style={{fontSize:12,fontWeight:700,color:C.tx,marginBottom:10}}>
             Historique des entrées
           </div>
-          {platLivs.filter(l=>l.lotId===lotStockSelec.id&&(l.statut==="recu"||confirmes[l.id])).length===0&&(
+          {platLivs.filter((l: any)=>l.lotId===lotStockSelec.id&&(l.statut==="recu"||confirmes[l.id])).length===0&&(
             <div style={{textAlign:"center",color:C.tx3,padding:"24px 0",fontSize:13}}>
               Aucune entrée enregistrée pour ce lot
             </div>
           )}
-          {platLivs.filter(l=>l.lotId===lotStockSelec.id&&(l.statut==="recu"||confirmes[l.id])).map((l,i)=>(
+          {platLivs.filter((l: any)=>l.lotId===lotStockSelec.id&&(l.statut==="recu"||confirmes[l.id])).map((l: any,i: any)=>(
             <div key={l.id||i} style={{background:"#fff",borderRadius:12,padding:14,
               marginBottom:8,border:`1px solid ${C.bd}`}}>
               <div style={{display:"flex",justifyContent:"space-between",marginBottom:4}}>
@@ -1846,13 +1844,13 @@ export const EcranRoleReceptionnaire = ({user, livraisons=[], contacts=[], visit
                   padding:0,lineHeight:1}}>✕</button>
             )}
           </div>
-          {recues.filter(l=>!rechercheHisto||l.lotNumero?.toLowerCase().includes(rechercheHisto.toLowerCase())).length===0&&(
+          {recues.filter((l: any)=>!rechercheHisto||l.lotNumero?.toLowerCase().includes(rechercheHisto.toLowerCase())).length===0&&(
             <div style={{textAlign:"center",color:C.tx3,padding:"32px 0"}}>
               <div style={{fontSize:32}}>{rechercheHisto?"🔍":"📋"}</div>
               <div style={{marginTop:8}}>{rechercheHisto?"Aucun lot trouvé":"Aucune réception enregistrée"}</div>
             </div>
           )}
-          {recues.filter(l=>!rechercheHisto||l.lotNumero?.toLowerCase().includes(rechercheHisto.toLowerCase())).map((l,i)=>(
+          {recues.filter((l: any)=>!rechercheHisto||l.lotNumero?.toLowerCase().includes(rechercheHisto.toLowerCase())).map((l: any,i: any)=>(
             <div key={l.id||i} style={{background:"#fff",borderRadius:12,padding:14,
               marginBottom:8,border:`1px solid ${C.bd}`}}>
               <div style={{display:"flex",justifyContent:"space-between",marginBottom:4}}>
@@ -1883,10 +1881,10 @@ export const EcranRoleReceptionnaire = ({user, livraisons=[], contacts=[], visit
   );
 };
 
-export const EcranAutoDeclarationRED = ({lot, visites, transports=[], livraisons=[], onBack, toast}) => {
-  const visite    = visites.find(v=>v.lotId===lot.id||v.lotNumero===lot.lotNumero);
-  const transport = transports.find(t=>t.lotId===lot.id||t.lotNumero===lot.lotNumero);
-  const livraison = livraisons.find(l=>l.lotId===lot.id||l.lotNumero===lot.lotNumero);
+export const EcranAutoDeclarationRED = ({lot, visites, transports=[], livraisons=[], onBack, toast}: any) => {
+  const visite    = visites.find((v: any)=>v.lotId===lot.id||v.lotNumero===lot.lotNumero);
+  const transport = transports.find((t: any)=>t.lotId===lot.id||t.lotNumero===lot.lotNumero);
+  const livraison = livraisons.find((l: any)=>l.lotId===lot.id||l.lotNumero===lot.lotNumero);
 
   const tonnage = parseFloat(livraison?.pesee||visite?.volumeEstimeT||0);
   // Seuil 500 t/an → auto-déclaration, sinon déclaration durabilité
@@ -1945,8 +1943,8 @@ export const EcranAutoDeclarationRED = ({lot, visites, transports=[], livraisons
             ["auto","📝","Auto-déclaration","Lots < 500 t/an · Déclaration sur l'honneur",tonnage<=500||tonnage===0],
             ["durabilite","🔍","Déclaration de durabilité","Lots ≥ 500 t/an · Audit tiers requis",tonnage>=500],
             ["pos","🔗","Preuve de durabilité (PoS)","Transfert entre opérateurs de la chaîne",false],
-          ].map(([v,e,l,s,recommande])=>(
-            <div key={v} onClick={()=>setTypeDecl(v)} style={{
+          ].map(([v,e,l,s,recommande]: any)=>(
+            <div key={v as any} onClick={()=>setTypeDecl(v as any)} style={{
               padding:14,borderRadius:14,cursor:"pointer",
               border:`2px solid ${typeDecl===v?C.blue:C.bd}`,
               background:typeDecl===v?C.blueL:"#fff",
@@ -2033,25 +2031,25 @@ const DEPT_CENTROIDS = {
   "88":[48.17,6.46],"89":[47.80,3.56],"90":[47.64,6.85],"91":[48.63,2.26],
   "92":[48.86,2.25],"93":[48.92,2.46],"94":[48.78,2.46],"95":[49.05,2.10],
 };
-const gpsByDept = (cp) => {
+const gpsByDept = (cp: any) => {
   if (!cp) return null;
   const dept = String(cp).slice(0,2).toUpperCase();
-  const c = DEPT_CENTROIDS[dept];
+  const c = (DEPT_CENTROIDS as Record<string,any>)[dept];
   return c ? {lat:c[0],lng:c[1]} : null;
 };
 
 // ── ÉCRAN CARTE (Leaflet / OpenStreetMap) ────────────────────
-export const EcranCarte = ({contacts, visites, onOpenLot}) => {
-  const mapRef     = useRef(null);
-  const mapInst    = useRef(null);
-  const markersRef = useRef([]);
-  const [loaded,   setLoaded]  = useState(!!window.L);
+export const EcranCarte = ({contacts, visites, onOpenLot}: any) => {
+  const mapRef     = useRef<any>(null);
+  const mapInst    = useRef<any>(null);
+  const markersRef = useRef<any[]>([]);
+  const [loaded,   setLoaded]  = useState(!!(window as any).L);
   const [filtre,   setFiltre]  = useState("TOUS");
   const [nbLots,   setNbLots]  = useState(0);
 
   // ── Chargement Leaflet depuis CDN ──
   useEffect(()=>{
-    if (window.L) { setLoaded(true); return; }
+    if ((window as any).L) { setLoaded(true); return; }
     if (!document.getElementById("lf-css")) {
       const lnk = document.createElement("link");
       lnk.id="lf-css"; lnk.rel="stylesheet";
@@ -2070,7 +2068,7 @@ export const EcranCarte = ({contacts, visites, onOpenLot}) => {
   // ── Init carte ──
   useEffect(()=>{
     if (!loaded || !mapRef.current || mapInst.current) return;
-    const L = window.L;
+    const L = (window as any).L;
     // Fix icônes Leaflet en prod
     delete L.Icon.Default.prototype._getIconUrl;
     L.Icon.Default.mergeOptions({
@@ -2092,31 +2090,31 @@ export const EcranCarte = ({contacts, visites, onOpenLot}) => {
 
   // ── Callback popup → fiche lot ──
   useEffect(()=>{
-    window.__aplt_open = (id)=>{
-      const lot = contacts.find(c=>c.id===id);
+    (window as any).__aplt_open = (id: any)=>{
+      const lot = contacts.find((c: any)=>c.id===id);
       if (lot) onOpenLot(lot);
     };
-    return ()=>{ delete window.__aplt_open; };
+    return ()=>{ delete (window as any).__aplt_open; };
   },[contacts, onOpenLot]);
 
 
   // ── Mise à jour des markers ──
   useEffect(()=>{
     if (!loaded || !mapInst.current) return;
-    const L = window.L;
+    const L = (window as any).L;
     const map = mapInst.current;
 
     // Supprimer anciens markers
     markersRef.current.forEach(m=>map.removeLayer(m));
     markersRef.current = [];
 
-    const bounds = [];
+    const bounds: any[] = [];
     let count = 0;
 
-    contacts.forEach(lot=>{
+    contacts.forEach((lot: any)=>{
       if (!lot.lotNumero) return;
       if (filtre!=="TOUS" && lot.statutLot!==filtre) return;
-      const v = visites.find(vi=>vi.lotId===lot.id||vi.lotNumero===lot.lotNumero);
+      const v = visites.find((vi: any)=>vi.lotId===lot.id||vi.lotNumero===lot.lotNumero);
       const gpsExact = lot.gps?.lat ? lot.gps : (v?.gps?.lat ? v.gps : null);
       const gps = gpsExact || gpsByDept(lot.codePostal);
       if (!gps?.lat) return;
@@ -2148,7 +2146,7 @@ export const EcranCarte = ({contacts, visites, onOpenLot}) => {
           ${lot.surfaceHa?`<div style="font-size:11px;color:#9A9892;margin-top:6px">
             🌲 ${lot.surfaceHa} ha${v?.volumeEstimeT?" · 📦 "+fmtNum(v.volumeEstimeT)+" t":""}</div>`:""}
           ${v?.essences?.length?`<div style="font-size:11px;color:#9A9892;margin-top:2px">
-            🌿 ${v.essences.map(e=>e.label).join(", ")}</div>`:""}
+            🌿 ${v.essences.map((e: any)=>e.label).join(", ")}</div>`:""}
           <button onclick="window.__aplt_open('${lot.id}')"
             style="width:100%;margin-top:10px;padding:8px;border-radius:8px;
               background:#4CAF50;color:#fff;border:none;cursor:pointer;
