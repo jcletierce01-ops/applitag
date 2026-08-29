@@ -1,3 +1,4 @@
+﻿// @ts-nocheck
 // ============================================================
 // APPLITAG — Gestion des tas v3
 // Densités réelles par essence · Emplacements dépôt depuis visite

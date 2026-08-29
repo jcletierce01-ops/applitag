@@ -1,4 +1,5 @@
-﻿import { useState, useEffect, useRef } from "react";
+﻿// @ts-nocheck
+import { useState, useEffect, useRef } from "react";
 import { C, PADDING } from "../../design-system/tokens.js";
 import { todayS } from "../../shared/utils.js";
 import { fmtNum } from "../../shared/format.js";

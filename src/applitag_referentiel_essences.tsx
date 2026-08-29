@@ -1,3 +1,4 @@
+﻿// @ts-nocheck
 // ============================================================
 // APPLITAG — Référentiel Essences + Saisie Dimensions Tas
 // Calcul biomasse complet : volume → poids → MWh

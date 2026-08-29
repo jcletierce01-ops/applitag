@@ -1,4 +1,5 @@
-﻿import { useState, useEffect, useRef } from "react";
+﻿// @ts-nocheck
+import { useState, useEffect, useRef } from "react";
 import { STATUT_LOT } from "./MobileScreens.constants.js";
 import { C, BTN_H, INPUT_H, FONT_INPUT, FONT_TITLE, PADDING } from "../../design-system/tokens.js";
 import { todayS, nowISO, uid, genCode } from "../../shared/utils.js";

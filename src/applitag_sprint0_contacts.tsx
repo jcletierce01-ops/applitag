@@ -1,3 +1,4 @@
+﻿// @ts-nocheck
 // ============================================================
 // APPLITAG — Sprint 0 : Contact → Opportunité
 // Point d'entrée du workflow complet

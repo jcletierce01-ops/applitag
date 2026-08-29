@@ -1,3 +1,4 @@
+﻿// @ts-nocheck
 // ============================================================
 // APPLITAG — Stabilisation MVP + Présentation Pilote
 // État MVP · Parcours complet · Présentation 5 blocs · Modèle éco

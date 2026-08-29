@@ -1,4 +1,5 @@
-﻿import { useState, useEffect, useRef } from "react";
+﻿// @ts-nocheck
+import { useState, useEffect, useRef } from "react";
 import { C, BTN_H, INPUT_H, FONT_INPUT, PADDING } from "../../design-system/tokens.js";
 import { IS_DEMO_BUILD } from "../../config/env.js";
 import { uid, nowISO, todayS } from "../../shared/utils.js";

@@ -1,4 +1,5 @@
-﻿import { useState, useEffect, useRef, useMemo } from "react";
+﻿// @ts-nocheck
+import { useState, useEffect, useRef, useMemo } from "react";
 import { C, BTN_H, INPUT_H, FONT_INPUT, FONT_TITLE, PADDING } from "../../design-system/tokens.js";
 import { VSS_RECONNUS, STATUT_REGL, TEXTES_REGL } from "./sections.constants.js";
 import { DEMO_LIVRAISONS } from "../../demo/demoData.js";

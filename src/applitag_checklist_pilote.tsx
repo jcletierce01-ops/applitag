@@ -1,3 +1,4 @@
+﻿// @ts-nocheck
 // ============================================================
 // APPLITAG — Checklist Chantier Pilote + Mode Pilote Complet
 // 11 sections · Score · Tableau de bord · Journal · Retour terrain

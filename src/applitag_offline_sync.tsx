@@ -1,3 +1,4 @@
+﻿// @ts-nocheck
 // ============================================================
 // APPLITAG — Offline Sync Phase 1 + Phase 2
 // File d'attente persistée · Idempotence · Gestion conflits

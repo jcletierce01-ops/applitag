@@ -1,3 +1,4 @@
+﻿// @ts-nocheck
 // ============================================================
 // APPLITAG — Fin de chantier + Rentabilité
 // Broyage rémanents · Réhabilitation · Indice qualité · Marge

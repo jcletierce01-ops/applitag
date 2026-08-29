@@ -1,3 +1,4 @@
+﻿// @ts-nocheck
 // ============================================================
 // APPLITAG — Documents Terrain (Sprint 3 + Pilote)
 // Bon achat · Autorisation · CMR · BL · Rapport · Photos

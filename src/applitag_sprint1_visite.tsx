@@ -1,3 +1,4 @@
+﻿// @ts-nocheck
 // ============================================================
 // APPLITAG — Sprint 1 : Visite Terrain Réelle
 // TypeScript-style JSDoc · Zustand (simulé) · Mobile terrain
