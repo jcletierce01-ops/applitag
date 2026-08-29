@@ -1,5 +1,4 @@
-﻿// @ts-nocheck
-import { useState, useEffect, useRef } from "react";
+﻿import { useState, useEffect, useRef } from "react";
 import { Html5Qrcode } from "html5-qrcode";
 import { C, FONT_TITLE, BTN_H, INPUT_H, FONT_INPUT, PADDING } from "../../design-system/tokens.js";
 import { uid, nowISO, todayS, genCodeAPT } from "../../shared/utils.js";
@@ -10,7 +9,7 @@ import { DEFAULT_ENTREPRISE_ID, COMPTE_SESSION_KEY, annoncesLocalGet, annoncesLo
 import { ordresExplLocalGet, ordresExplLocalSave } from "../exploitation/local-storage.js";
 import { apiGet, apiPostPublic, apiPatch } from "../../services/api.service.js";
 
-export const LoginScreen = ({onLogin, onLoginOperateur, onLoginDemo}) => {
+export const LoginScreen = ({onLogin, onLoginOperateur, onLoginDemo}: any) => {
   const [step, setStep] = useState("bienvenue"); // bienvenue | home | scan | pin | operateur | demo | ordre
   const [entrepriseId, setEntrepriseId] = useState("");
   const [entrepriseNom, setEntrepriseNom] = useState("");
@@ -20,7 +19,7 @@ export const LoginScreen = ({onLogin, onLoginOperateur, onLoginDemo}) => {
   const [opNom, setOpNom] = useState("");
   const [opPin, setOpPin] = useState("");
   const [ordreCode, setOrdreCode] = useState("");
-  const [ordreTrouve, setOrdreTrouve] = useState(null);
+  const [ordreTrouve, setOrdreTrouve] = useState<any>(null);
   const [ordreErreur, setOrdreErreur] = useState("");
   const [ordreLoading, setOrdreLoading] = useState(false);
 
@@ -32,13 +31,13 @@ export const LoginScreen = ({onLogin, onLoginOperateur, onLoginDemo}) => {
     try {
       found = await apiGet(`/ordres-exploitation/code/${code}`);
     } catch { /* noop — fallback local storage ci-dessous */ }
-    if (!found) found = ordresExplLocalGet().find(o=>o.code===code)||null;
+    if (!found) found = ordresExplLocalGet().find((o: any)=>o.code===code)||null;
     if (!found) setOrdreErreur("Code introuvable — vérifiez la saisie");
     else setOrdreTrouve(found);
     setOrdreLoading(false);
   };
 
-  const handleValiderOrdre = async (statut) => {
+  const handleValiderOrdre = async (statut: any) => {
     if (!ordreTrouve) return;
     setOrdreLoading(true);
     const updated = {...ordreTrouve, statut, dateValidation: nowISO()};
@@ -50,13 +49,13 @@ export const LoginScreen = ({onLogin, onLoginOperateur, onLoginDemo}) => {
       setOrdreErreur("Erreur — validation sauvegardée localement uniquement");
     }
     updated.synced = syncOk;
-    ordresExplLocalSave(ordresExplLocalGet().map(o=>o.code===updated.code?updated:o));
+    ordresExplLocalSave(ordresExplLocalGet().map((o: any)=>o.code===updated.code?updated:o));
     setOrdreTrouve(updated);
     setOrdreLoading(false);
   };
 
   // ── APPLITAG Connect - Annonces : proposition de bois / offre de service / demande de plaquettes ──
-  const [annonceType,     setAnnonceType]    = useState(null); // gisement | service | demande
+  const [annonceType,     setAnnonceType]    = useState<any>(null); // gisement | service | demande
   const [annonceNom,      setAnnonceNom]      = useState(""); // Nom / société
   const [annonceTel,      setAnnonceTel]      = useState("");
   const [annonceEmail,    setAnnonceEmail]    = useState("");
@@ -65,8 +64,8 @@ export const LoginScreen = ({onLogin, onLoginOperateur, onLoginDemo}) => {
   const [annonceTypeBois, setAnnonceTypeBois] = useState("");
   const [annonceVolume,   setAnnonceVolume]   = useState("");
   const [annonceEtatBois, setAnnonceEtatBois] = useState("sur_pied"); // sur_pied | bord_route
-  const [annoncePhotos,   setAnnoncePhotos]   = useState([]);
-  const [annoncePrestations,setAnnoncePrest]  = useState([]);
+  const [annoncePhotos,   setAnnoncePhotos]   = useState<any[]>([]);
+  const [annoncePrestations,setAnnoncePrest]  = useState<any[]>([]);
   const [annonceCommentaire,setAnnonceComment]= useState("");
   const [consentRecontact,setConsentRecontact]= useState(false);
   const [consentActus,    setConsentActus]    = useState(false);
@@ -74,16 +73,16 @@ export const LoginScreen = ({onLogin, onLoginOperateur, onLoginDemo}) => {
   const [annonceEnvoyee,  setAnnonceEnvoyee]  = useState(false);
   const [annonceSaving,   setAnnonceSaving]   = useState(false);
 
-  const toggleAnnoncePrestation = v => setAnnoncePrest(prev=>prev.includes(v)?prev.filter(x=>x!==v):[...prev,v]);
+  const toggleAnnoncePrestation = (v: any) => setAnnoncePrest(prev=>prev.includes(v)?prev.filter(x=>x!==v):[...prev,v]);
 
   const handleAjouterPhotoAnnonce = () => {
     const input = document.createElement("input");
     input.type = "file"; input.accept = "image/*"; input.capture = "environment";
-    input.onchange = e => {
+    input.onchange = (e: any) => {
       const file = e.target.files[0];
       if (!file) return;
       const reader = new FileReader();
-      reader.onload = ev => setAnnoncePhotos(prev=>[...prev, ev.target.result].slice(0,3));
+      reader.onload = (ev: any) => setAnnoncePhotos(prev=>[...prev, ev.target.result].slice(0,3));
       reader.readAsDataURL(file);
     };
     input.click();
@@ -126,7 +125,7 @@ export const LoginScreen = ({onLogin, onLoginOperateur, onLoginDemo}) => {
   const [compteSession, setCompteSession]= useState(()=>{
     try { return JSON.parse(localStorage.getItem(COMPTE_SESSION_KEY)||"null"); } catch { return null; }
   });
-  const [suiviOps, setSuiviOps] = useState(null);
+  const [suiviOps, setSuiviOps] = useState<any>(null);
   const suiviOpsIsDemo = useRef(false);
   const [compteNom,      setCompteNom]     = useState("");
   const [compteTel,      setCompteTel]     = useState("");
@@ -134,7 +133,7 @@ export const LoginScreen = ({onLogin, onLoginOperateur, onLoginDemo}) => {
   const [compteCodeGenere, setCompteCodeGenere] = useState("");
   const [compteTrancheHoraire, setCompteTrancheHoraire] = useState("");
   const [compteCodePostal,  setCompteCodePostal]  = useState("");
-  const [compteNatureDemande, setCompteNatureDemande] = useState([]);
+  const [compteNatureDemande, setCompteNatureDemande] = useState<any[]>([]);
   const [compteRgpd, setCompteRgpd] = useState(false);
   const [compteCgu, setCompteCgu] = useState(false);
   const [compteIdentifiant, setCompteIdentifiant] = useState("");
@@ -157,7 +156,7 @@ export const LoginScreen = ({onLogin, onLoginOperateur, onLoginDemo}) => {
     if (!compteRgpd) { setCompteErreur("Vous devez accepter la politique de protection des données"); return; }
     if (!compteCgu) { setCompteErreur("Vous devez accepter les conditions générales d'utilisation"); return; }
     const existants = comptesLocalGet();
-    if (existants.some(c=>c.telephone===compteTel||(compteEmail&&c.email===compteEmail))) {
+    if (existants.some((c: any)=>c.telephone===compteTel||(compteEmail&&c.email===compteEmail))) {
       setCompteErreur("Un compte existe déjà avec ce téléphone ou cet email — connectez-vous"); return;
     }
     setCompteErreur(""); setCompteSaving(true);
@@ -194,7 +193,7 @@ export const LoginScreen = ({onLogin, onLoginOperateur, onLoginDemo}) => {
     }
     setCompteErreur(""); setCompteSaving(true);
     const saisie = compteLoginPin.trim().toUpperCase();
-    const compte = comptesLocalGet().find(c=>
+    const compte: any = comptesLocalGet().find((c: any)=>
       (c.telephone===compteIdentifiant||c.email===compteIdentifiant)&&c.pin===saisie);
     if (!compte) {
       setCompteErreur("Identifiant ou code incorrect");
@@ -217,9 +216,9 @@ export const LoginScreen = ({onLogin, onLoginOperateur, onLoginDemo}) => {
     setCompteVue("choix");
   };
 
-  const handleMajPrefsCompte = (champ, valeur) => {
+  const handleMajPrefsCompte = (champ: any, valeur: any) => {
     if (champ==="actus") setComptePrefActus(valeur); else setComptePrefNetwork(valeur);
-    const comptes = comptesLocalGet().map(c=>c.id===compteSession.id
+    const comptes = comptesLocalGet().map((c: any)=>c.id===compteSession.id
       ? {...c, consentActus:champ==="actus"?valeur:c.consentActus, consentNetwork:champ==="network"?valeur:c.consentNetwork}
       : c);
     comptesLocalSave(comptes);
@@ -232,7 +231,7 @@ export const LoginScreen = ({onLogin, onLoginOperateur, onLoginDemo}) => {
   };
 
   const mesAnnonces = compteSession
-    ? annoncesLocalGet().filter(a=>a.telephone===compteSession.telephone||(compteSession.email&&a.email===compteSession.email))
+    ? annoncesLocalGet().filter((a: any)=>a.telephone===compteSession.telephone||(compteSession.email&&a.email===compteSession.email))
     : [];
 
   useEffect(() => {
@@ -246,32 +245,32 @@ export const LoginScreen = ({onLogin, onLoginOperateur, onLoginDemo}) => {
       apiGet(`/activites`).catch(()=>[]),
     ]).then(([lots, dechiqList, activites]) => {
       const tel = compteSession.telephone;
-      const mesLots = Array.isArray(lots) ? lots.filter(l=>l.telephone===tel) : [];
-      const lotIds = new Set(mesLots.map(l=>l.id));
+      const mesLots = Array.isArray(lots) ? lots.filter((l: any)=>l.telephone===tel) : [];
+      const lotIds = new Set(mesLots.map((l: any)=>l.id));
 
       const actsToday = Array.isArray(activites)
-        ? activites.filter(a=>lotIds.has(a.lotId) && (a.dateJour||"").startsWith(today))
+        ? activites.filter((a: any)=>lotIds.has(a.lotId) && (a.dateJour||"").startsWith(today))
         : [];
 
       const abattageM3 = actsToday
-        .filter(a=>["abattage","abattage_debardage"].includes(a.typeOperationJour))
-        .reduce((s,a)=>s+(parseFloat(a.volumeJour)||0), 0);
+        .filter((a: any)=>["abattage","abattage_debardage"].includes(a.typeOperationJour))
+        .reduce((s,a: any)=>s+(parseFloat(a.volumeJour)||0), 0);
 
       const debardageM3 = actsToday
-        .filter(a=>["debardage","abattage_debardage"].includes(a.typeOperationJour))
-        .reduce((s,a)=>s+(parseFloat(a.volumeJour)||0), 0);
+        .filter((a: any)=>["debardage","abattage_debardage"].includes(a.typeOperationJour))
+        .reduce((s,a: any)=>s+(parseFloat(a.volumeJour)||0), 0);
 
       const dechiqToday = Array.isArray(dechiqList)
-        ? dechiqList.filter(d=>lotIds.has(d.lotId) && (d.createdAt||d.dateJour||"").startsWith(today))
+        ? dechiqList.filter((d: any)=>lotIds.has(d.lotId) && (d.createdAt||d.dateJour||"").startsWith(today))
         : [];
-      const dechiqT  = dechiqToday.reduce((s,d)=>s+(parseFloat(d.tonnageCharge)||0), 0);
-      const dechiqM3 = dechiqToday.reduce((s,d)=>s+(parseFloat(d.cubageCharge)||0), 0);
+      const dechiqT  = dechiqToday.reduce((s,d: any)=>s+(parseFloat(d.tonnageCharge)||0), 0);
+      const dechiqM3 = dechiqToday.reduce((s,d: any)=>s+(parseFloat(d.cubageCharge)||0), 0);
 
       setSuiviOps({ abattageM3, debardageM3, dechiqT, dechiqM3, nbLots: mesLots.length, today });
     });
   }, [compteVue, compteSession?.telephone]);
 
-  const scannerRef = useRef(null);
+  const scannerRef = useRef<any>(null);
 
   useEffect(() => {
     if (step === "scan") {
@@ -304,7 +303,7 @@ export const LoginScreen = ({onLogin, onLoginOperateur, onLoginDemo}) => {
     }
   }, [step]);
 
-  const handlePin = (digit) => {
+  const handlePin = (digit: any) => {
     if (pin.length < 4) setPin(p => p + digit);
   };
   const handleDel = () => setPin(p => p.slice(0,-1));
@@ -314,8 +313,8 @@ export const LoginScreen = ({onLogin, onLoginOperateur, onLoginDemo}) => {
     setError("");
     try {
       const data = await apiPostPublic(`/auth/login`, { entrepriseId, pin });
-      setAuth(data.access_token, data.utilisateur, entrepriseId);
-      onLogin(data.utilisateur);
+      setAuth((data as any).access_token, (data as any).utilisateur, entrepriseId);
+      onLogin((data as any).utilisateur);
     } catch {
       setError("PIN incorrect — réessayez");
       setPin("");
@@ -666,8 +665,8 @@ export const LoginScreen = ({onLogin, onLoginOperateur, onLoginDemo}) => {
             ) : (
               <div>
                 <div style={{fontSize:13,fontWeight:600,color:"rgba(255,255,255,.8)",marginBottom:14}}>
-                  {{"gisement":"🌲 Proposer du bois","service":"🛠️ Proposer mes services",
-                    "demande":"🪵 Demande de plaquettes forestières"}[annonceType]}
+                  {({"gisement":"🌲 Proposer du bois","service":"🛠️ Proposer mes services",
+                    "demande":"🪵 Demande de plaquettes forestières"} as Record<string,any>)[annonceType]}
                 </div>
                 <input value={annonceNom} onChange={e=>setAnnonceNom(e.target.value)}
                   placeholder="Nom / société *"
@@ -773,11 +772,11 @@ export const LoginScreen = ({onLogin, onLoginOperateur, onLoginDemo}) => {
                     marginBottom:14,resize:"vertical"}}/>
 
                 <div style={{display:"flex",flexDirection:"column",gap:10,marginBottom:14}}>
-                  {[
+                  {([
                     [consentRecontact,setConsentRecontact,"J'accepte d'être recontacté concernant ma proposition.",true],
                     [consentActus,setConsentActus,"J'accepte de recevoir les actualités APPLITAG.",false],
                     [consentNetwork,setConsentNetwork,"J'accepte de recevoir des informations sur APPLITAG Radio / TV / Network.",false],
-                  ].map(([val,setter,label,required],i)=>(
+                  ] as any[]).map(([val,setter,label,required]: any,i: number)=>(
                     <div key={i} onClick={()=>setter(!val)} style={{display:"flex",alignItems:"flex-start",
                       gap:10,cursor:"pointer",WebkitTapHighlightColor:"transparent"}}>
                       <span style={{fontSize:16,marginTop:1}}>{val?"☑️":"☐"}</span>
@@ -920,10 +919,10 @@ export const LoginScreen = ({onLogin, onLoginOperateur, onLoginDemo}) => {
                   <div style={{fontSize:11,color:"rgba(255,255,255,.6)",marginBottom:10,lineHeight:1.5}}>
                     Conformément au RGPD (UE 2016/679), vos données sont collectées uniquement pour la gestion de votre espace APPLITAG Connect et la mise en relation avec des professionnels de la filière bois énergie dans votre région. Elles ne sont jamais vendues ni transmises à des tiers hors réseau APPLITAG.
                   </div>
-                  {[
+                  {([
                     [compteRgpd, setCompteRgpd, "J'accepte la politique de protection des données personnelles (RGPD) *"],
                     [compteCgu,  setCompteCgu,  "J'accepte les conditions générales d'utilisation APPLITAG Connect *"],
-                  ].map(([val, setter, label], i)=>(
+                  ] as any[]).map(([val, setter, label]: any, i: number)=>(
                     <div key={i} onClick={()=>setter(!val)}
                       style={{display:"flex",alignItems:"flex-start",gap:10,marginBottom:8,cursor:"pointer",
                         WebkitTapHighlightColor:"transparent"}}>
@@ -1078,15 +1077,15 @@ export const LoginScreen = ({onLogin, onLoginOperateur, onLoginDemo}) => {
                   </div>
                 ) : (
                   <div style={{marginBottom:16}}>
-                    {mesAnnonces.map(a=>{
+                    {mesAnnonces.map((a: any)=>{
                       const statutInfo = STATUTS_ANNONCE[a.statut]||STATUTS_ANNONCE.recu;
                       return (
                         <div key={a.id} style={{background:"rgba(255,255,255,.06)",borderRadius:10,
                           padding:12,marginBottom:8,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
                           <div>
                             <div style={{fontSize:12,color:"#fff",fontWeight:600}}>
-                              {{"gisement":"🌲 Bois proposé","service":"🛠️ Service proposé",
-                                "demande":"🪵 Demande plaquettes"}[a.type]||a.type}
+                              {({"gisement":"🌲 Bois proposé","service":"🛠️ Service proposé",
+                                "demande":"🪵 Demande plaquettes"} as Record<string,any>)[a.type]||a.type}
                             </div>
                             <div style={{fontSize:10,color:"rgba(255,255,255,.5)",marginTop:2}}>
                               {new Date(a.dateEnvoi).toLocaleDateString("fr-FR")}
@@ -1115,7 +1114,7 @@ export const LoginScreen = ({onLogin, onLoginOperateur, onLoginDemo}) => {
                   ];
                   const now = new Date();
                   const contactsNonRelances = DEMO_CONTACTS_INTERESSES.filter(c=>{
-                    const ageJ = Math.floor((now-new Date(c.date))/(1000*60*60*24));
+                    const ageJ = Math.floor((now.getTime()-new Date(c.date).getTime())/(1000*60*60*24));
                     return !c.relanceFaite && ageJ>=7;
                   });
                   return (
@@ -1151,7 +1150,7 @@ export const LoginScreen = ({onLogin, onLoginOperateur, onLoginDemo}) => {
 
                       <div style={{display:"flex",flexDirection:"column",gap:8}}>
                         {DEMO_CONTACTS_INTERESSES.map(c=>{
-                          const ageJ = Math.floor((now-new Date(c.date))/(1000*60*60*24));
+                          const ageJ = Math.floor((now.getTime()-new Date(c.date).getTime())/(1000*60*60*24));
                           return (
                             <div key={c.id} style={{background:"rgba(255,255,255,.06)",borderRadius:10,
                               padding:"10px 14px",border:`1px solid ${c.vu?"rgba(255,255,255,.1)":"rgba(76,175,80,.4)"}`}}>
