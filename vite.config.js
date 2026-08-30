@@ -64,6 +64,14 @@ export default defineConfig({
   },
   plugins: [react(), cspPlugin()],
   server: {
+    proxy: {
+      '/api': {
+        target: 'https://applitag-api-production.up.railway.app',
+        changeOrigin: true,
+        rewrite: path => path.replace(/^\/api/, ''),
+        secure: true,
+      },
+    },
     headers: {
       'X-Content-Type-Options': 'nosniff',
       'X-Frame-Options': 'DENY',

@@ -20,10 +20,15 @@ export function assertEnv(env: { VITE_APP_MODE?: string; VITE_API_URL?: string; 
   }
 
   if (env.VITE_API_URL !== undefined && env.VITE_API_URL !== '') {
-    try {
-      new URL(env.VITE_API_URL);
-    } catch {
-      errors.push(`VITE_API_URL="${env.VITE_API_URL}" n'est pas une URL valide`);
+    const v = env.VITE_API_URL;
+    // Accept relative paths (e.g. "/api" for Vite proxy) and absolute URLs
+    const isRelative = v.startsWith('/');
+    if (!isRelative) {
+      try {
+        new URL(v);
+      } catch {
+        errors.push(`VITE_API_URL="${v}" n'est pas une URL valide ni un chemin relatif`);
+      }
     }
   }
 
