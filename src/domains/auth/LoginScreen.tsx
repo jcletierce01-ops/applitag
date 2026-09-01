@@ -345,62 +345,91 @@ export const LoginScreen = ({onLogin, onLoginOperateur, onLoginDemo}: any) => {
 
   return (
     <div style={{display:"flex",flexDirection:"column",height:"100%",
-      background:C.sb,color:"#fff"}}>
+      background:"linear-gradient(170deg,#061c13 0%,#0d3b27 55%,#0b3022 100%)",
+      color:"#fff",fontFamily:"Inter,system-ui,-apple-system,sans-serif"}}>
       {/* Header */}
-      <div style={{padding:"32px 24px 24px",textAlign:"center"}}>
-        <img src="/logo.png" alt="APPLITAG" style={{width:80,height:80,objectFit:"contain",marginBottom:12}}/>
-        <div style={{fontSize:22,fontWeight:700,fontFamily:FONT_TITLE}}>APPLITAG</div>
-        <div style={{fontSize:13,opacity:.6,marginTop:4}}>Gestion des flux bois énergie</div>
+      <div style={{padding:"36px 24px 20px",textAlign:"center"}}>
+        <img src="/logo.png" alt="APPLITAG" style={{width:72,height:72,objectFit:"contain",marginBottom:14,
+          filter:"drop-shadow(0 4px 12px rgba(0,0,0,.35))"}}/>
+        <div style={{fontSize:10,fontWeight:700,letterSpacing:"0.16em",color:"rgba(255,255,255,.5)",
+          textTransform:"uppercase",marginBottom:6}}>Plateforme bois-énergie</div>
+        <div style={{fontSize:26,fontWeight:800,letterSpacing:"-0.01em",fontFamily:"inherit"}}>APPLITAG</div>
+        <div style={{fontSize:13,color:"rgba(255,255,255,.55)",marginTop:5,lineHeight:1.5,maxWidth:260,margin:"6px auto 0"}}>
+          Piloter, tracer et prouver chaque flux de bois-énergie.
+        </div>
       </div>
 
-      <div style={{flex:1,padding:PADDING,overflowY:"scroll",background:C.sb}}>
+      <div style={{flex:1,padding:PADDING,overflowY:"scroll",
+        background:"transparent"}}>
 
         {/* ── BIENVENUE ── */}
         {step==="bienvenue"&&(
-          <div style={{display:"flex",flexDirection:"column",alignItems:"center",paddingTop:8}}>
-            <div style={{fontSize:14,color:"rgba(255,255,255,.75)",textAlign:"center",
-              lineHeight:1.7,marginBottom:32,maxWidth:300}}>
-              Bienvenue sur <strong>APPLITAG</strong>, votre plateforme de gestion de la chaîne bois-énergie.
-              Connectez-vous ou rejoignez-nous pour déposer une annonce.
+          <div style={{display:"flex",flexDirection:"column",alignItems:"center",paddingTop:4}}>
+            {/* Proof pills */}
+            <div style={{display:"flex",flexWrap:"wrap",gap:8,justifyContent:"center",marginBottom:28}}>
+              {["Lot unique & traçabilité","Mobile terrain","Logistique & qualité","Reporting conformité"].map(label=>(
+                <span key={label} style={{fontSize:11,fontWeight:500,
+                  background:"rgba(255,255,255,.1)",border:"1px solid rgba(255,255,255,.18)",
+                  borderRadius:20,padding:"5px 12px",color:"rgba(255,255,255,.8)",whiteSpace:"nowrap"}}>
+                  {label}
+                </span>
+              ))}
             </div>
-            <div style={{width:"100%",display:"flex",flexDirection:"column",gap:12,marginBottom:24}}>
+            <div style={{width:"100%",display:"flex",flexDirection:"column",gap:10,marginBottom:20}}>
+              {/* Connexion pro */}
               <button onClick={()=>setStep("home")}
-                style={{width:"100%",padding:20,borderRadius:16,
-                  background:"rgba(255,255,255,.12)",border:"1.5px solid rgba(255,255,255,.35)",
+                style={{width:"100%",padding:"18px 20px",borderRadius:18,
+                  background:"rgba(255,255,255,.13)",border:"1.5px solid rgba(255,255,255,.28)",
+                  backdropFilter:"blur(8px)",
                   color:"#fff",fontFamily:"inherit",fontSize:15,fontWeight:600,cursor:"pointer",
                   WebkitTapHighlightColor:"transparent",
-                  display:"flex",alignItems:"center",gap:16,textAlign:"left"}}>
-                <span style={{fontSize:32,lineHeight:1}}>🔑</span>
+                  display:"flex",alignItems:"center",gap:14,textAlign:"left",
+                  transition:"background .15s"}}>
+                <div style={{width:44,height:44,borderRadius:12,background:"rgba(255,255,255,.15)",
+                  display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,fontSize:22}}>
+                  🔑
+                </div>
                 <div>
-                  <div>Me connecter</div>
-                  <div style={{fontSize:12,opacity:.65,fontWeight:400,marginTop:3}}>
-                    Espace professionnel fourni par l'administrateur
+                  <div style={{fontWeight:700}}>Me connecter</div>
+                  <div style={{fontSize:12,color:"rgba(255,255,255,.6)",fontWeight:400,marginTop:2}}>
+                    Espace professionnel — accès administrateur
                   </div>
                 </div>
               </button>
+              {/* APPLITAG Connect */}
               <button onClick={()=>{ setCompteErreur(""); setCompteVue(compteSession?"espace":"choix"); setStep("compte"); }}
-                style={{width:"100%",padding:20,borderRadius:16,
-                  background:"rgba(76,175,80,.25)",border:"1.5px solid rgba(76,175,80,.6)",
+                style={{width:"100%",padding:"18px 20px",borderRadius:18,
+                  background:"linear-gradient(135deg,rgba(29,107,67,.7),rgba(13,59,39,.8))",
+                  border:"1.5px solid rgba(45,180,90,.35)",
+                  backdropFilter:"blur(8px)",
                   color:"#fff",fontFamily:"inherit",fontSize:15,fontWeight:600,cursor:"pointer",
                   WebkitTapHighlightColor:"transparent",
-                  display:"flex",alignItems:"center",gap:16,textAlign:"left"}}>
-                <span style={{fontSize:32,lineHeight:1}}>📲</span>
+                  display:"flex",alignItems:"center",gap:14,textAlign:"left"}}>
+                <div style={{width:44,height:44,borderRadius:12,background:"rgba(45,180,90,.2)",
+                  display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,fontSize:22}}>
+                  📲
+                </div>
                 <div>
-                  <div>APPLITAG Connect</div>
-                  <div style={{fontSize:12,opacity:.65,fontWeight:400,marginTop:3}}>
-                    Créer un compte · Suivre mon lot · Déposer une annonce bois ou service
+                  <div style={{fontWeight:700}}>APPLITAG Connect</div>
+                  <div style={{fontSize:12,color:"rgba(255,255,255,.6)",fontWeight:400,marginTop:2}}>
+                    Compte gratuit · Suivre un lot · Déposer une annonce
                   </div>
                 </div>
               </button>
             </div>
-            <div style={{display:"flex",gap:20,marginBottom:12}}>
-              <button onClick={()=>setStep("demo")}
-                style={{background:"none",border:"none",color:"rgba(255,255,255,.45)",
-                  fontFamily:"inherit",fontSize:12,cursor:"pointer",textDecoration:"underline",
-                  WebkitTapHighlightColor:"transparent"}}>
-                🎭 Mode démo
-              </button>
+            {/* Séparateur */}
+            <div style={{display:"flex",alignItems:"center",gap:12,width:"100%",marginBottom:16}}>
+              <div style={{flex:1,height:1,background:"rgba(255,255,255,.12)"}}/>
+              <span style={{fontSize:11,color:"rgba(255,255,255,.3)",fontWeight:500}}>ou</span>
+              <div style={{flex:1,height:1,background:"rgba(255,255,255,.12)"}}/>
             </div>
+            <button onClick={()=>setStep("demo")}
+              style={{background:"none",border:"none",color:"rgba(255,255,255,.4)",
+                fontFamily:"inherit",fontSize:12,cursor:"pointer",
+                WebkitTapHighlightColor:"transparent",
+                display:"flex",alignItems:"center",gap:6}}>
+              🎭 <span style={{textDecoration:"underline"}}>Mode démonstration</span>
+            </button>
           </div>
         )}
 
