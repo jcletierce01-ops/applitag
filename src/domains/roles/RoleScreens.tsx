@@ -2052,6 +2052,20 @@ const CHANTIERS_CARTE = [
   {id:"CH-2026-11",label:"Ternant — Douglas Éclaircie",lat:47.0341,lng:3.5821,essence:"Douglas",statut:"en_cours",volumeT:60},
   {id:"CH-2026-09",label:"Tronçais Sud — Pin sylvestre",lat:46.5912,lng:2.6892,essence:"Pin sylvestre",statut:"terminé",volumeT:185},
 ];
+const TAS_INTER_CARTE = [
+  {id:"TAS-001",label:"Tas Tronçais — Bord RD2144",lat:46.6112,lng:2.7298,
+   commune:"Tronçais (03360)",essences:"Chêne/Charme",volumeT:78,humidite:34,
+   dateConstitution:"2026-07-08",statut:"en_sechage",lots:["LOT-2026-044"],etf:"ETF BOIS SERVICE"},
+  {id:"TAS-002",label:"Tas Cérilly — Route Forêt",lat:46.6543,lng:2.8701,
+   commune:"Cérilly (03350)",essences:"Charme/Noisetier",volumeT:42,humidite:22,
+   dateConstitution:"2026-06-29",statut:"pret",lots:["LOT-2026-038"],etf:"ETF BOIS SERVICE"},
+  {id:"TAS-003",label:"Tas Ternant — Douglas",lat:47.0201,lng:3.5634,
+   commune:"Ternant (58250)",essences:"Douglas",volumeT:55,humidite:28,
+   dateConstitution:"2026-07-15",statut:"pret",lots:["LOT-2026-051"],etf:"Bois Val d'Allier"},
+  {id:"TAS-004",label:"Tas Villefranche — Pin",lat:46.5788,lng:2.6645,
+   commune:"Villefranche-d'Allier (03430)",essences:"Pin sylvestre",volumeT:120,humidite:18,
+   dateConstitution:"2026-06-10",statut:"livre",lots:["LOT-2026-031"],etf:"ETF BOIS SERVICE"},
+];
 
 // ── ÉCRAN CARTE (Leaflet / OpenStreetMap) ────────────────────
 export const EcranCarte = ({contacts, visites, onOpenLot}: any) => {
@@ -2060,10 +2074,11 @@ export const EcranCarte = ({contacts, visites, onOpenLot}: any) => {
   const markersRef = useRef<any[]>([]);
   const cfMarkersRef = useRef<any[]>([]);
   const chMarkersRef = useRef<any[]>([]);
+  const tasMarkersRef = useRef<any[]>([]);
   const [loaded,   setLoaded]  = useState(!!(window as any).L);
   const [filtre,   setFiltre]  = useState("TOUS");
   const [nbLots,   setNbLots]  = useState(0);
-  const [couches,  setCouches] = useState({lots:true,chaufferies:true,chantiers:true});
+  const [couches,  setCouches] = useState({lots:true,chaufferies:true,chantiers:true,tas:true});
 
   // ── Chargement Leaflet depuis CDN ──
   useEffect(()=>{
@@ -2237,6 +2252,38 @@ export const EcranCarte = ({contacts, visites, onOpenLot}: any) => {
     });
   },[loaded, couches.chantiers]);
 
+  // ── Couche Tas intermédiaires ──
+  useEffect(()=>{
+    if (!loaded || !mapInst.current) return;
+    const L = (window as any).L;
+    const map = mapInst.current;
+    tasMarkersRef.current.forEach(m=>map.removeLayer(m));
+    tasMarkersRef.current = [];
+    if (!couches.tas) return;
+    const STATUT_TAS: Record<string,{bg:string,col:string,label:string,dot:string}> = {
+      en_sechage:{bg:"#FEF3C7",col:"#92400E",label:"🌬️ En séchage",dot:"#F59E0B"},
+      pret:       {bg:"#D1FAE5",col:"#065F46",label:"✅ Prêt",dot:"#10B981"},
+      livre:      {bg:"#E5E7EB",col:"#374151",label:"📬 Livré",dot:"#6B7280"},
+    };
+    TAS_INTER_CARTE.forEach(tas=>{
+      const st = STATUT_TAS[tas.statut]||STATUT_TAS.en_sechage;
+      const icon = L.divIcon({
+        className:"",iconSize:[30,30],iconAnchor:[15,15],popupAnchor:[0,-18],
+        html:`<div style="width:30px;height:30px;border-radius:4px;background:${st.dot};border:3px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.35);display:flex;align-items:center;justify-content:center;font-size:14px;cursor:pointer;">📦</div>`,
+      });
+      const popup = `<div style="font-family:-apple-system,sans-serif;min-width:190px;padding:4px">
+        <div style="font-weight:700;font-size:12px;color:#92400E;margin-bottom:4px">📦 Tas intermédiaire</div>
+        <div style="font-weight:600;font-size:13px">${tas.label}</div>
+        <div style="font-size:11px;color:#6B7280;margin-top:3px">📍 ${tas.commune}</div>
+        <div style="font-size:11px;color:#6B7280;margin-top:2px">🌿 ${tas.essences} · ⚖️ ${tas.volumeT} t</div>
+        <div style="font-size:11px;color:#6B7280;margin-top:2px">💧 Humidité : <strong>${tas.humidite}%</strong> · 🏭 ${tas.etf}</div>
+        <div style="font-size:11px;color:#6B7280;margin-top:2px">📅 Constitué : ${new Date(tas.dateConstitution).toLocaleDateString("fr-FR")}</div>
+        <div style="margin-top:6px"><span style="font-size:10px;padding:3px 8px;border-radius:12px;background:${st.bg};color:${st.col};font-weight:600">${st.label}</span></div>
+      </div>`;
+      tasMarkersRef.current.push(L.marker([tas.lat,tas.lng],{icon}).addTo(map).bindPopup(popup,{maxWidth:220,className:"aplt-popup"}));
+    });
+  },[loaded, couches.tas]);
+
   const FILTRES = [
     ["TOUS","Tous"],
     ["VISITE_PREVUE","À visiter"],
@@ -2255,6 +2302,11 @@ export const EcranCarte = ({contacts, visites, onOpenLot}: any) => {
     ["LIVRE_CHAUFFERIE","#4CAF50"],
     ["ALERTE","#A32D2D"],
   ];
+  const LEGENDE_TAS = [
+    {color:"#F59E0B",label:"Tas en séchage",shape:"4px"},
+    {color:"#10B981",label:"Tas prêt",shape:"4px"},
+    {color:"#6B7280",label:"Tas livré",shape:"4px"},
+  ];
 
   return (
     <div style={{display:"flex",flexDirection:"column",height:"100%"}}>
@@ -2265,7 +2317,7 @@ export const EcranCarte = ({contacts, visites, onOpenLot}: any) => {
         alignItems:"center",scrollbarWidth:"none"}}>
         <span style={{fontSize:9,color:C.tx3,flexShrink:0,fontWeight:700,
           textTransform:"uppercase",letterSpacing:"0.06em"}}>Couches</span>
-        {([ ["lots","🌲","Lots"],["chaufferies","🔥","Chaufferies"],["chantiers","🪓","Chantiers"] ] as [keyof typeof couches,string,string][]).map(([k,icon,label])=>(
+        {([ ["lots","🌲","Lots"],["chaufferies","🔥","Chaufferies"],["chantiers","🪓","Chantiers"],["tas","📦","Tas"] ] as [keyof typeof couches,string,string][]).map(([k,icon,label])=>(
           <button key={k} onClick={()=>setCouches(c=>({...c,[k]:!c[k]}))} style={{
             height:24,padding:"0 9px",borderRadius:12,whiteSpace:"nowrap",flexShrink:0,
             border:`1.5px solid ${couches[k]?C.green:C.bd}`,
@@ -2336,6 +2388,16 @@ export const EcranCarte = ({contacts, visites, onOpenLot}: any) => {
               </span>
             </div>
           ))}
+          {couches.tas&&<>
+            <div style={{width:1,background:C.bd,flexShrink:0,margin:"0 2px"}}/>
+            {LEGENDE_TAS.map(t=>(
+              <div key={t.label} style={{display:"flex",alignItems:"center",gap:5,flexShrink:0}}>
+                <div style={{width:10,height:10,borderRadius:t.shape,background:t.color,
+                  border:"1.5px solid #fff",boxShadow:"0 1px 3px rgba(0,0,0,.2)"}}/>
+                <span style={{fontSize:10,color:C.tx3,whiteSpace:"nowrap"}}>{t.label}</span>
+              </div>
+            ))}
+          </>}
         </div>
       )}
     </div>
