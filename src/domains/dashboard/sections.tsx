@@ -19,6 +19,12 @@ const ROLES_DEF = [
   {id:"entreprise_transport",label:"Entreprise transport",icon:"🚚",color:"#4338CA"},
   {id:"chauffeur",      label:"Chauffeur",             icon:"🚛",  color:"#6D28D9"},
   {id:"chaufferie",     label:"Responsable chaufferie", icon:"🔥", color:"#B45309"},
+  {id:"collectivite",   label:"Collectivité / EPCI",   icon:"🏛️", color:"#065F46"},
+  {id:"bet",            label:"Bureau d'études",        icon:"📐", color:"#1E40AF"},
+  {id:"etf",            label:"ETF (Travaux forestiers)",icon:"🪓",color:"#78350F"},
+  {id:"association",    label:"Association / Interpro", icon:"🤝", color:"#0369A1"},
+  {id:"institutionnel", label:"Institutionnel (DDT…)",  icon:"🏛️", color:"#1E3A5F"},
+  {id:"financeur",      label:"Financeur / Partenaire", icon:"💶", color:"#134E4A"},
 ];
 
 const PERMISSIONS_DEF = [
@@ -51,6 +57,12 @@ const PERMS_PAR_ROLE = {
   entreprise_transport:["transport","livraisons","documents","utilisateurs"],
   chauffeur:      ["transport","livraisons"],
   chaufferie:     ["livraisons","chaufferies","rapports"],
+  collectivite:   ["livraisons","chaufferies","rapports","facturation"],
+  bet:            ["contacts","lots","visites","documents","rapports"],
+  etf:            ["lots","exploitation","dechiquetage","documents"],
+  association:    ["contacts","rapports","documents"],
+  institutionnel: ["contacts","lots","documents","rapports"],
+  financeur:      ["rapports","facturation","documents","chaufferies"],
 };
 
 const DEMO_HIERARCHY = [
@@ -166,6 +178,43 @@ const DEMO_HIERARCHY = [
    region:"Bourgogne-Franche-Comté", departement:"Yonne (89)", ville:"Migennes", codePostal:"89400",
    pin:"5555", actif:true, codeGenere:"RESP-CHAUF-001",
    perms:PERMS_PAR_ROLE.chaufferie},
+
+  // ── Acteurs filière ARA — nouveaux rôles ──
+  {id:"u-coll-1", parentId:"u-rr-ara", nom:"Moulins Communauté", prenom:"", role:"collectivite",
+   email:"energie@moulins-communaute.fr", telephone:"0470441234",
+   region:"Auvergne-Rhône-Alpes", departement:"Allier (03)", ville:"Moulins", codePostal:"03000",
+   nomEntreprise:"CC Moulins Communauté (Allier Nord)", actif:true, codeGenere:"COLL-001",
+   perms:PERMS_PAR_ROLE.collectivite},
+
+  {id:"u-bet-1", parentId:"u-rr-ara", nom:"FORÊT CONSEIL", prenom:"Auvergne", role:"bet",
+   email:"contact@foret-conseil-auvergne.fr", telephone:"0470556789",
+   region:"Auvergne-Rhône-Alpes", departement:"Allier (03)", ville:"Moulins", codePostal:"03000",
+   nomEntreprise:"FORÊT CONSEIL Auvergne", actif:true, codeGenere:"BET-001",
+   perms:PERMS_PAR_ROLE.bet},
+
+  {id:"u-etf-ara-1", parentId:"u-rr-ara", nom:"BOIS SERVICE", prenom:"ETF", role:"etf",
+   email:"contact@etf-bois-service.fr", telephone:"0470334455",
+   region:"Auvergne-Rhône-Alpes", departement:"Allier (03)", ville:"Vichy", codePostal:"03200",
+   nomEntreprise:"ETF BOIS SERVICE Allier", actif:true, codeGenere:"ETF-ARA-001",
+   perms:PERMS_PAR_ROLE.etf},
+
+  {id:"u-asso-1", parentId:"u-rr-ara", nom:"FIBOIS Auvergne", prenom:"Délégation Allier", role:"association",
+   email:"allier@fibois-aura.fr", telephone:"0470221133",
+   region:"Auvergne-Rhône-Alpes", departement:"Allier (03)", ville:"Moulins", codePostal:"03000",
+   nomEntreprise:"FIBOIS Auvergne-Rhône-Alpes", actif:true, codeGenere:"ASSO-001",
+   perms:PERMS_PAR_ROLE.association},
+
+  {id:"u-instit-1", parentId:"u-rr-ara", nom:"DDT Allier", prenom:"Service Forêt", role:"institutionnel",
+   email:"ddt-foret@allier.gouv.fr", telephone:"0470481234",
+   region:"Auvergne-Rhône-Alpes", departement:"Allier (03)", ville:"Moulins", codePostal:"03000",
+   nomEntreprise:"DDT de l'Allier — Direction Départementale des Territoires", actif:true, codeGenere:"INSTIT-001",
+   perms:PERMS_PAR_ROLE.institutionnel},
+
+  {id:"u-fin-1", parentId:"u-rr-ara", nom:"ADEME AURA", prenom:"Fonds Bois-Énergie", role:"financeur",
+   email:"biomasse@ademe.fr", telephone:"0472831234",
+   region:"Auvergne-Rhône-Alpes", departement:"", ville:"Lyon", codePostal:"69000",
+   nomEntreprise:"ADEME Auvergne-Rhône-Alpes", actif:true, codeGenere:"FIN-001",
+   perms:PERMS_PAR_ROLE.financeur},
 ];
 
 export const SectionAcces = ({_isDemo=false}) => {
@@ -9236,6 +9285,11 @@ const STATUT_LIV = {
   en_attente:{label:"En attente",icon:"⏳",col:"#6B7280",bg:"#F3F4F6"},
 };
 
+// PCI — ITEBE 2004 — plaquettes bois feuillus
+// PCI(H%) = PCS_sec × (1 − H/100) − L_vap × H/100  avec PCS=5200 kWh/t, L_vap=678.6 kWh/t
+const pciKWhT = (h) => Math.round(5200 - 58.8 * h);
+const livMWh  = (kg, h) => Math.round(kg / 1000 * pciKWhT(h) / 100) / 10;
+
 export const SectionLivraisons = () => {
   const [filtreStatut, setFiltreStatut] = useState("tous");
   const [selected, setSelected] = useState(null);
@@ -9248,6 +9302,7 @@ export const SectionLivraisons = () => {
   const nbRefus     = LIVRAISONS_DATA.filter(l=>l.refus).length;
   const txConformite= Math.round(LIVRAISONS_DATA.filter(l=>l.conformite).length/LIVRAISONS_DATA.length*100);
   const humMoy      = Math.round(LIVRAISONS_DATA.filter(l=>l.humidite).reduce((s,l)=>s+l.humidite,0)/LIVRAISONS_DATA.filter(l=>l.humidite).length);
+  const totalMWh    = Math.round(LIVRAISONS_DATA.filter(l=>l.poidsNet&&l.humidite).reduce((s,l)=>s+livMWh(l.poidsNet,l.humidite),0));
 
   return (
     <div style={{maxWidth:1000,margin:"0 auto"}}>
@@ -9256,9 +9311,10 @@ export const SectionLivraisons = () => {
         <div style={{fontSize:13,color:C.tx2}}>Réception chaufferie, pesée, qualité, conformité</div>
       </div>
 
-      <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:8,marginBottom:14}}>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:8,marginBottom:14}}>
         {[
           {ico:"⚖️",label:"Tonnes reçues",val:(totalTonnes/1000).toFixed(1)+" t",col:"#1E5B3A",bg:"#D1FAE5"},
+          {ico:"⚡",label:"Énergie livrée",val:totalMWh+" MWh",col:"#7C3AED",bg:"#EDE9FE"},
           {ico:"✅",label:"Taux conformité",val:txConformite+"%",col:txConformite>=90?"#059669":"#D97706",bg:txConformite>=90?"#D1FAE5":"#FEF3C7"},
           {ico:"💧",label:"Humidité moy.",val:humMoy+"%",col:humMoy<=30?"#0369A1":"#D97706",bg:humMoy<=30?"#DBEAFE":"#FEF3C7"},
           {ico:"❌",label:"Refus",val:nbRefus+" lot"+(nbRefus>1?"s":""),col:nbRefus>0?"#991B1B":"#059669",bg:nbRefus>0?"#FEE2E2":"#D1FAE5"},
@@ -9309,6 +9365,7 @@ export const SectionLivraisons = () => {
                       <span>👤 {l.chauffeur}</span>
                       <span>💧 Humidité : {l.humidite??"-"}%</span>
                       <span>📐 {l.granulometrie}</span>
+                      {l.humidite&&l.poidsNet&&<span style={{color:"#7C3AED",fontWeight:700}}>⚡ {pciKWhT(l.humidite)} kWh/t · {livMWh(l.poidsNet,l.humidite)} MWh</span>}
                       {l.signature&&<span>✍️ Signé</span>}
                     </div>
                     {l.refus&&<div style={{marginTop:4,fontSize:10,color:"#991B1B",fontWeight:600}}>
@@ -9349,6 +9406,8 @@ export const SectionLivraisons = () => {
                 ["Chauffeur",lv.chauffeur],["Véhicule",lv.vehicule],
                 ["Poids net",lv.poidsNet?(lv.poidsNet/1000).toFixed(2)+" t":"Non saisi"],
                 ["Humidité",lv.humidite?lv.humidite+"%":"—"],
+                ["PCI (ITEBE 2004)",lv.humidite?pciKWhT(lv.humidite)+" kWh/t":"—"],
+                ["Énergie livrée",(lv.poidsNet&&lv.humidite)?livMWh(lv.poidsNet,lv.humidite)+" MWh":"—"],
                 ["Granulométrie",lv.granulometrie],
                 ["Conformité",lv.conformite?"✅ Conforme":"❌ Non conforme"],
                 ["Bon de livraison",lv.bdl],
@@ -10189,10 +10248,11 @@ export const SectionChaufferies = () => {
         <div style={{fontSize:13,color:C.tx2}}>Suivi des stocks, livraisons et consommations — France métropolitaine, Corse & Outre-mer</div>
       </div>
 
-      <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:8,marginBottom:14}}>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:8,marginBottom:14}}>
         {[
           {ico:"🔥",label:"Chaufferies actives",val:CHAUFFERIES_DATA.length,col:"#B45309",bg:"#FEF3C7"},
           {ico:"📦",label:"Stock moyen",val:Math.round(CHAUFFERIES_DATA.reduce((s,d)=>s+stockMoyPct(d),0)/CHAUFFERIES_DATA.length)+"%",col:"#0369A1",bg:"#DBEAFE"},
+          {ico:"⚡",label:"Énergie en stock",val:Math.round(CHAUFFERIES_DATA.reduce((s,d)=>s+d.stockActuelT*pciKWhT(d.humiMax)/1000,0))+" MWh",col:"#7C3AED",bg:"#EDE9FE"},
           {ico:"🚛",label:"Livraisons totales",val:CHAUFFERIES_DATA.reduce((s,d)=>s+d.livraisons,0),col:"#1E5B3A",bg:"#D1FAE5"},
           {ico:"⚠️",label:"En alerte stock",val:CHAUFFERIES_DATA.filter(d=>stockMoyPct(d)<20).length,col:CHAUFFERIES_DATA.filter(d=>stockMoyPct(d)<20).length>0?"#991B1B":"#059669",bg:CHAUFFERIES_DATA.filter(d=>stockMoyPct(d)<20).length>0?"#FEE2E2":"#D1FAE5"},
         ].map(k=>(
@@ -10262,7 +10322,7 @@ export const SectionChaufferies = () => {
                 <div style={{fontSize:10,color:C.tx3,marginTop:3}}>Autonomie estimée : {auto} jours</div>
               </div>
 
-              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:6,fontSize:10,color:C.tx2}}>
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:6,fontSize:10,color:C.tx2}}>
                 <div style={{background:stockBg,borderRadius:6,padding:"5px 8px"}}>
                   📅 Prochaine livraison :<br/>
                   <span style={{fontWeight:700,color:stockCol}}>{new Date(d.prochaineLivraison).toLocaleDateString("fr-FR")} · {d.volumePrevu} t</span>
@@ -10270,6 +10330,10 @@ export const SectionChaufferies = () => {
                 <div style={{background:"#F9FAFB",borderRadius:6,padding:"5px 8px"}}>
                   ✅ Conformité :<br/>
                   <span style={{fontWeight:700,color:"#059669"}}>{d.livraisons>0?Math.round(d.livraisonsConformes/d.livraisons*100):0}% ({d.livraisonsConformes}/{d.livraisons})</span>
+                </div>
+                <div style={{background:"#EDE9FE",borderRadius:6,padding:"5px 8px"}}>
+                  ⚡ Stock énergie :<br/>
+                  <span style={{fontWeight:700,color:"#7C3AED"}}>{Math.round(d.stockActuelT*pciKWhT(d.humiMax)/1000)} MWh</span>
                 </div>
               </div>
             </div>
@@ -10294,9 +10358,10 @@ export const SectionChaufferies = () => {
               {[
                 ["Commune",ch.commune],
                 ["Puissance",ch.puissanceMW+" MW"],
-                ["Consommation annuelle",ch.consoAnnT.toLocaleString("fr-FR")+" t/an"],
+                ["Consommation annuelle",ch.consoAnnT.toLocaleString("fr-FR")+" t/an · "+Math.round(ch.consoAnnT*pciKWhT(ch.humiMax)/1000).toLocaleString("fr-FR")+" MWh/an"],
                 ["Capacité de stockage",ch.stockCapaT+" t"],
                 ["Stock actuel",ch.stockActuelT+" t ("+stockMoyPct(ch)+"%)"],
+                ["Énergie en stock",Math.round(ch.stockActuelT*pciKWhT(ch.humiMax)/1000)+" MWh (PCI ITEBE 2004, H="+ch.humiMax+"%)"],
                 ["Autonomie estimée",autonomieJ(ch)+" jours"],
                 ["Humidité max acceptée",ch.humiMax+"%"],
                 ["Granulométrie acceptée",ch.granuAccepte],
@@ -10562,7 +10627,18 @@ const TYPE_OFFRE = {
   stockage:   {label:"Stockage",        icon:"🏗️", col:"#065F46", bg:"#CCFBF1"},
 };
 
+const CONNECT_ETAPES = ["reçu","à qualifier","qualifié","orienté","publié","archivé"] as const;
+const CONNECT_ETAPE_STYLE = {
+  "reçu":       {col:"#6B7280",bg:"#F3F4F6",icon:"📥"},
+  "à qualifier":{col:"#92400E",bg:"#FEF3C7",icon:"🔍"},
+  "qualifié":   {col:"#0369A1",bg:"#DBEAFE",icon:"✔️"},
+  "orienté":    {col:"#7C3AED",bg:"#EDE9FE",icon:"🎯"},
+  "publié":     {col:"#065F46",bg:"#D1FAE5",icon:"📢"},
+  "archivé":    {col:"#374151",bg:"#E5E7EB",icon:"📦"},
+};
+
 export const SectionReseau = () => {
+  const [onglet, setOnglet]         = useState<"annonces"|"connect"|"mise_en_relation">("annonces");
   const [typeFiltre, setTypeFiltre] = useState("tous");
   const [selected, setSelected]    = useState(null);
   const [modeNouvelle, setModeNouvelle] = useState(false);
@@ -10571,6 +10647,9 @@ export const SectionReseau = () => {
   const [newDesc, setNewDesc]       = useState("");
   const [newCommune, setNewCommune] = useState("");
   const [published, setPublished]   = useState(false);
+  const [connectStatuts, setConnectStatuts] = useState<Record<string,string>>({
+    o001:"orienté", o002:"publié", o003:"à qualifier", o004:"reçu", o005:"archivé", o006:"qualifié",
+  });
 
   const offres = typeFiltre==="tous" ? OFFRES_DATA
     : OFFRES_DATA.filter(o=>o.type===typeFiltre);
@@ -10589,6 +10668,22 @@ export const SectionReseau = () => {
         <div style={{fontSize:20,fontWeight:800,color:C.tx}}>🤝 Réseau & Offres</div>
         <div style={{fontSize:13,color:C.tx2}}>Annonces de la filière — bois disponible, recherches, prestations, transport, stockage</div>
       </div>
+
+      {/* Onglets principaux */}
+      <div style={{display:"flex",gap:4,marginBottom:16,borderBottom:`1px solid ${C.bd}`,paddingBottom:8}}>
+        {([["annonces","📋 Annonces"],["connect","🔗 Connect"],["mise_en_relation","🎯 Mise en relation"]] as const).map(([v,l])=>(
+          <button key={v} onClick={()=>{setOnglet(v);setSelected(null);setModeNouvelle(false);}}
+            style={{padding:"6px 14px",borderRadius:8,fontSize:11,fontWeight:700,cursor:"pointer",
+              fontFamily:"inherit",border:"none",
+              background:onglet===v?"#1E5B3A":"transparent",
+              color:onglet===v?"#fff":C.tx2}}>
+            {l}
+          </button>
+        ))}
+      </div>
+
+      {/* ── Vue Annonces ── */}
+      {onglet==="annonces"&&<>
 
       {/* KPIs */}
       <div style={{display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:8,marginBottom:14}}>
@@ -10789,6 +10884,439 @@ export const SectionReseau = () => {
           );
         })()}
       </div>
+      </>}
+
+      {/* ── Vue Connect — pipeline qualification 5 étapes ── */}
+      {onglet==="connect"&&(()=>{
+        const etapeIdx = (id:string) => CONNECT_ETAPES.indexOf(connectStatuts[id] as typeof CONNECT_ETAPES[number]);
+        return (
+          <div>
+            <div style={{fontSize:13,color:C.tx2,marginBottom:14}}>
+              Faites avancer chaque offre dans le pipeline de qualification APPLITAG Connect.
+            </div>
+            {/* Pipeline header */}
+            <div style={{display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:6,marginBottom:16}}>
+              {CONNECT_ETAPES.map(e=>{
+                const s = CONNECT_ETAPE_STYLE[e];
+                const n = Object.values(connectStatuts).filter(v=>v===e).length;
+                return (
+                  <div key={e} style={{background:s.bg,borderRadius:10,padding:"8px 10px",textAlign:"center"}}>
+                    <div style={{fontSize:18}}>{s.icon}</div>
+                    <div style={{fontSize:11,fontWeight:800,color:s.col,textTransform:"capitalize"}}>{e}</div>
+                    <div style={{fontSize:18,fontWeight:900,color:s.col}}>{n}</div>
+                  </div>
+                );
+              })}
+            </div>
+            {/* Offres avec avancement */}
+            <div style={{display:"flex",flexDirection:"column",gap:10}}>
+              {OFFRES_DATA.map(o=>{
+                const t = TYPE_OFFRE[o.type]||TYPE_OFFRE.bois_dispo;
+                const statut = connectStatuts[o.id]||"reçu";
+                const s = CONNECT_ETAPE_STYLE[statut as keyof typeof CONNECT_ETAPE_STYLE]||CONNECT_ETAPE_STYLE["reçu"];
+                const idx = etapeIdx(o.id);
+                const canPrev = idx > 0;
+                const canNext = idx < CONNECT_ETAPES.length - 1;
+                return (
+                  <div key={o.id} style={{background:"#fff",borderRadius:12,padding:"12px 14px",
+                    border:`2px solid ${s.col}33`,display:"flex",gap:12,alignItems:"flex-start"}}>
+                    <div style={{fontSize:22,flexShrink:0}}>{t.icon}</div>
+                    <div style={{flex:1,minWidth:0}}>
+                      <div style={{display:"flex",gap:8,alignItems:"center",marginBottom:4,flexWrap:"wrap"}}>
+                        <span style={{fontSize:12,fontWeight:800,color:C.tx}}>{o.titre}</span>
+                        <span style={{fontSize:9,fontWeight:700,padding:"2px 7px",borderRadius:20,
+                          background:t.bg,color:t.col}}>{t.label}</span>
+                        <span style={{fontSize:9,color:C.tx3}}>📍 {o.commune} · {o.auteur}</span>
+                      </div>
+                      {/* Stepper */}
+                      <div style={{display:"flex",gap:0,alignItems:"center",marginTop:4}}>
+                        {CONNECT_ETAPES.map((e,i)=>{
+                          const done = i <= idx;
+                          const active = i === idx;
+                          const es = CONNECT_ETAPE_STYLE[e];
+                          return (
+                            <div key={e} style={{display:"flex",alignItems:"center",flex:1}}>
+                              <div style={{
+                                width:28,height:28,borderRadius:"50%",flexShrink:0,
+                                display:"flex",alignItems:"center",justifyContent:"center",
+                                fontSize:13,
+                                background:done?s.col:"#E5E7EB",
+                                color:done?"#fff":"#9CA3AF",
+                                border:active?`2px solid ${s.col}`:"2px solid transparent",
+                                fontWeight:active?900:500,
+                              }}>
+                                {done?es.icon:i+1}
+                              </div>
+                              {i<CONNECT_ETAPES.length-1&&(
+                                <div style={{flex:1,height:3,background:i<idx?s.col:"#E5E7EB",
+                                  borderRadius:2,margin:"0 2px"}}/>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                      <div style={{marginTop:6,fontSize:10,color:s.col,fontWeight:700}}>
+                        {s.icon} Statut actuel : <span style={{textTransform:"capitalize"}}>{statut}</span>
+                      </div>
+                    </div>
+                    <div style={{display:"flex",flexDirection:"column",gap:5,flexShrink:0}}>
+                      <button disabled={!canPrev}
+                        onClick={()=>setConnectStatuts(prev=>({...prev,[o.id]:CONNECT_ETAPES[idx-1]}))}
+                        style={{padding:"5px 10px",borderRadius:7,fontSize:10,fontWeight:700,cursor:canPrev?"pointer":"default",
+                          fontFamily:"inherit",background:canPrev?C.bg2:"#F3F4F6",
+                          border:`1px solid ${C.bd}`,color:canPrev?C.tx:"#D1D5DB"}}>
+                        ← Reculer
+                      </button>
+                      <button disabled={!canNext}
+                        onClick={()=>setConnectStatuts(prev=>({...prev,[o.id]:CONNECT_ETAPES[idx+1]}))}
+                        style={{padding:"5px 10px",borderRadius:7,fontSize:10,fontWeight:700,cursor:canNext?"pointer":"default",
+                          fontFamily:"inherit",background:canNext?"#1E5B3A":"#F3F4F6",
+                          border:"none",color:canNext?"#fff":"#D1D5DB"}}>
+                        Avancer →
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* ── Vue Mise en relation — matchmaking besoin/disponible ── */}
+      {onglet==="mise_en_relation"&&(()=>{
+        const besoins = OFFRES_DATA.filter(o=>o.type==="besoin_bois");
+        const dispos  = OFFRES_DATA.filter(o=>o.type==="bois_dispo");
+        // Simple matching: same département (2 premiers chiffres du code postal ou même commune)
+        const matchPairs = besoins.flatMap(b=>{
+          const dpB = b.commune.match(/\d{5}/)?.[0]?.slice(0,2)||b.commune.slice(-2);
+          const matches = dispos.filter(d=>{
+            const dpD = d.commune.match(/\d{5}/)?.[0]?.slice(0,2)||d.commune.slice(-2);
+            return dpB===dpD;
+          });
+          return matches.map(d=>({besoin:b,dispo:d}));
+        });
+        return (
+          <div>
+            <div style={{fontSize:13,color:C.tx2,marginBottom:14}}>
+              Rapprochement automatique entre recherches de bois et disponibilités du même département.
+            </div>
+            {matchPairs.length===0?(
+              <div style={{padding:32,textAlign:"center",color:C.tx3,fontSize:13}}>
+                Aucune correspondance trouvée dans les annonces actuelles.
+              </div>
+            ):(
+              <div style={{display:"flex",flexDirection:"column",gap:12}}>
+                {matchPairs.map(({besoin,dispo},i)=>{
+                  const tb = TYPE_OFFRE.besoin_bois;
+                  const td = TYPE_OFFRE.bois_dispo;
+                  return (
+                    <div key={i} style={{background:"#fff",borderRadius:14,border:"2px solid #7C3AED33",
+                      padding:14}}>
+                      <div style={{fontSize:10,fontWeight:800,color:"#7C3AED",marginBottom:10,
+                        textTransform:"uppercase",letterSpacing:"0.05em"}}>
+                        🎯 Correspondance potentielle — {besoin.commune.match(/\d{5}/)?.[0]?.slice(0,2)||"??"}
+                      </div>
+                      <div style={{display:"grid",gridTemplateColumns:"1fr auto 1fr",gap:10,alignItems:"center"}}>
+                        {/* Besoin */}
+                        <div style={{background:tb.bg,borderRadius:10,padding:"10px 12px"}}>
+                          <div style={{fontSize:10,fontWeight:800,color:tb.col,marginBottom:4}}>
+                            {tb.icon} {tb.label}
+                          </div>
+                          <div style={{fontSize:12,fontWeight:700,color:C.tx,marginBottom:3}}>{besoin.titre}</div>
+                          <div style={{fontSize:10,color:C.tx2}}>{besoin.auteur}</div>
+                          <div style={{fontSize:10,color:C.tx3}}>📍 {besoin.commune}</div>
+                          {besoin.volume&&<div style={{fontSize:10,fontWeight:700,color:tb.col,marginTop:4}}>
+                            📦 {besoin.volume} {besoin.unite}
+                          </div>}
+                        </div>
+                        {/* Flèche */}
+                        <div style={{fontSize:24,color:"#7C3AED",fontWeight:900}}>⇄</div>
+                        {/* Disponible */}
+                        <div style={{background:td.bg,borderRadius:10,padding:"10px 12px"}}>
+                          <div style={{fontSize:10,fontWeight:800,color:td.col,marginBottom:4}}>
+                            {td.icon} {td.label}
+                          </div>
+                          <div style={{fontSize:12,fontWeight:700,color:C.tx,marginBottom:3}}>{dispo.titre}</div>
+                          <div style={{fontSize:10,color:C.tx2}}>{dispo.auteur}</div>
+                          <div style={{fontSize:10,color:C.tx3}}>📍 {dispo.commune}</div>
+                          {dispo.volume&&<div style={{fontSize:10,fontWeight:700,color:td.col,marginTop:4}}>
+                            📦 {dispo.volume} {dispo.unite}
+                          </div>}
+                          {dispo.prix&&<div style={{fontSize:10,color:C.tx2}}>💶 {dispo.prix} {dispo.unite_prix}</div>}
+                        </div>
+                      </div>
+                      <div style={{display:"flex",gap:8,marginTop:10}}>
+                        <button style={{flex:1,padding:"7px",borderRadius:8,fontSize:11,fontWeight:700,
+                          cursor:"pointer",fontFamily:"inherit",background:"#7C3AED",border:"none",color:"#fff"}}>
+                          🤝 Initier la mise en relation
+                        </button>
+                        <button style={{padding:"7px 14px",borderRadius:8,fontSize:11,fontWeight:600,
+                          cursor:"pointer",fontFamily:"inherit",background:"transparent",
+                          border:`1px solid ${C.bd}`,color:C.tx2}}>
+                          Ignorer
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        );
+      })()}
+
+    </div>
+  );
+};
+
+// ── PLAN D'APPROVISIONNEMENT AUDITABLE ──────────────────────────
+
+const PLAN_DATA = [
+  {id:"PA-2026-001",nom:"Plan Allier Nord 2026",
+   periodeDebut:"2026-01-01",periodeFin:"2026-12-31",
+   operateur:"ALTEGAD SAS",chaufferie:"Chaufferie Moulins",
+   objectifT:1200,realiseT:847,
+   lots:["LOT-2026-044","LOT-2026-041","LOT-2026-038"],
+   statut:"en_cours",conformiteRED:"conforme",
+   certif:"SBP",sourceForet:"Forêt de Tronçais + Bocage Nord Allier",
+   ghgEconomie:87.4,note:"Plan principal chaufferie urbaine Moulins — suivi mensuel"},
+  {id:"PA-2026-002",nom:"Plan Creuse Pilote",
+   periodeDebut:"2026-04-01",periodeFin:"2026-09-30",
+   operateur:"ForêtPro Bourbonnais",chaufferie:"Chaufferie Guéret",
+   objectifT:400,realiseT:400,
+   lots:["LOT-2026-033","LOT-2026-034"],
+   statut:"terminé",conformiteRED:"conforme",
+   certif:"SURE",sourceForet:"Massif de Châtelus",
+   ghgEconomie:91.2,note:"Plan pilote finalisé — rapport RED envoyé"},
+  {id:"PA-2026-003",nom:"Plan Ternant Douglas",
+   periodeDebut:"2026-06-01",periodeFin:"2026-12-31",
+   operateur:"SARL Forestry Allier",chaufferie:"Chaufferie Nevers",
+   objectifT:600,realiseT:195,
+   lots:["LOT-2026-042"],
+   statut:"en_cours",conformiteRED:"en_cours",
+   certif:"SBP",sourceForet:"Parcelle Ternant GFA",
+   ghgEconomie:88.9,note:"Éclaircie Douglas en cours — pesée finale juillet"},
+];
+
+const STATUT_PLAN = {
+  en_cours: {label:"En cours",  icon:"🔄",col:"#1E40AF",bg:"#DBEAFE"},
+  terminé:  {label:"Terminé",   icon:"✅",col:"#065F46",bg:"#D1FAE5"},
+  brouillon:{label:"Brouillon", icon:"✏️",col:"#92400E",bg:"#FEF3C7"},
+  suspendu: {label:"Suspendu",  icon:"⏸",col:"#6B7280",bg:"#F3F4F6"},
+};
+
+const CONF_STYLE: Record<string,{col:string,bg:string,label:string}> = {
+  conforme:  {col:"#065F46",bg:"#D1FAE5",label:"✅ Conforme RED"},
+  en_cours:  {col:"#1E40AF",bg:"#DBEAFE",label:"🔄 Vérification en cours"},
+  non_conf:  {col:"#991B1B",bg:"#FEE2E2",label:"❌ Non conforme"},
+};
+
+export const SectionPlanApprovisionnement = () => {
+  const [selected, setSelected] = useState<string|null>(null);
+  const [onglet, setOnglet] = useState<"liste"|"synthese">("liste");
+
+  const plan = selected ? PLAN_DATA.find(p=>p.id===selected) : null;
+
+  const totalObj  = PLAN_DATA.reduce((s,p)=>s+p.objectifT,0);
+  const totalReal = PLAN_DATA.reduce((s,p)=>s+p.realiseT,0);
+  const tauxGlobal = Math.round(totalReal/totalObj*100);
+
+  return (
+    <div style={{maxWidth:1000,margin:"0 auto"}}>
+      <div style={{marginBottom:14}}>
+        <div style={{fontSize:20,fontWeight:800,color:C.tx}}>📐 Plan d'approvisionnement auditable</div>
+        <div style={{fontSize:13,color:C.tx2}}>Traçabilité complète origine→chaufferie · Conformité RED · Économie GES</div>
+      </div>
+
+      {/* Onglets */}
+      <div style={{display:"flex",gap:4,marginBottom:16,borderBottom:`1px solid ${C.bd}`,paddingBottom:8}}>
+        {([["liste","📋 Plans"],["synthese","📊 Synthèse RED"]] as const).map(([v,l])=>(
+          <button key={v} onClick={()=>{setOnglet(v);setSelected(null);}}
+            style={{padding:"6px 14px",borderRadius:8,fontSize:11,fontWeight:700,cursor:"pointer",
+              fontFamily:"inherit",border:"none",
+              background:onglet===v?"#1E5B3A":"transparent",
+              color:onglet===v?"#fff":C.tx2}}>
+            {l}
+          </button>
+        ))}
+      </div>
+
+      {onglet==="liste"&&<>
+        {/* KPIs */}
+        <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:10,marginBottom:16}}>
+          {[
+            {ico:"📐",label:"Plans actifs",val:PLAN_DATA.filter(p=>p.statut==="en_cours").length,col:"#1E40AF",bg:"#DBEAFE"},
+            {ico:"⚖️",label:"Objectif total",val:totalObj.toLocaleString("fr-FR")+" t",col:"#1E5B3A",bg:"#D1FAE5"},
+            {ico:"📦",label:"Réalisé total",val:totalReal.toLocaleString("fr-FR")+" t",col:"#B45309",bg:"#FEF3C7"},
+            {ico:"🎯",label:"Taux global",val:tauxGlobal+" %",col:tauxGlobal>=80?"#065F46":"#B45309",bg:tauxGlobal>=80?"#D1FAE5":"#FEF3C7"},
+          ].map(k=>(
+            <div key={k.label} style={{background:k.bg,borderRadius:10,padding:"12px 14px",textAlign:"center"}}>
+              <div style={{fontSize:20}}>{k.ico}</div>
+              <div style={{fontSize:16,fontWeight:900,color:k.col,fontVariantNumeric:"tabular-nums"}}>{k.val}</div>
+              <div style={{fontSize:9,color:k.col,fontWeight:600}}>{k.label}</div>
+            </div>
+          ))}
+        </div>
+
+        <div style={{display:"grid",gridTemplateColumns:plan?"1fr 360px":"1fr",gap:12,alignItems:"start"}}>
+          {/* Liste plans */}
+          <div style={{display:"flex",flexDirection:"column",gap:8}}>
+            {PLAN_DATA.map(p=>{
+              const st = STATUT_PLAN[p.statut as keyof typeof STATUT_PLAN]||STATUT_PLAN.brouillon;
+              const conf = CONF_STYLE[p.conformiteRED]||CONF_STYLE.en_cours;
+              const taux = Math.round(p.realiseT/p.objectifT*100);
+              const isSelected = selected===p.id;
+              return (
+                <div key={p.id} onClick={()=>setSelected(isSelected?null:p.id)}
+                  style={{background:"#fff",borderRadius:12,padding:"14px 16px",cursor:"pointer",
+                    border:`2px solid ${isSelected?"#1E5B3A":C.bd}`}}>
+                  <div style={{display:"flex",gap:10,alignItems:"flex-start",marginBottom:8}}>
+                    <div style={{flex:1}}>
+                      <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap",marginBottom:4}}>
+                        <span style={{fontSize:13,fontWeight:800,color:C.tx}}>{p.nom}</span>
+                        <span style={{fontSize:9,fontWeight:700,padding:"2px 7px",borderRadius:20,
+                          background:st.bg,color:st.col}}>{st.icon} {st.label}</span>
+                        <span style={{fontSize:9,fontWeight:700,padding:"2px 7px",borderRadius:20,
+                          background:conf.bg,color:conf.col}}>{conf.label}</span>
+                      </div>
+                      <div style={{fontSize:11,color:C.tx3}}>
+                        {p.operateur} · {p.chaufferie} · Certif. {p.certif}
+                      </div>
+                    </div>
+                    <div style={{textAlign:"right",flexShrink:0}}>
+                      <div style={{fontSize:18,fontWeight:900,color:taux>=80?"#065F46":"#B45309"}}>{taux}%</div>
+                      <div style={{fontSize:9,color:C.tx3}}>{p.realiseT.toLocaleString("fr-FR")} / {p.objectifT.toLocaleString("fr-FR")} t</div>
+                    </div>
+                  </div>
+                  {/* Barre de progression */}
+                  <div style={{height:6,background:"#E5E7EB",borderRadius:3,overflow:"hidden"}}>
+                    <div style={{height:"100%",width:`${Math.min(taux,100)}%`,
+                      background:taux>=80?"#1E5B3A":"#B45309",borderRadius:3,
+                      transition:"width .3s"}}/>
+                  </div>
+                  <div style={{display:"flex",gap:12,marginTop:6,fontSize:10,color:C.tx3}}>
+                    <span>📅 {new Date(p.periodeDebut).toLocaleDateString("fr-FR")} → {new Date(p.periodeFin).toLocaleDateString("fr-FR")}</span>
+                    <span>🌲 {p.lots.length} lot(s)</span>
+                    <span>🌿 GES −{p.ghgEconomie}%</span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Fiche détail */}
+          {plan&&(()=>{
+            const st = STATUT_PLAN[plan.statut as keyof typeof STATUT_PLAN]||STATUT_PLAN.brouillon;
+            const conf = CONF_STYLE[plan.conformiteRED]||CONF_STYLE.en_cours;
+            const taux = Math.round(plan.realiseT/plan.objectifT*100);
+            return (
+              <div style={{background:"#fff",borderRadius:14,border:"2px solid #1E5B3A",
+                padding:16,position:"sticky",top:0}}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:10}}>
+                  <span style={{fontSize:13,fontWeight:800,color:C.tx}}>{plan.nom}</span>
+                  <button onClick={()=>setSelected(null)}
+                    style={{background:"transparent",border:"none",cursor:"pointer",fontSize:18,color:C.tx3}}>✕</button>
+                </div>
+
+                {[
+                  ["Identifiant",plan.id],
+                  ["Opérateur",plan.operateur],
+                  ["Chaufferie",plan.chaufferie],
+                  ["Source forêt",plan.sourceForet],
+                  ["Certification",plan.certif],
+                  ["Période",`${new Date(plan.periodeDebut).toLocaleDateString("fr-FR")} → ${new Date(plan.periodeFin).toLocaleDateString("fr-FR")}`],
+                  ["Objectif",plan.objectifT.toLocaleString("fr-FR")+" t"],
+                  ["Réalisé",`${plan.realiseT.toLocaleString("fr-FR")} t (${taux}%)`],
+                  ["Éco. GES","−"+plan.ghgEconomie+"% vs fossile"],
+                ].map(([k,v])=>(
+                  <div key={k} style={{display:"flex",gap:8,borderBottom:`1px solid ${C.bd}`,
+                    paddingBottom:5,marginBottom:5,fontSize:11}}>
+                    <span style={{color:C.tx3,minWidth:110,flexShrink:0}}>{k}</span>
+                    <span style={{fontWeight:600,color:C.tx}}>{v}</span>
+                  </div>
+                ))}
+
+                <div style={{marginTop:8,marginBottom:8}}>
+                  <div style={{fontSize:10,fontWeight:700,color:C.tx3,marginBottom:6}}>LOTS ASSOCIÉS</div>
+                  {plan.lots.map(lid=>(
+                    <div key={lid} style={{background:"#F0FDF4",borderRadius:6,padding:"5px 9px",
+                      marginBottom:4,fontSize:11,fontWeight:600,color:"#065F46"}}>
+                      📦 {lid}
+                    </div>
+                  ))}
+                </div>
+
+                <div style={{background:conf.bg,borderRadius:8,padding:"8px 10px",
+                  fontSize:11,fontWeight:700,color:conf.col,marginBottom:8}}>
+                  Conformité RED : {conf.label}
+                </div>
+
+                {plan.note&&<div style={{fontSize:11,color:C.tx2,fontStyle:"italic",lineHeight:1.5}}>
+                  📝 {plan.note}
+                </div>}
+
+                <div style={{display:"flex",gap:6,marginTop:12}}>
+                  <button style={{flex:1,padding:"7px",borderRadius:8,fontSize:11,fontWeight:700,
+                    cursor:"pointer",fontFamily:"inherit",background:"#1E5B3A",border:"none",color:"#fff"}}>
+                    📄 Rapport RED
+                  </button>
+                  <button style={{flex:1,padding:"7px",borderRadius:8,fontSize:11,fontWeight:700,
+                    cursor:"pointer",fontFamily:"inherit",background:"transparent",
+                    border:`1px solid ${C.bd}`,color:C.tx2}}>
+                    ✏️ Modifier
+                  </button>
+                </div>
+              </div>
+            );
+          })()}
+        </div>
+      </>}
+
+      {onglet==="synthese"&&(
+        <div>
+          <div style={{background:"#F0FDF4",border:"1px solid #BBF7D0",borderRadius:10,
+            padding:"12px 16px",marginBottom:16,fontSize:12,color:"#065F46"}}>
+            🇪🇺 <strong>Directive RED III (2023/2413/UE)</strong> — Seuil d'économie GES exigé : 80% vs fossile pour installations &gt;10 MW (depuis 2026).
+            Toutes les livraisons doivent être traçées et certifiées VSS reconnu.
+          </div>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:10,marginBottom:16}}>
+            {[
+              {label:"Conformes RED",val:PLAN_DATA.filter(p=>p.conformiteRED==="conforme").length,col:"#065F46",bg:"#D1FAE5"},
+              {label:"En vérification",val:PLAN_DATA.filter(p=>p.conformiteRED==="en_cours").length,col:"#1E40AF",bg:"#DBEAFE"},
+              {label:"GES moyen",val:(PLAN_DATA.reduce((s,p)=>s+p.ghgEconomie,0)/PLAN_DATA.length).toFixed(1)+"%",col:"#7C3AED",bg:"#EDE9FE"},
+            ].map(k=>(
+              <div key={k.label} style={{background:k.bg,borderRadius:10,padding:"14px",textAlign:"center"}}>
+                <div style={{fontSize:22,fontWeight:900,color:k.col}}>{k.val}</div>
+                <div style={{fontSize:10,color:k.col,fontWeight:600}}>{k.label}</div>
+              </div>
+            ))}
+          </div>
+          <div style={{display:"flex",flexDirection:"column",gap:8}}>
+            {PLAN_DATA.map(p=>{
+              const conf = CONF_STYLE[p.conformiteRED]||CONF_STYLE.en_cours;
+              return (
+                <div key={p.id} style={{background:"#fff",borderRadius:10,border:`1px solid ${C.bd}`,
+                  padding:"10px 14px",display:"grid",
+                  gridTemplateColumns:"1fr auto auto auto",gap:12,alignItems:"center"}}>
+                  <div>
+                    <div style={{fontSize:12,fontWeight:700,color:C.tx}}>{p.nom}</div>
+                    <div style={{fontSize:10,color:C.tx3}}>{p.certif} · {p.sourceForet}</div>
+                  </div>
+                  <span style={{fontSize:10,fontWeight:700,padding:"2px 8px",borderRadius:20,
+                    background:conf.bg,color:conf.col,whiteSpace:"nowrap"}}>{conf.label}</span>
+                  <span style={{fontSize:12,fontWeight:800,color:"#7C3AED",whiteSpace:"nowrap"}}>
+                    −{p.ghgEconomie}% GES
+                  </span>
+                  <span style={{fontSize:11,color:C.tx3,whiteSpace:"nowrap"}}>
+                    {p.realiseT.toLocaleString("fr-FR")} t / {p.objectifT.toLocaleString("fr-FR")} t
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
     </div>
   );
 };
@@ -11002,6 +11530,32 @@ const STATUT_CHANTIER = {
   annulé:    {label:"Annulé",    icon:"❌",col:"#991B1B",bg:"#FEE2E2"},
 };
 
+const TAS_DATA = [
+  {id:"TAS-001",chantierId:"CH-2026-11",label:"Tas D1 — Bord piste nord",
+   volumeEstime:60,volumeReel:null,essence:"Douglas",humidite:38,
+   statut:"mesure_en_cours",dateMise:"2026-07-03",datePrévEnlèvement:"2026-07-25",
+   coordGPS:"46.4512 / 3.1874",notes:"Accessible porteur"},
+  {id:"TAS-002",chantierId:"CH-2026-11",label:"Tas D2 — Clairière centrale",
+   volumeEstime:85,volumeReel:82,essence:"Douglas",humidite:42,
+   statut:"prêt_à_enlever",dateMise:"2026-07-05",datePrévEnlèvement:"2026-07-22",
+   coordGPS:"46.4519 / 3.1891",notes:"Pesée réalisée"},
+  {id:"TAS-003",chantierId:"CH-2026-14",label:"Tas T1 — Route D145",
+   volumeEstime:120,volumeReel:null,essence:"Chêne",humidite:null,
+   statut:"constitué",dateMise:"2026-07-23",datePrévEnlèvement:"2026-08-15",
+   coordGPS:"46.5201 / 2.9847",notes:"En attente pesée"},
+  {id:"TAS-004",chantierId:"CH-2026-09",label:"Tas P1 — Aire de stockage",
+   volumeEstime:200,volumeReel:195,essence:"Pin sylvestre",humidite:28,
+   statut:"enlevé",dateMise:"2026-06-15",datePrévEnlèvement:"2026-06-29",
+   coordGPS:"46.5180 / 2.9722",notes:"Livré chaufferie Moulins"},
+];
+
+const STATUT_TAS = {
+  constitué:       {label:"Constitué",       icon:"🪵",col:"#92400E",bg:"#FEF3C7"},
+  mesure_en_cours: {label:"Mesure en cours", icon:"📏",col:"#1E40AF",bg:"#DBEAFE"},
+  prêt_à_enlever:  {label:"Prêt à enlever", icon:"🚛",col:"#065F46",bg:"#D1FAE5"},
+  enlevé:          {label:"Enlevé",          icon:"✅",col:"#374151",bg:"#E5E7EB"},
+};
+
 export const SectionChantiers = () => {
   const [filtreStatut, setFiltreStatut] = useState("tous");
   const [selected, setSelected] = useState(null);
@@ -11116,7 +11670,7 @@ export const SectionChantiers = () => {
 
               {/* Onglets fiche */}
               <div style={{display:"flex",gap:4,marginBottom:12,borderBottom:`1px solid ${C.bd}`,paddingBottom:8}}>
-                {[["infos","📋 Infos"],["terrain","⛰️ Terrain"],["machines","🚜 Machines"]].map(([v,l])=>(
+                {[["infos","📋 Infos"],["terrain","⛰️ Terrain"],["machines","🚜 Machines"],["tas","🪵 Tas"]].map(([v,l])=>(
                   <button key={v} onClick={()=>setOngletFiche(v)}
                     style={{padding:"4px 10px",borderRadius:6,fontSize:10,fontWeight:700,cursor:"pointer",
                       fontFamily:"inherit",border:"none",
@@ -11190,6 +11744,41 @@ export const SectionChantiers = () => {
                   </div>
                 </div>
               )}
+
+              {ongletFiche==="tas"&&(()=>{
+                const tasChantier = TAS_DATA.filter(t=>t.chantierId===ch.id);
+                return (
+                  <div style={{display:"flex",flexDirection:"column",gap:8}}>
+                    {tasChantier.length===0?(
+                      <div style={{padding:20,textAlign:"center",color:C.tx3,fontSize:12}}>
+                        Aucun tas intermédiaire enregistré pour ce chantier.
+                      </div>
+                    ):tasChantier.map(tas=>{
+                      const st = STATUT_TAS[tas.statut as keyof typeof STATUT_TAS]||STATUT_TAS.constitué;
+                      return (
+                        <div key={tas.id} style={{background:"#F9FAFB",borderRadius:10,
+                          border:`1px solid ${st.col}44`,padding:"10px 12px"}}>
+                          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
+                            <span style={{fontSize:11,fontWeight:800,color:C.tx}}>{tas.label}</span>
+                            <span style={{fontSize:9,fontWeight:700,padding:"2px 7px",borderRadius:20,
+                              background:st.bg,color:st.col}}>{st.icon} {st.label}</span>
+                          </div>
+                          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:4,fontSize:10,color:C.tx2}}>
+                            <span>🌲 {tas.essence}</span>
+                            <span>📦 {tas.volumeEstime} m³ estimé{tas.volumeReel?` · ${tas.volumeReel} m³ réel`:""}</span>
+                            {tas.humidite&&<span>💧 H = {tas.humidite}%</span>}
+                            <span>📅 Mis le {new Date(tas.dateMise).toLocaleDateString("fr-FR")}</span>
+                            {tas.datePrévEnlèvement&&<span>🚛 Enl. prévu : {new Date(tas.datePrévEnlèvement).toLocaleDateString("fr-FR")}</span>}
+                            {tas.coordGPS&&<span>📍 GPS : {tas.coordGPS}</span>}
+                          </div>
+                          {tas.notes&&<div style={{marginTop:5,fontSize:10,color:"#92400E",
+                            background:"#FEF3C7",borderRadius:5,padding:"4px 7px"}}>{tas.notes}</div>}
+                        </div>
+                      );
+                    })}
+                  </div>
+                );
+              })()}
 
               {/* Actions */}
               <div style={{display:"flex",gap:6,marginTop:14,flexWrap:"wrap"}}>

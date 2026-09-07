@@ -94,6 +94,7 @@ export const DASHBOARD_NAV: NavEntry[] = ([
   {id:"utilisateurs",       icon:"👥", label:"Utilisateurs",         flag:"UTILISATEURS"},
   {id:"abonnements",        icon:"💳", label:"Abonnements",          flag:"ABONNEMENTS"},
   {id:"reseau",             icon:"🤝", label:"Réseau & Offres",      flag:"RESEAU"},
+  {id:"plan_appro",         icon:"📐", label:"Plan d'approvisionnement", flag:"PLAN_APPRO"},
   {id:"demo",               icon:"🎬", label:"Démo scénario",        flag:"DEMO_SCENAR"},
   {id:"futur",              icon:"🚀", label:"Modules futurs",       flag:"MODULES_FUTURS"},
   {id:"parametres",         icon:"⚙️", label:"Paramètres",           flag:"PARAMETRES"},

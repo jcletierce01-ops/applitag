@@ -9,6 +9,7 @@ import { validateCMR, formatCMR, formatImmat, validateImmat } from "../../shared
 import { generatePdfFromHtml, buildCMRHTML, buildPVVisiteHTML, buildReceptionExploitHTML, buildOrdreDechiHTML, buildSimpleDocHTML, buildCompteRenduContactHTML } from "../../domains/documents/pdf-templates.js";
 import { TYPE_RESSOURCE_OPTS } from "../../domains/contacts/constants.js";
 import { STATUT_LOT } from "../../domains/screens/MobileScreens.constants.js";
+import { calculerPci, calculerEnergie } from "../../metier/formules.js";
 import { PIPELINE } from "../../domains/roles/RoleScreens.constants.js";
 export const FicheLotCentrale = ({
   lot, visites=[], operateurs=[], onBack, onEdit, onBonCommande,
@@ -1927,6 +1928,8 @@ export const EcranLivraison = ({lot, onBack, onSaved, toast, entrepriseId}: any)
     if (!canValidate) { toast("Destination, pesée, réceptionnaire et GPS obligatoires","warn"); return; }
     setSaving(true);
     const statutFinal = typeDest==="chaufferie" ? "LIVRE_CHAUFFERIE" : "EN_STOCK_PLATEFORME";
+    const pci = calculerPci(humiditeReception);
+    const energieMWh = Math.round(calculerEnergie(parseFloat(pesee)||0, pci) * 10) / 10;
     try {
       await apiPost(`/livraisons`, {
           lotId:lot.id, lotNumero:lot.lotNumero, entrepriseId,
@@ -1936,6 +1939,8 @@ export const EcranLivraison = ({lot, onBack, onSaved, toast, entrepriseId}: any)
           dateHeureLivraison: new Date().toISOString(),
           statut: statutFinal,
           gpsAlerteDeclenche: gpsAlerte,
+          energieMWh,
+          pciMWhParT: Math.round(pci * 1000) / 1000,
       });
       toast(typeDest==="chaufferie"?"Livraison chaufferie validée ✓":"Entrée stock plateforme ✓");
       onSaved(statutFinal);
@@ -2048,6 +2053,22 @@ export const EcranLivraison = ({lot, onBack, onSaved, toast, entrepriseId}: any)
             :humiditeReception<=45?"⚠️ Humidité élevée — à signaler"
             :"🔴 Hors normes — risque refus chaufferie"}
         </div>
+        {pesee&&parseFloat(pesee)>0&&(
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",
+            background:"#EFF6FF",border:"1px solid #BFDBFE",borderRadius:10,
+            padding:"10px 14px",marginBottom:14}}>
+            <div>
+              <div style={{fontSize:10,fontWeight:700,color:"#1D4ED8",letterSpacing:".05em",textTransform:"uppercase"}}>⚡ Énergie livrée (PCI calculé)</div>
+              <div style={{fontSize:11,color:"#3B82F6",marginTop:2}}>
+                PCI {Math.round(calculerPci(humiditeReception)*100)/100} MWh/t · H={humiditeReception}%
+              </div>
+            </div>
+            <div style={{fontSize:20,fontWeight:800,color:"#1D4ED8",fontVariantNumeric:"tabular-nums"}}>
+              {Math.round(calculerEnergie(parseFloat(pesee), calculerPci(humiditeReception))*10)/10}
+              <span style={{fontSize:11,fontWeight:600,marginLeft:3}}>MWh</span>
+            </div>
+          </div>
+        )}
 
         <SectionTitle icon="✍️" label="Réception"/>
         <MInput label="Nom du réceptionnaire" value={nomReceptionnaire}

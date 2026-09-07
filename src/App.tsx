@@ -25,7 +25,7 @@ import { BigBtn, SectionTitle } from "./shared/ui.jsx";
 import { FormulaireVisite } from "./domains/visites/FormulaireVisite.jsx";
 import { EcranDashboardPC } from "./domains/dashboard/EcranDashboardPC.jsx";
 import { FicheLotCentrale, EcranFinChantier, EcranDechiquetage, EcranTransporteur, EcranLivraison } from "./domains/lots/LotScreens.jsx";
-import { EcranRoleMandataire, EcranRoleProprietaire, EcranRoleChauffeur, EcranRoleDechiquetage, EcranEntrepriseSollicitee, EcranRoleChaufferie, EcranRoleReceptionnaire, EcranAutoDeclarationRED, EcranCarte } from "./domains/roles/RoleScreens.jsx";
+import { EcranRoleMandataire, EcranRoleProprietaire, EcranRoleChauffeur, EcranRoleDechiquetage, EcranEntrepriseSollicitee, EcranRoleChaufferie, EcranRoleReceptionnaire, EcranAutoDeclarationRED, EcranCarte, EcranRoleCollectivite, EcranRoleBET, EcranRoleETF, EcranRoleAssociation, EcranRoleInstitutionnel, EcranRoleFinanceur } from "./domains/roles/RoleScreens.jsx";
 import { QrCodeAdmin, EcranReleves, EcranOperateur, EcranAccueil, EcranDelegations, Fiche0, Fiche0Edit } from "./domains/screens/MobileScreens.jsx";
 import { EcranLots, ModalDelegationVisite, ModalSuggestionETF, EcranValidationExploitation, EcranClotureExploitation, EcranBonCommande, EcranSaisiesAdmin } from "./domains/exploitation/ExploitationScreens.jsx";
 import { LoginScreen } from "./domains/auth/LoginScreen.jsx";
@@ -221,7 +221,13 @@ export default function App() {
       operateur:    {icon:"👷", label:"Opérateur terrain",    desc:"Saisies et opérations"},
       dechiquetage: {icon:"🔧", label:"Déchiquetage",         desc:"Chantiers à traiter"},
       chauffeur:    {icon:"🚛", label:"Chauffeur",            desc:"Transports assignés"},
-      chaufferie:   {icon:"🏭", label:"Chaufferie",           desc:"Livraisons reçues"},
+      chaufferie:      {icon:"🏭", label:"Chaufferie",           desc:"Livraisons reçues"},
+      collectivite:    {icon:"🏛️", label:"Collectivité",         desc:"Suivi chaufferies & RED"},
+      bet:             {icon:"📐", label:"Bureau d'études",       desc:"Études & plans de gestion"},
+      etf:             {icon:"🪓", label:"ETF",                   desc:"Travaux forestiers"},
+      association:     {icon:"🤝", label:"Interprofession",       desc:"Filière & membres"},
+      institutionnel:  {icon:"🏛️", label:"Institutionnel",        desc:"Dossiers DDT/DRAAF"},
+      financeur:       {icon:"💶", label:"Financeur",             desc:"Projets & indicateurs"},
     };
     return (
       <div style={{display:"flex",flexDirection:"column",height:"100dvh",fontFamily:FONT_BODY,
@@ -449,6 +455,48 @@ export default function App() {
           fontSize:12,cursor:"pointer"}}>⎋</button>
       </div>
       <EcranRoleReceptionnaire user={user} livraisons={livraisons as any} contacts={contacts as any} visites={visites as any} toast={toast}/>
+    </div>
+  );
+
+  if (roleEffectif==="collectivite") return (
+    <div style={{display:"flex",flexDirection:"column",height:"100dvh",
+      fontFamily:FONT_BODY,maxWidth:430,margin:"0 auto",boxShadow:"0 0 40px rgba(0,0,0,.15)"}}>
+      <EcranRoleCollectivite user={user}/>
+    </div>
+  );
+
+  if (roleEffectif==="bet") return (
+    <div style={{display:"flex",flexDirection:"column",height:"100dvh",
+      fontFamily:FONT_BODY,maxWidth:430,margin:"0 auto",boxShadow:"0 0 40px rgba(0,0,0,.15)"}}>
+      <EcranRoleBET user={user}/>
+    </div>
+  );
+
+  if (roleEffectif==="etf") return (
+    <div style={{display:"flex",flexDirection:"column",height:"100dvh",
+      fontFamily:FONT_BODY,maxWidth:430,margin:"0 auto",boxShadow:"0 0 40px rgba(0,0,0,.15)"}}>
+      <EcranRoleETF user={user}/>
+    </div>
+  );
+
+  if (roleEffectif==="association") return (
+    <div style={{display:"flex",flexDirection:"column",height:"100dvh",
+      fontFamily:FONT_BODY,maxWidth:430,margin:"0 auto",boxShadow:"0 0 40px rgba(0,0,0,.15)"}}>
+      <EcranRoleAssociation user={user}/>
+    </div>
+  );
+
+  if (roleEffectif==="institutionnel") return (
+    <div style={{display:"flex",flexDirection:"column",height:"100dvh",
+      fontFamily:FONT_BODY,maxWidth:430,margin:"0 auto",boxShadow:"0 0 40px rgba(0,0,0,.15)"}}>
+      <EcranRoleInstitutionnel user={user}/>
+    </div>
+  );
+
+  if (roleEffectif==="financeur") return (
+    <div style={{display:"flex",flexDirection:"column",height:"100dvh",
+      fontFamily:FONT_BODY,maxWidth:430,margin:"0 auto",boxShadow:"0 0 40px rgba(0,0,0,.15)"}}>
+      <EcranRoleFinanceur user={user}/>
     </div>
   );
 

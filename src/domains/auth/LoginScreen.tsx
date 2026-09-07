@@ -1,6 +1,6 @@
 ﻿import { useState, useEffect, useRef } from "react";
 import { Html5Qrcode } from "html5-qrcode";
-import { C, FONT_TITLE, BTN_H, INPUT_H, FONT_INPUT, PADDING } from "../../design-system/tokens.js";
+import { C, BTN_H, INPUT_H, FONT_INPUT, PADDING } from "../../design-system/tokens.js";
 import { uid, nowISO, todayS, genCodeAPT } from "../../shared/utils.js";
 import { setAuth } from "../../services/auth.service.js";
 import { formatPhone } from "../../shared/validators.js";

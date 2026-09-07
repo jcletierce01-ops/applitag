@@ -3,7 +3,7 @@ import { C, FONT_TITLE, FONT_BODY } from "../../design-system/tokens.js";
 import { fmtNum } from "../../shared/format.js";
 import { MiniBarChart } from "../../shared/ui.jsx";
 import { EcranLots } from "../exploitation/ExploitationScreens.jsx";
-import { SectionAcces, SectionAbonnements, SectionDemoScenario, SectionAnalyses, SectionDocuments, SectionTerritoire, HubAlertes, SectionPlanning, SectionModulesFuturs, SectionFinancements, SectionConformiteRED, SectionCoutReglementaire, SectionGES, SectionApplitgData, SectionScierie, SectionPermisIncendie, SectionDesserte, SectionCoproduits, SectionProjetFinance, SectionParcelleTravaux, SectionRegistreIA, SectionBoisCrise, SectionFicheCombustible, SectionVeilleReglementaire, SectionLivraisons, SectionFacturationElec, SectionChaufferies, SectionRapports, SectionReseau, SectionParametres, SectionChantiers, SectionTransports } from "./sections.jsx";
+import { SectionAcces, SectionAbonnements, SectionDemoScenario, SectionAnalyses, SectionDocuments, SectionTerritoire, HubAlertes, SectionPlanning, SectionModulesFuturs, SectionFinancements, SectionConformiteRED, SectionCoutReglementaire, SectionGES, SectionApplitgData, SectionScierie, SectionPermisIncendie, SectionDesserte, SectionCoproduits, SectionProjetFinance, SectionParcelleTravaux, SectionRegistreIA, SectionBoisCrise, SectionFicheCombustible, SectionVeilleReglementaire, SectionLivraisons, SectionFacturationElec, SectionChaufferies, SectionRapports, SectionReseau, SectionParametres, SectionChantiers, SectionTransports, SectionPlanApprovisionnement } from "./sections.jsx";
 import { DASHBOARD_NAV } from "./sections.constants.js";
 
 import { EcranCarte } from "../roles/RoleScreens.jsx";
@@ -307,6 +307,7 @@ export const EcranDashboardPC = ({user, contacts, visites, notifications, transp
         {section==="rapports"    && <SectionRapports/>}
         {section==="parametres"  && <SectionParametres/>}
         {section==="reseau"      && <SectionReseau/>}
+        {section==="plan_appro"  && <SectionPlanApprovisionnement/>}
 
         {([] as string[]).includes(section) && (
           <div style={{background:"#fff",borderRadius:14,border:`1px solid ${C.bd}`,
