@@ -114,6 +114,10 @@ export default function App() {
     apiGet(`/dechiquetage`).then(d=>{ if(Array.isArray(d)) setDechiquetages(d); }).catch(()=>{});
   },[user, entrepriseId, isDemoMode]);
 
+  const refreshLivraisons = useCallback(()=>{
+    if (!isDemoMode) apiGet("/livraisons").then(d=>{ if(Array.isArray(d)) setLivraisons(d); }).catch(()=>{});
+  }, [isDemoMode]);
+
   const [transitioning, setTransitioning] = useState(false);
 
   // Auto-save contacts to localStorage
@@ -436,7 +440,7 @@ export default function App() {
           border:"none",color:"rgba(255,255,255,.6)",padding:"6px 10px",borderRadius:8,
           fontSize:12,cursor:"pointer"}}>⎋</button>
       </div>
-      <EcranRoleChaufferie user={user} livraisons={livraisons as any}/>
+      <EcranRoleChaufferie user={user} livraisons={livraisons as any} toast={toast} onRefresh={refreshLivraisons}/>
     </div>
   );
 

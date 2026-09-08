@@ -2,7 +2,7 @@
 import { C, PADDING } from "../../design-system/tokens.js";
 import { todayS } from "../../shared/utils.js";
 import { fmtNum } from "../../shared/format.js";
-import { apiPost, apiPostPublic } from "../../services/api.service.js";
+import { apiPost, apiPostPublic, apiPatch } from "../../services/api.service.js";
 import { BigBtn, MInput, SectionTitle } from "../../shared/ui.jsx";
 import { generatePdfFromHtml, buildRedHTML } from "../../domains/documents/pdf-templates.js";
 import { validateCMR, formatCMR, formatImmat, validateImmat } from "../../shared/validators.js";
@@ -1615,67 +1615,148 @@ export const EcranEntrepriseSollicitee = ({user, lots=[], toast}: any) => {
   );
 };
 
-export const EcranRoleChaufferie = ({user, livraisons=[]}: any) => {
-  const [confirmee, setConfirmee] = useState<Record<string,any>>({});
+export const EcranRoleChaufferie = ({user, livraisons=[], toast, onRefresh}: any) => {
+  const [onglet, setOnglet]   = useState<"attente"|"verifiees">("attente");
+  // État local des vérifications en cours : {[id]: {numTicket, sending, done, error}}
+  const [pesees, setPesees]   = useState<Record<string,any>>({});
+
+  const enAttente  = livraisons.filter((l: any) => !l.peseeVerifiee && l.statut !== "verifiee");
+  const verifiees  = livraisons.filter((l: any) => l.peseeVerifiee || l.statut === "verifiee");
+  const tonnageTotal    = livraisons.reduce((s: any, l: any) => s + (l.poidsNet ?? l.poidsBrut ?? 0), 0);
+  const tonnageVerifie  = verifiees.reduce((s: any, l: any) => s + (l.poidsNet ?? l.poidsBrut ?? 0), 0);
+
+  const humBadge = (h: number | null) => {
+    if (h === null || h === undefined) return {bg:C.bg2, tx:C.tx3, label:"Humidité NC"};
+    if (h <= 30) return {bg:C.greenL, tx:C.greenD, label:`💧 ${h}% — Conforme`};
+    if (h <= 45) return {bg:C.amberL, tx:C.amberD, label:`💧 ${h}% — Élevée`};
+    return {bg:"#FEE2E2", tx:"#991B1B", label:`💧 ${h}% — Hors normes`};
+  };
+
+  const handleConfirmer = async (l: any) => {
+    const ticket = pesees[l.id]?.numTicket ?? "";
+    setPesees(p => ({...p, [l.id]: {...p[l.id], sending:true, error:undefined}}));
+    try {
+      await apiPatch(`/livraisons/${l.id}/pesee`, {peseeVerifiee: true, numTicket: ticket || undefined});
+      setPesees(p => ({...p, [l.id]: {...p[l.id], sending:false, done:true}}));
+      toast?.("Pesée vérifiée ✓");
+      onRefresh?.();
+    } catch (e: any) {
+      setPesees(p => ({...p, [l.id]: {...p[l.id], sending:false, error: e?.message ?? "Erreur réseau"}}));
+    }
+  };
+
+  const renderCard = (l: any) => {
+    const poids  = l.poidsNet ?? (l.poidsBrut && l.tare ? l.poidsBrut - l.tare : l.poidsBrut);
+    const hum    = humBadge(l.humiditeReception);
+    const done   = pesees[l.id]?.done || l.peseeVerifiee || l.statut === "verifiee";
+    const p      = pesees[l.id] ?? {};
+    return (
+      <div key={l.id} style={{background:"#fff",borderRadius:14,padding:16,marginBottom:10,
+        border:`1.5px solid ${done ? C.green : C.bd}`}}>
+        {/* En-tête lot + date */}
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
+          <div style={{fontFamily:"monospace",fontSize:13,fontWeight:700,color:C.greenD}}>{l.lotNumero}</div>
+          <div style={{fontSize:11,color:C.tx3}}>{l.date?.slice(0,10)}</div>
+        </div>
+        {/* Infos livraison */}
+        <div style={{fontSize:12,color:C.tx2,lineHeight:1.9,marginBottom:8}}>
+          {l.nomDestination && <div>📍 {l.nomDestination}</div>}
+          {l.numeroBL       && <div>📄 BL / CMR : {l.numeroBL}</div>}
+          <div>⚖️ Brut {fmtNum(l.poidsBrut ?? 0)} t · Tare {fmtNum(l.tare ?? 0)} t
+            {poids ? <> · <strong>Net {fmtNum(poids)} t</strong></> : ""}</div>
+          {l.numTicket      && <div>🎫 Ticket : {l.numTicket}</div>}
+        </div>
+        {/* Badge humidité */}
+        <div style={{padding:"6px 10px",borderRadius:8,fontSize:11,fontWeight:600,
+          background:hum.bg, color:hum.tx, marginBottom:done ? 0 : 10}}>
+          {hum.label}
+        </div>
+        {/* Formulaire confirmation (seulement si pas encore vérifiée) */}
+        {!done && (
+          <>
+            <div style={{marginTop:10, marginBottom:8}}>
+              <MInput label="N° ticket chaufferie (optionnel)"
+                value={p.numTicket ?? ""}
+                onChange={(v: string) => setPesees(prev => ({...prev, [l.id]: {...prev[l.id], numTicket:v}}))}/>
+            </div>
+            {p.error && (
+              <div style={{fontSize:11,color:"#DC2626",marginBottom:8,padding:"6px 10px",
+                background:"#FEF2F2",borderRadius:6}}>⚠ {p.error}</div>
+            )}
+            <button onClick={() => handleConfirmer(l)}
+              disabled={p.sending}
+              style={{width:"100%",padding:12,borderRadius:10,
+                background:p.sending ? C.tx3 : C.green, color:"#fff", border:"none",
+                fontFamily:"inherit", fontSize:13, fontWeight:600,
+                cursor:p.sending ? "not-allowed" : "pointer",
+                WebkitTapHighlightColor:"transparent"}}>
+              {p.sending ? "Envoi…" : "✅ Confirmer la pesée"}
+            </button>
+          </>
+        )}
+        {done && (
+          <div style={{marginTop:8,fontSize:12,color:C.greenD,fontWeight:600,
+            background:C.greenL,borderRadius:8,padding:"6px 10px",textAlign:"center"}}>
+            ✓ Pesée vérifiée
+          </div>
+        )}
+      </div>
+    );
+  };
+
   return (
     <div data-scrollable="1" style={{flex:1,overflowY:"auto",padding:PADDING,background:C.bg}}>
-      <div style={{textAlign:"center",padding:"24px 0 16px"}}>
-        <div style={{fontSize:40}}>🔥</div>
-        <div style={{fontSize:18,fontWeight:700,marginTop:8}}>Bonjour {user.prenom}</div>
-        <div style={{fontSize:13,color:C.tx3,marginTop:4}}>Réception chaufferie</div>
+      {/* En-tête */}
+      <div style={{textAlign:"center",padding:"20px 0 14px"}}>
+        <div style={{fontSize:36}}>🔥</div>
+        <div style={{fontSize:18,fontWeight:700,marginTop:6}}>Bonjour {user.prenom}</div>
+        <div style={{fontSize:12,color:C.tx3,marginTop:3}}>Réception chaufferie</div>
       </div>
-      {/* Stats rapides */}
-      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:16}}>
+
+      {/* Stats */}
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8,marginBottom:16}}>
         {[
-          [livraisons.filter((l: any)=>l.typeDest==="chaufferie").length+" liv.","Livraisons reçues"],
-          [fmtNum(livraisons.reduce((s: any,l: any)=>s+(parseFloat(l.pesee)||0),0),1)+" t","Tonnage reçu"],
-        ].map(([v,l],i)=>(
-          <div key={i} style={{background:i===0?C.greenL:C.amberL,borderRadius:12,padding:14,
-            border:`1px solid ${i===0?C.green:C.amber}`}}>
-            <div style={{fontSize:20,fontWeight:700,color:i===0?C.greenD:C.amberD}}>{v}</div>
+          [enAttente.length+" lot"+(enAttente.length!==1?"s":""), "En attente", C.amberL, C.amberD],
+          [fmtNum(tonnageTotal,1)+" t",   "Total reçu",    C.bg2,   C.tx2],
+          [fmtNum(tonnageVerifie,1)+" t", "Vérifié",       C.greenL, C.greenD],
+        ].map(([v,l,bg,tx],i)=>(
+          <div key={i} style={{background:bg,borderRadius:12,padding:"12px 8px",textAlign:"center"}}>
+            <div style={{fontSize:16,fontWeight:700,color:tx}}>{v}</div>
             <div style={{fontSize:10,color:C.tx3,marginTop:2}}>{l}</div>
           </div>
         ))}
       </div>
-      {livraisons.map((l: any,i: any)=>(
-        <div key={l.id||i} style={{background:"#fff",borderRadius:14,padding:16,marginBottom:10,
-          border:`1.5px solid ${confirmee[l.id]?C.green:C.bd}`}}>
-          <div style={{display:"flex",justifyContent:"space-between",marginBottom:8}}>
-            <div style={{fontFamily:"monospace",fontSize:13,fontWeight:700,color:C.greenD}}>
-              {l.lotNumero}
+
+      {/* Onglets */}
+      <div style={{display:"flex",gap:6,marginBottom:14}}>
+        {([["attente","En attente",enAttente.length],["verifiees","Vérifiées",verifiees.length]] as const).map(([id,label,n])=>(
+          <button key={id} onClick={()=>setOnglet(id)} style={{
+            flex:1, padding:"9px 0", borderRadius:10, fontSize:12, fontWeight:onglet===id?700:400,
+            background:onglet===id?"#fff":C.bg2, color:onglet===id?C.tx:C.tx3,
+            border:`1.5px solid ${onglet===id?C.bd:"transparent"}`,
+            cursor:"pointer", fontFamily:"inherit"}}>
+            {label}{n>0?<> <span style={{background:onglet===id?C.greenL:C.bg,color:onglet===id?C.greenD:C.tx3,
+              borderRadius:10,padding:"1px 6px",fontSize:10,fontWeight:700}}>{n}</span></>:""}
+          </button>
+        ))}
+      </div>
+
+      {/* Listes */}
+      {onglet==="attente" && (
+        enAttente.length===0
+          ? <div style={{textAlign:"center",color:C.tx3,padding:"32px 0"}}>
+              <div style={{fontSize:32}}>✅</div>
+              <div style={{marginTop:8,fontSize:13}}>Toutes les pesées sont vérifiées</div>
             </div>
-            <div style={{fontSize:11,color:C.tx3}}>
-              {l.dateHeureLivraison?.slice(0,10)}
+          : enAttente.map(renderCard)
+      )}
+      {onglet==="verifiees" && (
+        verifiees.length===0
+          ? <div style={{textAlign:"center",color:C.tx3,padding:"32px 0"}}>
+              <div style={{fontSize:32}}>⏳</div>
+              <div style={{marginTop:8,fontSize:13}}>Aucune pesée vérifiée pour l'instant</div>
             </div>
-          </div>
-          <div style={{fontSize:12,color:C.tx3,lineHeight:1.8,marginBottom:12}}>
-            ⚖️ {l.pesee} t · 💧 {l.humiditeReception}% humidité<br/>
-            📄 CMR : {l.numeroCMR||"—"}<br/>
-            👤 {l.nomReceptionnaire}
-          </div>
-          <div style={{
-            padding:"8px 12px",borderRadius:8,textAlign:"center",fontSize:12,fontWeight:600,
-            background:l.humiditeReception<=30?C.greenL:l.humiditeReception<=45?C.amberL:C.redL,
-            color:l.humiditeReception<=30?C.greenD:l.humiditeReception<=45?C.amberD:C.red,
-            marginBottom:confirmee[l.id]?0:10}}>
-            {l.humiditeReception<=30?"✅ Qualité conforme":l.humiditeReception<=45?"⚠️ Humidité élevée":"🔴 Hors normes"}
-          </div>
-          {!confirmee[l.id]&&(
-            <button onClick={()=>setConfirmee(p=>({...p,[l.id]:true}))}
-              style={{width:"100%",padding:12,borderRadius:10,
-                background:C.green,color:"#fff",border:"none",
-                fontFamily:"inherit",fontSize:13,fontWeight:600,cursor:"pointer",
-                WebkitTapHighlightColor:"transparent"}}>
-              ✅ Confirmer réception
-            </button>
-          )}
-        </div>
-      ))}
-      {livraisons.length===0&&(
-        <div style={{textAlign:"center",color:C.tx3,padding:"32px 0"}}>
-          <div style={{fontSize:32}}>⏳</div>
-          <div style={{marginTop:8}}>Aucune livraison en attente</div>
-        </div>
+          : verifiees.map(renderCard)
       )}
     </div>
   );
