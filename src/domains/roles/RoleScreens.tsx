@@ -167,6 +167,30 @@ export const EcranRoleProprietaire = ({user, contacts, visites, reportings=[], l
         const prixTonne = parseFloat(visite?.prixTonne)||0;
         const sommeDue = poidsCumule*prixTonne;
 
+        // Niveau de traçabilité APPLITAG (1/2/3)
+        const hasVisite = !!visite;
+        const hasLivraisons = livraisonsChaufferie.length > 0;
+        const hasPeseeVerifiee = livraisonsChaufferie.some((l: any)=>l.peseeVerifiee||l.humiditeReception);
+        const niveauTracabilite = hasPeseeVerifiee ? 3 : hasLivraisons ? 2 : hasVisite ? 1 : 0;
+        const NIVEAUX_TRACABILITE = [
+          null,
+          {label:"Niveau 1 — Suivi chantier",       color:"#1E5B3A", bg:"#D1FAE5", desc:"Visite, opérations et clôture documentées par l'ETF"},
+          {label:"Niveau 2 — Traçabilité aval",      color:"#1D4ED8", bg:"#DBEAFE", desc:"Chargements, CMR et destination déclarés par les opérateurs"},
+          {label:"Niveau 3 — Pesées vérifiées",      color:"#7C3AED", bg:"#EDE9FE", desc:"Justificatifs de pesée reçus et rapprochés avec le lot"},
+        ];
+        const niv = NIVEAUX_TRACABILITE[niveauTracabilite];
+
+        // Statut de preuve par opération
+        const statutPreuve = (hasData: boolean, hasJustif: boolean, hasVerif: boolean) =>
+          hasVerif ? "✓✓" : hasJustif ? "✓" : hasData ? "◐" : "○";
+
+        const MODELE_LABEL: Record<string,string> = {
+          forfaitaire:      "🤝 Vente forfaitaire",
+          poids_bord_route: "🌲 Au poids bord de route",
+          poids_livre:      "🔥 Au poids livré (destination)",
+          prestation:       "🛠️ Prestation de travaux",
+        };
+
         const dateAbattage = dateDebutOperation(lot, (t: any)=>t.startsWith("abattage"));
         const dateDebardage = dateDebutOperation(lot, (t: any)=>t.includes("debardage"));
         const dechiq = dechiquetages.find((d: any)=>d.lotId===lot.id||d.lotNumero===lot.lotNumero);
@@ -176,13 +200,30 @@ export const EcranRoleProprietaire = ({user, contacts, visites, reportings=[], l
           <div key={lot.id} style={{background:"#fff",borderRadius:16,padding:20,
             marginBottom:14,border:`1px solid ${C.bd}`,
             borderLeft:`4px solid ${st.color}`}}>
-            <div style={{display:"flex",justifyContent:"space-between",marginBottom:12}}>
+            <div style={{display:"flex",justifyContent:"space-between",marginBottom:6}}>
               <div style={{fontFamily:"monospace",fontSize:14,fontWeight:700,color:C.greenD}}>
                 {lot.lotNumero}
               </div>
               <span style={{fontSize:11,padding:"3px 10px",borderRadius:8,
                 background:st.bg,color:st.color,fontWeight:600}}>{st.label}</span>
             </div>
+            {/* Badge niveau de traçabilité APPLITAG */}
+            {niv&&(
+              <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:10,
+                padding:"7px 12px",borderRadius:10,
+                background:niv.bg,border:`1px solid ${niv.color}22`}}>
+                <span style={{fontSize:16}}>
+                  {niveauTracabilite===3?"🔐":niveauTracabilite===2?"🔗":"📋"}
+                </span>
+                <div style={{flex:1}}>
+                  <div style={{fontSize:11,fontWeight:700,color:niv.color}}>{niv.label}</div>
+                  <div style={{fontSize:10,color:niv.color,opacity:.8,marginTop:1}}>{niv.desc}</div>
+                </div>
+                <div style={{fontSize:20,fontWeight:800,color:niv.color}}>
+                  {niveauTracabilite}/3
+                </div>
+              </div>
+            )}
             <div style={{fontSize:14,fontWeight:600,marginBottom:8}}>
               📍 {lot.commune} · 🌲 {lot.surfaceHa} ha
             </div>
@@ -205,6 +246,13 @@ export const EcranRoleProprietaire = ({user, contacts, visites, reportings=[], l
                 <div style={{fontWeight:700,color:C.tx2,fontSize:12,marginBottom:6}}>
                   📄 Contrat signé {prixTonne?`— ${fmtNum(prixTonne,2)} €/t HT`:""}
                 </div>
+                {visite.modeleContractuel&&(
+                  <div style={{fontSize:11,fontWeight:600,color:C.amber,
+                    background:"#FFFBEB",borderRadius:6,padding:"4px 8px",marginBottom:6,
+                    border:`1px solid #F59E0B44`}}>
+                    {MODELE_LABEL[visite.modeleContractuel]||visite.modeleContractuel}
+                  </div>
+                )}
                 {visite.sigDataProprio&&(
                   <img src={visite.sigDataProprio} style={{width:120,height:40,objectFit:"contain",
                     background:"#fff",border:`1px solid ${C.bd}`,borderRadius:6}}/>
@@ -287,30 +335,82 @@ export const EcranRoleProprietaire = ({user, contacts, visites, reportings=[], l
 
             {/* Suivi des poids livrés en chaufferie */}
             <div style={{background:C.bg2,borderRadius:10,padding:12,marginBottom:10}}>
-              <div style={{fontWeight:700,color:C.tx2,fontSize:12,marginBottom:6}}>
+              <div style={{fontWeight:700,color:C.tx2,fontSize:12,marginBottom:4}}>
                 🔥 Poids livrés en chaufferie
+              </div>
+              <div style={{fontSize:10,color:C.tx3,marginBottom:8,lineHeight:1.5}}>
+                Légende : ○ prévue · ◐ déclarée · ✓ justificatif reçu · ✓✓ vérifiée par rapprochement · ! preuve manquante
               </div>
               {livraisonsChaufferie.length===0?(
                 <div style={{fontSize:12,color:C.tx3}}>Aucune livraison enregistrée à ce jour</div>
-              ):livraisonsChaufferie.map((l: any,i: any)=>(
-                <div key={l.id||i} style={{display:"flex",justifyContent:"space-between",
-                  fontSize:12,padding:"4px 0",borderBottom:`1px solid ${C.bd}`}}>
-                  <span style={{color:C.tx2}}>
-                    {l.dateHeureLivraison?new Date(l.dateHeureLivraison).toLocaleDateString("fr-FR"):"—"}
-                  </span>
-                  <span style={{fontWeight:600,color:C.tx}}>{fmtNum(parseFloat(l.pesee)||0)} t</span>
-                </div>
-              ))}
+              ):livraisonsChaufferie.map((l: any,i: any)=>{
+                const pesee = parseFloat(l.pesee)||0;
+                const poidsBrut = parseFloat(l.poidsBrut)||0;
+                const tare = parseFloat(l.tare)||0;
+                const humidite = l.humiditeReception;
+                const verifiee = !!l.peseeVerifiee;
+                const statut = statutPreuve(pesee>0, !!l.numTicket||verifiee, verifiee);
+                const isManquante = pesee===0 && !l.peseeVerifiee;
+                return (
+                  <div key={l.id||i} style={{padding:"8px 0",borderBottom:`1px solid ${C.bd}`}}>
+                    <div style={{display:"flex",justifyContent:"space-between",fontSize:12,marginBottom:2}}>
+                      <div style={{display:"flex",alignItems:"center",gap:6}}>
+                        <span style={{fontSize:13,color:isManquante?"#DC2626":verifiee?"#7C3AED":pesee>0?"#1E5B3A":C.tx3}}>
+                          {isManquante?"!":statut}
+                        </span>
+                        <span style={{color:C.tx2}}>
+                          {l.dateHeureLivraison?new Date(l.dateHeureLivraison).toLocaleDateString("fr-FR"):"—"}
+                        </span>
+                        {l.nomDestination&&<span style={{color:C.tx3,fontSize:10}}> · {l.nomDestination}</span>}
+                      </div>
+                      <span style={{fontWeight:700,color:isManquante?"#DC2626":verifiee?"#7C3AED":C.tx}}>
+                        {pesee>0?fmtNum(pesee)+" t":"—"}
+                      </span>
+                    </div>
+                    {(poidsBrut>0||tare>0)&&(
+                      <div style={{fontSize:10,color:C.tx3,paddingLeft:20}}>
+                        Brut : {fmtNum(poidsBrut)} t · Tare : {fmtNum(tare)} t
+                      </div>
+                    )}
+                    {humidite&&(
+                      <div style={{fontSize:10,color:C.tx3,paddingLeft:20}}>
+                        Humidité mesurée : {humidite} %
+                      </div>
+                    )}
+                    {verifiee?(
+                      <div style={{fontSize:10,color:"#7C3AED",paddingLeft:20,fontWeight:600}}>
+                        Pesée enregistrée sur justificatif transmis par la destination
+                      </div>
+                    ):(pesee>0)?(
+                      <div style={{fontSize:10,color:C.tx3,paddingLeft:20,fontStyle:"italic"}}>
+                        Pesée déclarée par l'opérateur — justificatif non encore reçu
+                      </div>
+                    ):null}
+                  </div>
+                );
+              })}
             </div>
 
             {/* Total cumulé et somme due */}
             {(poidsCumule>0||prixTonne>0)&&(
               <div style={{background:C.greenL,borderRadius:10,padding:12,
                 fontSize:12,color:C.greenD}}>
+                {/* Modèle contractuel — détermine la base de calcul */}
+                {visite?.modeleContractuel&&(
+                  <div style={{fontSize:10,color:C.greenD,opacity:.75,marginBottom:6,
+                    fontStyle:"italic"}}>
+                    Base de calcul : {MODELE_LABEL[visite.modeleContractuel]||visite.modeleContractuel}
+                  </div>
+                )}
                 <div style={{display:"flex",justifyContent:"space-between",marginBottom:4}}>
                   <span>Poids cumulé livré</span>
                   <strong>{fmtNum(poidsCumule)} t</strong>
                 </div>
+                {livraisonsChaufferie.some((l: any)=>l.peseeVerifiee)&&(
+                  <div style={{fontSize:10,color:C.greenD,opacity:.7,marginBottom:4,paddingLeft:4}}>
+                    dont ✓✓ {fmtNum(livraisonsChaufferie.filter((l: any)=>l.peseeVerifiee).reduce((s: any,l: any)=>s+(parseFloat(l.pesee)||0),0))} t vérifiées par justificatif
+                  </div>
+                )}
                 <div style={{display:"flex",justifyContent:"space-between",marginBottom:4}}>
                   <span>Prix d'achat</span>
                   <strong>{prixTonne?fmtNum(prixTonne,2)+" €/t HT":"—"}</strong>
@@ -320,6 +420,12 @@ export const EcranRoleProprietaire = ({user, contacts, visites, reportings=[], l
                   <span>Total dû à ce jour</span>
                   <span>{fmtNum(sommeDue,2)} €</span>
                 </div>
+                {visite?.modeleContractuel==="poids_livre"&&!livraisonsChaufferie.some((l: any)=>l.peseeVerifiee)&&(
+                  <div style={{fontSize:10,color:"#92400E",background:"#FEF3C7",
+                    borderRadius:6,padding:"6px 8px",marginTop:8,lineHeight:1.5}}>
+                    ⚠️ Contrat au poids livré : les justificatifs de pesée de la destination ne sont pas encore reçus. Ce total est provisoire.
+                  </div>
+                )}
               </div>
             )}
           </div>

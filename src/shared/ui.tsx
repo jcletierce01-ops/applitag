@@ -37,9 +37,10 @@ interface MInputProps {
   hint?: string;
   big?: boolean;
   min?: string;
+  bold?: boolean;
 }
 
-export const MInput = ({ label, value, onChange, placeholder, type = "text", required, error, hint, big, min }: MInputProps) => {
+export const MInput = ({ label, value, onChange, placeholder, type = "text", required, error, hint, big, min, bold }: MInputProps) => {
   const inputMode = type === "number" || type === "numeric" ? "decimal" as const
     : type === "tel" ? "tel" as const
     : type === "email" ? "email" as const
@@ -49,7 +50,7 @@ export const MInput = ({ label, value, onChange, placeholder, type = "text", req
   const borderColor = error ? C.red : isEmpty ? "#E24B4A" : C.bd;
   return (
   <div style={{ marginBottom: 14 }}>
-    <div style={{ fontSize: 13, fontWeight: 600, color: (error || isEmpty) ? C.red : C.tx2, marginBottom: 5,
+    <div style={{ fontSize: 13, fontWeight: bold ? 800 : 600, color: (error || isEmpty) ? C.red : bold ? C.greenD : C.tx2, marginBottom: 5,
       display: "flex", justifyContent: "space-between" }}>
       <span>{label}{required && <span style={{ color: "#E24B4A" }}> ✱</span>}</span>
       {hint && <span style={{ fontWeight: 400, color: C.tx3, fontSize: 12 }}>{hint}</span>}

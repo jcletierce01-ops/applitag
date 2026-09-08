@@ -899,7 +899,7 @@ export const EcranReleves = ({entrepriseId, toast, notifications=[], setNotifica
                         <option key={s} value={s}>{STATUTS_ANNONCE[s].label}</option>
                       ))}
                     </select>
-                    {a.type==="gisement"&&a.statut!=="valide"&&a.statut!=="publie"&&(
+                    {a.type==="gisement"&&a.statut!=="valide"&&a.statut!=="lot_cree"&&(
                       <button onClick={()=>handleCreerLotDepuisAnnonce(a)} style={{height:36,padding:"0 12px",
                         borderRadius:8,background:C.green,color:"#fff",border:"none",
                         fontFamily:"inherit",fontSize:12,fontWeight:600,cursor:"pointer",

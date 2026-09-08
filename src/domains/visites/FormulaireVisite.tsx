@@ -1,4 +1,4 @@
-﻿import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import { C, BTN_H, INPUT_H, FONT_INPUT, PADDING } from "../../design-system/tokens.js";
 import { IS_DEMO_BUILD } from "../../config/env.js";
 import { uid, nowISO, todayS } from "../../shared/utils.js";
@@ -21,7 +21,7 @@ export const MapZonesProtegees = ({gps}: any) => {
       mapRef.current=map;
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19}).addTo(map);
 
-      // Zones protÃ©gÃ©es via Overpass
+      // Zones protégées via Overpass
       const rad=15000, olat=gps.lat, olng=gps.lng;
       const oq=`[out:json][timeout:25];(way["natural"="wetland"](around:${rad},${olat},${olng});way["leisure"="nature_reserve"](around:${rad},${olat},${olng});way["boundary"="protected_area"](around:${rad},${olat},${olng}););out geom;`;
       const endpoints=['https://overpass-api.de/api/interpreter','https://overpass.kumi.systems/api/interpreter'];
@@ -42,8 +42,8 @@ export const MapZonesProtegees = ({gps}: any) => {
             const wet=el.tags?.natural==='wetland';
             const bog=['bog','fen','marsh','swamp'].includes(el.tags?.wetland);
             const color=bog?'#5D4037':wet?'#1565C0':'#2E7D32';
-            const name=el.tags?.name||el.tags?.['name:fr']||(bog?'TourbiÃ¨re/Marais':wet?'Zone humide':'RÃ©serve naturelle');
-            const label=bog?'ðŸŸ¤ TourbiÃ¨re/Marais':wet?'ðŸ”µ Zone humide':'ðŸŸ¢ Aire protÃ©gÃ©e';
+            const name=el.tags?.name||el.tags?.['name:fr']||(bog?'Tourbière/Marais':wet?'Zone humide':'Réserve naturelle');
+            const label=bog?'🟤 Tourbière/Marais':wet?'🔵 Zone humide':'🟢 Aire protégée';
             L.polygon(el.geometry.map((p: any)=>[p.lat,p.lon]),{
               color,weight:2,fillColor:color,fillOpacity:0.22,opacity:0.85
             }).bindPopup(`<b>${name}</b><br/>${label}`).addTo(mapRef.current);
@@ -59,7 +59,7 @@ export const MapZonesProtegees = ({gps}: any) => {
         iconSize:[20,20],iconAnchor:[10,10],className:''
       });
       L.marker([gps.lat,gps.lng],{icon}).addTo(map)
-        .bindPopup(`ðŸ“ ${gps.lat.toFixed(5)}Â°N Â· ${gps.lng.toFixed(5)}Â°E`).openPopup();
+        .bindPopup(`📍 ${gps.lat.toFixed(5)}°N · ${gps.lng.toFixed(5)}°E`).openPopup();
     };
     if((window as any).L){init();}
     else{
@@ -72,22 +72,22 @@ export const MapZonesProtegees = ({gps}: any) => {
     }
     return()=>{if(mapRef.current){mapRef.current.remove();mapRef.current=null;}};
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  },[gps?.lat,gps?.lng]); // plus précis que gps (objet) : re-render seulement si les coordonnées changent
+  },[gps?.lat,gps?.lng]); // plus pr�cis que gps (objet) : re-render seulement si les coordonn�es changent
   if(!gps) return null;
   return(
     <div style={{borderRadius:12,overflow:'hidden',marginTop:16,marginBottom:8,
       border:'1.5px solid #90CAF9',boxShadow:'0 2px 8px rgba(0,0,0,.1)'}}>
       <div style={{background:'#1565C0',color:'#fff',padding:'8px 14px',
         fontSize:13,fontWeight:600,display:'flex',alignItems:'center',gap:8}}>
-        ðŸ—ºï¸ Carte â€” Zones protÃ©gÃ©es Ã  proximitÃ©
+        🗺️ Carte — Zones protégées à proximité
       </div>
       <div ref={divRef} style={{height:280}}/>
       <div style={{padding:'8px 14px',background:'#E3F2FD',fontSize:11,
         display:'flex',gap:14,flexWrap:'wrap',color:'#1565C0'}}>
-        <span>ðŸŸ£ Natura 2000</span>
-        <span>ðŸ”µ Zones humides</span>
-        <span>ðŸŸ¤ TourbiÃ¨res</span>
-        <span style={{marginLeft:'auto',opacity:.6}}>Source : INPN Â· IGN</span>
+        <span>🟣 Natura 2000</span>
+        <span>🔵 Zones humides</span>
+        <span>🟤 Tourbières</span>
+        <span style={{marginLeft:'auto',opacity:.6}}>Source : INPN · IGN</span>
       </div>
     </div>
   );
@@ -120,91 +120,127 @@ export const GpsWidget = ({value,onChange}: any) => {
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
         <div>
           <div style={{fontSize:13,color:C.greenD,fontWeight:600,marginBottom:3}}>
-            ðŸ“ {value.source==="gps"?"GPS prÃ©cis":"Position approximative"}
+            📍 {value.source==="gps"?"GPS précis":"Position approximative"}
           </div>
           <div style={{fontFamily:"monospace",fontSize:13,color:C.greenD}}>
-            {value.lat.toFixed(5)}Â°N Â· {value.lng.toFixed(5)}Â°E
+            {value.lat.toFixed(5)}°N · {value.lng.toFixed(5)}°E
           </div>
         </div>
         <button onClick={()=>onChange(null)} style={{background:"rgba(8,80,65,.15)",
           border:"none",color:C.greenD,cursor:"pointer",fontSize:20,padding:8,
-          borderRadius:8,WebkitTapHighlightColor:"transparent"}}>âœ•</button>
+          borderRadius:8,WebkitTapHighlightColor:"transparent"}}>✕</button>
       </div>
     </div>
   );
   return (
     <div style={{marginBottom:14}}>
       <BigBtn onClick={capture} bg={loading?C.bg2:C.greenL}
-        color={loading?C.tx3:C.greenD} icon={loading?"":"ðŸ“"}>
-        {loading?"Localisationâ€¦":"Capturer GPS"}
+        color={loading?C.tx3:C.greenD} icon={loading?"":"📍"}>
+        {loading?"Localisation…":"Capturer GPS"}
       </BigBtn>
     </div>
   );
 };
 
-// CheckItem importÃ© depuis ./shared/ui.jsx
+// CheckItem importé depuis ./shared/ui.jsx
 
 export const PhotosWidget = ({photos,onChange,required=2}: any) => {
-  const addPhoto = (type: any) => {
-    const emojis = {face:"ðŸ“·",profil:"ðŸ“¸",zone:"ðŸŒ³",acces:"ðŸ›¤ï¸",autre:"ðŸ–¼ï¸"};
-    onChange([...photos,{id:uid(),type,emoji:(emojis as Record<string,any>)[type]||"ðŸ“·",capturedAt:nowISO()}]);
+  const fileRef = useRef<any>(null);
+  const [pendingType, setPendingType] = useState<string|null>(null);
+  const EMOJIS: Record<string,string> = {face:"📷",profil:"📸",zone:"🌳",acces:"🛤️",autre:"🖼️"};
+
+  const capturePhoto = (type: string) => {
+    if (IS_DEMO_BUILD) {
+      onChange([...photos,{id:uid(),type,emoji:EMOJIS[type]||"📷",capturedAt:nowISO()}]);
+    } else {
+      setPendingType(type);
+      fileRef.current?.click();
+    }
   };
+
+  const onFileChange = (e: any) => {
+    const file = e.target.files?.[0];
+    if (!file || !pendingType) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      onChange([...photos,{
+        id:uid(), type:pendingType,
+        emoji:EMOJIS[pendingType]||"📷",
+        capturedAt:nowISO(),
+        dataUrl: ev.target?.result as string,
+      }]);
+    };
+    reader.readAsDataURL(file);
+    e.target.value = "";
+    setPendingType(null);
+  };
+
   return (
     <div>
+      {/* Input caméra natif — déclenche la permission sur mobile */}
+      {!IS_DEMO_BUILD && (
+        <input ref={fileRef} type="file" accept="image/*" capture="environment"
+          onChange={onFileChange}
+          style={{display:"none"}} />
+      )}
       <div style={{display:"flex",flexWrap:"wrap",gap:8,marginBottom:10}}>
         {photos.map((p: any)=>(
           <div key={p.id} style={{position:"relative"}}>
-            <div style={{width:72,height:72,borderRadius:12,background:C.greenL,
-              border:`1.5px solid ${C.green}`,display:"flex",flexDirection:"column",
+            <div style={{width:72,height:72,borderRadius:12,overflow:"hidden",
+              background:C.greenL, border:`1.5px solid ${C.green}`,
+              display:"flex",flexDirection:"column",
               alignItems:"center",justifyContent:"center",fontSize:26}}>
-              {p.emoji}
-              <div style={{fontSize:9,color:C.greenD,marginTop:3}}>{p.type}</div>
+              {p.dataUrl
+                ? <img src={p.dataUrl} alt={p.type}
+                    style={{width:"100%",height:"100%",objectFit:"cover"}} />
+                : <>{p.emoji}<div style={{fontSize:9,color:C.greenD,marginTop:3}}>{p.type}</div></>
+              }
             </div>
             <button onClick={()=>onChange(photos.filter((x: any)=>x.id!==p.id))}
               style={{position:"absolute",top:-6,right:-6,width:20,height:20,
                 borderRadius:"50%",background:C.red,color:"#fff",border:"2px solid #fff",
                 cursor:"pointer",fontSize:10,display:"flex",alignItems:"center",
-                justifyContent:"center",WebkitTapHighlightColor:"transparent"}}>âœ•</button>
+                justifyContent:"center",WebkitTapHighlightColor:"transparent"}}>✕</button>
           </div>
         ))}
       </div>
       <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8,marginBottom:8}}>
-        {[["face","ðŸ“· Face"],["profil","ðŸ“¸ Profil"],["zone","ðŸŒ³ Zone"],
-          ["acces","ðŸ›¤ï¸ AccÃ¨s"],["autre","ðŸ–¼ï¸ Autre"]].map(([type,label])=>(
-          <button key={type} onClick={()=>addPhoto(type)} style={{height:44,borderRadius:10,
+        {[["face","📷 Face"],["profil","📸 Profil"],["zone","🌳 Zone"],
+          ["acces","🛤️ Accès"],["autre","🖼️ Autre"]].map(([type,label])=>(
+          <button key={type} onClick={()=>capturePhoto(type)} style={{height:44,borderRadius:10,
             border:`1px solid ${C.bd}`,background:"#fff",cursor:"pointer",
             fontFamily:"inherit",fontSize:11,color:C.tx2,display:"flex",
             alignItems:"center",justifyContent:"center",gap:4,
             WebkitTapHighlightColor:"transparent"}}>{label}</button>
         ))}
       </div>
-      <BigBtn onClick={()=>addPhoto("face")} bg="#111" color="#fff" icon="ðŸ“·">
+      <BigBtn onClick={()=>capturePhoto("face")} bg="#111" color="#fff" icon="📷">
         Prendre une photo
       </BigBtn>
       <div style={{fontSize:12,color:photos.length>=required?C.greenD:C.amber,
         textAlign:"center",marginTop:6}}>
-        {photos.length}/{required} photos{photos.length>=required?" âœ“":""}
+        {photos.length}/{required} photos{photos.length>=required?" ✓":""}
       </div>
     </div>
   );
 };
 
-// RÃ©pertoire des essences (source ITEBE 2004) â€” feuillus + rÃ©sineux
+// Répertoire des essences (source ITEBE 2004) — feuillus + résineux
 const LISTE_ESSENCES_ITEBE = [
-  ["chene","ðŸŒ³","ChÃªne"],["charme","ðŸŒ¿","Charme"],["hetre","ðŸŒ²","HÃªtre"],
-  ["frene","ðŸƒ","FrÃªne"],["orme","ðŸŒ¿","Orme"],["acacia","ðŸŒ¿","Acacia"],
-  ["bouleau","ðŸªµ","Bouleau"],["chataignier","ðŸŒ°","ChÃ¢taignier"],
-  ["fruitiers","ðŸ’","Fruitiers"],["erables","ðŸ","Ã‰rables"],
-  ["tilleul","ðŸŒ¿","Tilleul"],["aulne","ðŸŒ¿","Aulne"],
-  ["peupliers","ðŸŒ¾","Peupliers"],["saule","ðŸŒ¿","Saule"],
-  ["pin_sylvestre","ðŸŒ²","Pin sylvestre"],["pin_maritime","ðŸŒ²","Pin maritime"],
-  ["sapin","ðŸŒ²","Sapin"],["epicea","ðŸŒ²","Ã‰picÃ©a"],["meleze","ðŸŒ²","MÃ©lÃ¨ze"],
-  ["douglas","ðŸŒ²","Douglas"],["melange","ðŸŒ³","MÃ©lange"],
+  ["chene","🌳","Chêne"],["charme","🌿","Charme"],["hetre","🌲","Hêtre"],
+  ["frene","🍃","Frêne"],["orme","🌿","Orme"],["acacia","🌿","Acacia"],
+  ["bouleau","🪵","Bouleau"],["chataignier","🌰","Châtaignier"],
+  ["fruitiers","🍒","Fruitiers"],["erables","🍁","Érables"],
+  ["tilleul","🌿","Tilleul"],["aulne","🌿","Aulne"],
+  ["peupliers","🌾","Peupliers"],["saule","🌿","Saule"],
+  ["pin_sylvestre","🌲","Pin sylvestre"],["pin_maritime","🌲","Pin maritime"],
+  ["sapin","🌲","Sapin"],["epicea","🌲","Épicéa"],["meleze","🌲","Mélèze"],
+  ["douglas","🌲","Douglas"],["melange","🌳","Mélange"],
 ];
 
-// Indices ITEBE importÃ©s depuis src/metier/formules.js (source unique ITEBE 2004)
+// Indices ITEBE importés depuis src/metier/formules.js (source unique ITEBE 2004)
 
-// indicesPonderes et poidsAjusteHumidite importÃ©s depuis src/metier/formules.js
+// indicesPonderes et poidsAjusteHumidite importés depuis src/metier/formules.js
 
 export const EssenceEditor = ({essences,onChange}: any) => {
   const LISTE = LISTE_ESSENCES_ITEBE;
@@ -231,7 +267,7 @@ export const EssenceEditor = ({essences,onChange}: any) => {
             <select value={e.id} onChange={(ev: any)=>{
               const found=LISTE.find(([v])=>v===ev.target.value);
               onChange(essences.map((x: any,j: any)=>j===i?{...x,id:ev.target.value,
-                emoji:found?.[1]||"ðŸŒ³",label:found?.[2]||""}:x));
+                emoji:found?.[1]||"🌳",label:found?.[2]||""}:x));
             }} style={{flex:1,height:44,padding:"0 10px",borderRadius:9,
               border:`1px solid ${C.bd}`,fontSize:14,fontFamily:"inherit",
               background:"#fff",outline:"none"}}>
@@ -240,7 +276,7 @@ export const EssenceEditor = ({essences,onChange}: any) => {
             <button onClick={()=>onChange(essences.filter((_: any,j: any)=>j!==i))}
               style={{width:36,height:36,borderRadius:8,background:C.redL,
                 color:C.red,border:"none",cursor:"pointer",fontSize:18,
-                WebkitTapHighlightColor:"transparent"}}>âœ•</button>
+                WebkitTapHighlightColor:"transparent"}}>✕</button>
           </div>
           <div style={{display:"flex",alignItems:"center",gap:10}}>
             <input type="range" min={0} max={100} value={e.pct}
@@ -261,81 +297,81 @@ export const EssenceEditor = ({essences,onChange}: any) => {
         <div style={{fontSize:20,fontWeight:800,padding:"6px 14px",borderRadius:10,
           background:Math.abs(total-100)<=1?C.greenL:C.redL,
           color:Math.abs(total-100)<=1?C.greenD:C.red}}>
-          Î£ {total}% {Math.abs(total-100)>1&&"âš "}
+          Σ {total}% {Math.abs(total-100)>1&&"⚠"}
         </div>
       </div>
     </div>
   );
 };
 
-// â”€â”€ CHECK-LIST CHANTIER â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── CHECK-LIST CHANTIER ───────────────────────────────────────
 const CHECKLIST_ITEMS = [
   {
-    cat:"ðŸ¦º SÃ©curitÃ© & EPI",
+    cat:"🦺 Sécurité & EPI",
     color:"#B71C1C", bg:"#FFEBEE", border:"#EF9A9A",
     items:[
-      "EPI complets disponibles (casque, gants, chaussures de sÃ©curitÃ©, gilet)",
-      "Trousse de premiers secours Ã  bord du vÃ©hicule",
-      "NumÃ©ros d'urgence affichÃ©s (15 Â· 18 Â· 112)",
-      "Zone de travail balisÃ©e (rubalise ou panneaux)",
-      "VÃ©rification mÃ©tÃ©o : pas de vent fort prÃ©vu > 60 km/h",
+      "EPI complets disponibles (casque, gants, chaussures de sécurité, gilet)",
+      "Trousse de premiers secours à bord du véhicule",
+      "Numéros d'urgence affichés (15 · 18 · 112)",
+      "Zone de travail balisée (rubalise ou panneaux)",
+      "Vérification météo : pas de vent fort prévu > 60 km/h",
     ]
   },
   {
-    cat:"ðŸ“‹ Documents & autorisations",
+    cat:"📋 Documents & autorisations",
     color:"#1565C0", bg:"#E3F2FD", border:"#90CAF9",
     items:[
-      "Contrat ou bon de commande signÃ© en possession",
+      "Contrat ou bon de commande signé en possession",
       "Plan de chantier / carte de la parcelle disponible",
-      "Autorisation d'exploitation (coupe) validÃ©e",
-      "DÃ©claration de travaux transmise si > 5 ha",
-      "Fiche de visite APPLITAG complÃ¨te et validÃ©e",
+      "Autorisation d'exploitation (coupe) validée",
+      "Déclaration de travaux transmise si > 5 ha",
+      "Fiche de visite APPLITAG complète et validée",
     ]
   },
   {
-    cat:"ðŸš› Logistique & accÃ¨s",
+    cat:"🚛 Logistique & accès",
     color:"#4E342E", bg:"#EFEBE9", border:"#BCAAA4",
     items:[
-      "AccÃ¨s engin vÃ©rifiÃ© (largeur, hauteur, portance sol)",
-      "PropriÃ©taire/gestionnaire informÃ© de la date de dÃ©marrage",
-      "Riverains prÃ©venus si risque de perturbation",
-      "Aire de retournement et stockage bois repÃ©rÃ©e",
-      "ClÃ©s / codes d'accÃ¨s barriÃ¨re rÃ©cupÃ©rÃ©s",
+      "Accès engin vérifié (largeur, hauteur, portance sol)",
+      "Propriétaire/gestionnaire informé de la date de démarrage",
+      "Riverains prévenus si risque de perturbation",
+      "Aire de retournement et stockage bois repérée",
+      "Clés / codes d'accès barrière récupérés",
       "Modification temporaire de la circulation valide en possession",
     ]
   },
   {
-    cat:"ðŸŒ² Parcelle & marquage",
+    cat:"🌲 Parcelle & marquage",
     color:"#2E7D32", bg:"#E8F5E9", border:"#A5D6A7",
     items:[
-      "Arbres Ã  abattre marquÃ©s (peinture ou ruban)",
-      "Arbres Ã  conserver / semenciers identifiÃ©s",
-      "Limites parcellaires vÃ©rifiÃ©es sur le terrain",
-      "Cours d'eau et zones humides repÃ©rÃ©s (â‰¥ 5 m de recul)",
-      "Arbres dangereux ou en Ã©quilibre instable signalÃ©s",
+      "Arbres à abattre marqués (peinture ou ruban)",
+      "Arbres à conserver / semenciers identifiés",
+      "Limites parcellaires vérifiées sur le terrain",
+      "Cours d'eau et zones humides repérés (≥ 5 m de recul)",
+      "Arbres dangereux ou en équilibre instable signalés",
     ]
   },
   {
-    cat:"ðŸª“ MatÃ©riel & engins",
+    cat:"🪓 Matériel & engins",
     color:"#6A1B9A", bg:"#F3E5F5", border:"#CE93D8",
     operateur:true,
     items:[
-      "Engins vÃ©rifiÃ©s et en bon Ã©tat de marche",
+      "Engins vérifiés et en bon état de marche",
       "Niveaux huile / carburant faits",
-      "Kit anti-pollution (absorbant) Ã  bord en cas de fuite",
-      "Outillage de coupe affÃ»tÃ© et fonctionnel",
-      "CÃ¢bles / sangles de dÃ©bardage vÃ©rifiÃ©s",
+      "Kit anti-pollution (absorbant) à bord en cas de fuite",
+      "Outillage de coupe affûté et fonctionnel",
+      "Câbles / sangles de débardage vérifiés",
     ]
   },
   {
-    cat:"â™»ï¸ Environnement",
+    cat:"♻️ Environnement",
     color:"#00695C", bg:"#E0F2F1", border:"#80CBC4",
     items:[
-      "Saison de coupe respectÃ©e (hors nidification marsâ€“aoÃ»t si possible)",
-      "Pas d'espÃ¨ces protÃ©gÃ©es identifiÃ©es sur la parcelle",
-      "Cloisonnements sylvicoles dÃ©finis pour limiter le tassement",
-      "Branchages / rÃ©manents destinÃ©s au maintien de la biodiversitÃ©",
-      "Plan de replantation prÃ©vu et enregistrÃ©",
+      "Saison de coupe respectée (hors nidification mars–août si possible)",
+      "Pas d'espèces protégées identifiées sur la parcelle",
+      "Cloisonnements sylvicoles définis pour limiter le tassement",
+      "Branchages / rémanents destinés au maintien de la biodiversité",
+      "Plan de replantation prévu et enregistré",
     ]
   },
 ];
@@ -358,13 +394,13 @@ export const ChecklistChantier = ({showOperateur=false}) => {
   const pct   = Math.round(done/total*100);
   return (
     <div>
-      <SectionTitle icon="â˜‘ï¸" label="Check-list avant dÃ©marrage chantier"/>
+      <SectionTitle icon="☑️" label="Check-list avant démarrage chantier"/>
       <div style={{marginBottom:16,padding:"12px 14px",borderRadius:12,
         background: pct===100?"#E8F5E9":"#FFF8E1",
         border:`1.5px solid ${pct===100?"#A5D6A7":"#FFE082"}`}}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
           <div style={{fontSize:13,fontWeight:700,color:pct===100?"#2E7D32":"#F57F17"}}>
-            {pct===100?"âœ… Chantier prÃªt Ã  dÃ©marrer !":"âš ï¸ VÃ©rifications en coursâ€¦"}
+            {pct===100?"✅ Chantier prêt à démarrer !":"⚠️ Vérifications en cours…"}
           </div>
           <div style={{fontSize:14,fontWeight:800,color:pct===100?"#2E7D32":"#E65100"}}>
             {done} / {total}
@@ -380,9 +416,9 @@ export const ChecklistChantier = ({showOperateur=false}) => {
         <div style={{display:"flex",alignItems:"flex-start",gap:10,marginBottom:14,
           padding:"10px 12px",borderRadius:10,
           background:"#EDE7F6",border:"1px solid #CE93D8"}}>
-          <span style={{fontSize:16}}>ðŸ‘·</span>
+          <span style={{fontSize:16}}>👷</span>
           <div style={{fontSize:12,color:"#4A148C",lineHeight:1.5}}>
-            La section <b>MatÃ©riel & engins</b> est Ã  complÃ©ter par l'opÃ©rateur depuis son interface.
+            La section <b>Matériel & engins</b> est à compléter par l'opérateur depuis son interface.
           </div>
         </div>
       )}
@@ -396,7 +432,7 @@ export const ChecklistChantier = ({showOperateur=false}) => {
               <span style={{fontSize:11,fontWeight:700,
                 background:"#6A1B9A",color:"#fff",
                 padding:"2px 8px",borderRadius:10,letterSpacing:.3}}>
-                ðŸ‘· OpÃ©rateur
+                👷 Opérateur
               </span>
             )}
           </div>
@@ -415,7 +451,7 @@ export const ChecklistChantier = ({showOperateur=false}) => {
                     border:`2px solid ${ok?cat.color:C.bd}`,
                     background:ok?cat.color:"#fff",
                     display:"flex",alignItems:"center",justifyContent:"center"}}>
-                    {ok&&<span style={{color:"#fff",fontSize:13,fontWeight:900,lineHeight:1}}>âœ“</span>}
+                    {ok&&<span style={{color:"#fff",fontSize:13,fontWeight:900,lineHeight:1}}>✓</span>}
                   </div>
                   <div style={{fontSize:13,lineHeight:1.5,color:ok?C.tx3:C.tx,
                     textDecoration:ok?"line-through":"none",flex:1}}>
@@ -432,24 +468,23 @@ export const ChecklistChantier = ({showOperateur=false}) => {
 };
 
 const STEPS = [
-  {id:"admin",         label:"Rens. Admin.",    icon:"ðŸ“‹", color:C.blue},
-  {id:"gps",           label:"GPS",           icon:"ðŸ“", color:C.green},
-  {id:"photos",        label:"Photos",        icon:"ðŸ“·", color:C.purple},
-  {id:"biomasse",      label:"Type biomasse",  icon:"ðŸƒ", color:"#558B2F"},
-  {id:"finance",       label:"Finance",       icon:"ðŸ’¶", color:C.amber},
-  {id:"contraintes",   label:"Contraintes terrain", icon:"âš ï¸", color:C.red},
-  {id:"acces",         label:"AccÃ¨s logistique", icon:"ðŸš›", color:C.brown},
-  {id:"plateforme",    label:"Plateforme stockage", icon:"ðŸ—ï¸", color:C.purple},
-  {id:"replantation",  label:"Replantation",  icon:"ðŸŒ±", color:C.green},
-  {id:"certification", label:"Certif.",       icon:"ðŸ…", color:C.blue},
-  {id:"reglementation",label:"RÃ©glmt.",       icon:"âš–ï¸", color:"#7C3AED"},
-  {id:"checklist",     label:"Check-list",    icon:"â˜‘ï¸", color:"#00695C"},
+  {id:"admin",         label:"Rens. Admin.",    icon:"📋", color:C.blue},
+  {id:"gps",           label:"GPS",           icon:"📍", color:C.green},
+  {id:"photos",        label:"Photos",        icon:"📷", color:C.purple},
+  {id:"biomasse",      label:"Type biomasse",  icon:"🍃", color:"#558B2F"},
+  {id:"contraintes",   label:"Contraintes terrain", icon:"⚠️", color:C.red},
+  {id:"acces",         label:"Accès logistique", icon:"🚛", color:C.brown},
+  {id:"plateforme",    label:"Plateforme stockage", icon:"🏗️", color:C.purple},
+  {id:"replantation",  label:"Replantation",  icon:"🌱", color:C.green},
+  {id:"certification", label:"Certif.",       icon:"🏅", color:C.blue},
+  {id:"reglementation",label:"Réglmt.",       icon:"⚖️", color:"#7C3AED"},
+  {id:"finance",       label:"Finance",       icon:"💶", color:C.amber},
 ];
 
 const DRAFT_KEY = "applitag_visite_draft";
 
-// âš  NON_VALIDEE (formules.js:FORMULE_CUBAGE_CYLINDRE) â€” formule cylindrique sans coefficient de forme Vf ;
-// surestime le volume rÃ©el de 40-150%. Utiliser tarifs de cubage INRAE pour usage probant.
+// ⚠ NON_VALIDEE (formules.js:FORMULE_CUBAGE_CYLINDRE) — formule cylindrique sans coefficient de forme Vf ;
+// surestime le volume réel de 40-150%. Utiliser tarifs de cubage INRAE pour usage probant.
 const calcVolumeParHa = (popParHa: any, diametreMoyenCm: any, surfaceHa: any, indices: any) => {
   const nbTigesHa = parseFloat(popParHa)||0;
   const dM = (parseFloat(diametreMoyenCm)||0)/100;
@@ -461,21 +496,22 @@ const calcVolumeParHa = (popParHa: any, diametreMoyenCm: any, surfaceHa: any, in
 
 export const FormulaireVisite = ({lot, onBack, onSaved, toast, entrepriseId, user}: any) => {
   const [step,     setStep]    = useState(0);
-  const [returnStep, setReturnStep] = useState<any>(null); // retour direct au rÃ©capitulatif aprÃ¨s "ComplÃ©ter"
+  const [returnStep, setReturnStep] = useState<any>(null); // retour direct au récapitulatif après "Compléter"
   const [gps,      setGps]     = useState<any>(null);
   const [photos,   setPhotos]  = useState<any[]>([]);
   const [typeBiomasse, setTypeBiomasse] = useState("");
-  const [essences, setEssences]= useState<any[]>([{id:"peuplier",emoji:"ðŸŒ¾",label:"Peuplier",pct:100}]);
+  const [essences, setEssences]= useState<any[]>([{id:"chene",emoji:"🌳",label:"Chêne",pct:100}]);
   const [volumeT,  setVolumeT] = useState(0);
   const [modeVolume, setModeVolume] = useState("manuel"); // manuel | slider | parha
   const [popParHa, setPopParHa] = useState("");
-  const [diametreMoyen, setDiametreMoyen] = useState(""); // diamÃ¨tre moyen Ã  1,20 m, en cm
+  const [diametreMoyen, setDiametreMoyen] = useState(""); // diamètre moyen à 1,20 m, en cm
   const [surfaceHa,setSurface] = useState(String(lot.surfaceHa||5));
   const [dateLimite,setDateL]  = useState("");
   const [observations,setObs]  = useState("");
   // Prix & conditions commerciales
+  const [modeleContractuel, setModeleContractuel] = useState<string>("");
   const [prixTonne,     setPrixTonne]    = useState("");
-  const [tauxTVA,       setTauxTVA]      = useState("20");
+  const [tauxTVA,       setTauxTVA]      = useState("5.5");
   const [acompte,       setAcompte]      = useState("");
   const [delaiSolde,    setDelaiSolde]   = useState("comptant");
   const [modeReglement, setModeReglement]= useState("virement");
@@ -490,6 +526,12 @@ export const FormulaireVisite = ({lot, onBack, onSaved, toast, entrepriseId, use
   const [sigDataExploit, setSigDataExploit] = useState<any>(null);
   const [nomSignProprio,_setNomSigPr] = useState(lot.nomSignataire||lot.nom||"");
   const [nomSignExploit,_setNomSigEx] = useState("");
+  // Attestation déclaration sur l'honneur (redDocGestion === "aucun")
+  const [attestEmail,   setAttestEmail]   = useState<string>(lot.email||"");
+  const [attestSigData, setAttestSigData] = useState<any>(null);
+  const [attestSigned,  setAttestSigned]  = useState(false);
+  const [attestSending, setAttestSending] = useState(false);
+  const [attestSentOk,  setAttestSentOk]  = useState(false);
   const [coupeAutorisee,        setCoupeAutorisee]        = useState("");   // "oui"|"non"
   const [dateAutorisationPrevue,setDateAutorisationPrevue] = useState("");
   const [nomGestionnaire,       setNomGestionnaire]        = useState("");
@@ -504,14 +546,14 @@ export const FormulaireVisite = ({lot, onBack, onSaved, toast, entrepriseId, use
     routeLimitee:false, natura2000:false, remanents:false,
     autorisationVoirie:false, prevenir_mairie:false, prevenir_voisinage:false,
   });
-  // DÃ©tails contraintes avec responsable
+  // Détails contraintes avec responsable
   const [detailsContraintes, setDetailsCont] = useState<Record<string,any>>({});
   const [accesCamion,setAcces] = useState("praticable");
   const [largeurAcces,setLarg] = useState(4);
   const [distancePlateforme,setDist] = useState(500);
   const [saving, setSaving]    = useState(false);
 
-  // Essence principale (affichage) + indices pondÃ©rÃ©s par la composition rÃ©elle (%) â€” source ITEBE 2004
+  // Essence principale (affichage) + indices pondérés par la composition réelle (%) — source ITEBE 2004
   const essencePrincipale = [...essences].sort((a,b)=>b.pct-a.pct)[0]?.id || "melange";
   const indices = indicesPonderes(essences);
 
@@ -536,21 +578,41 @@ export const FormulaireVisite = ({lot, onBack, onSaved, toast, entrepriseId, use
     } catch { /* noop */ }
   },[lot.id]);
 
+  // Pré-remplit le massif depuis les coordonnées GPS (Nominatim OSM)
+  useEffect(()=>{
+    if (!gps || redMassif) return;
+    const ctrl = new AbortController();
+    fetch(
+      `https://nominatim.openstreetmap.org/reverse?format=json&lat=${gps.lat}&lon=${gps.lng}&zoom=10&accept-language=fr`,
+      {signal:ctrl.signal}
+    )
+      .then(r=>r.json())
+      .then(d=>{
+        const a = d.address || {};
+        const lieu = a.forest || a.nature_reserve || a.village || a.town || a.city || a.municipality || lot?.commune || "";
+        const dept = a.county || a.state_district || "";
+        if (lieu) setRedMassif(dept ? `${lieu} — ${dept}` : lieu);
+      })
+      .catch(()=>{});
+    return ()=>ctrl.abort();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  },[gps?.lat, gps?.lng]);
+
   // Sauvegarde automatique brouillon
   useEffect(()=>{
     try {
       localStorage.setItem(DRAFT_KEY+lot.id, JSON.stringify({
         gps, essences, volumeT, surfaceHa, dateLimite, observations,
-        prixTonne, diametreMoyen, popParHa, modeVolume, tauxTVA, acompte, delaiSolde, modeReglement,
+        modeleContractuel, prixTonne, diametreMoyen, popParHa, modeVolume, tauxTVA, acompte, delaiSolde, modeReglement,
         iban, swift, nomBanque, villeBanque,
         contraintes, accesCamion, step,
       }));
     } catch { /* noop */ }
   },[lot.id, gps, essences, volumeT, surfaceHa, dateLimite, observations,
-     prixTonne, diametreMoyen, popParHa, modeVolume, tauxTVA, acompte, delaiSolde, modeReglement,
+     modeleContractuel, prixTonne, diametreMoyen, popParHa, modeVolume, tauxTVA, acompte, delaiSolde, modeReglement,
      iban, swift, nomBanque, villeBanque, contraintes, accesCamion, step]);
 
-  // Recalcul du volume estimÃ© si la surface ou l'essence change en mode "par ha"
+  // Recalcul du volume estimé si la surface ou l'essence change en mode "par ha"
   useEffect(()=>{
     if (modeVolume==="parha") {
       setVolumeT(calcVolumeParHa(popParHa, diametreMoyen, surfaceHa, indices));
@@ -584,12 +646,12 @@ export const FormulaireVisite = ({lot, onBack, onSaved, toast, entrepriseId, use
   const [replantTel,           setReplantTel]           = useState("");
   const [replantEmail,         setReplantEmail]         = useState("");
 
-  // PrÃ©-positionne la surface Ã  replanter sur la surface exploitÃ©e saisie en Ã©tape "Volumes"
+  // Pré-positionne la surface à replanter sur la surface exploitée saisie en étape "Volumes"
   useEffect(()=>{
     if (replantation==="oui" && surfaceReplant===0) setSurfaceReplant(parseFloat(surfaceHa)||0);
   },[replantation, surfaceHa, surfaceReplant]);
 
-  // Scroll en haut Ã  chaque changement d'Ã©tape
+  // Scroll en haut à chaque changement d'étape
   const scrollRef = useRef<any>(null);
   useEffect(()=>{
     if(scrollRef.current) scrollRef.current.scrollTop = 0;
@@ -612,7 +674,7 @@ export const FormulaireVisite = ({lot, onBack, onSaved, toast, entrepriseId, use
   const [redVssDateValidite,setRedVssDateValidite] = useState("");
   const [redVssOrganisme,   setRedVssOrganisme]   = useState("");
   const [redDestination,  setRedDestination] = useState("");
-  const [redForetPrimaire,setRedForetPrimaire] = useState("");  // confirmÃ©|a_verifier|non_concerne
+  const [redForetPrimaire,setRedForetPrimaire] = useState("");  // confirmé|a_verifier|non_concerne
   const [redDocGestion,   setRedDocGestion]   = useState("");  // psg|cbps|amenagement|aucun
   const [redBoisMort,     setRedBoisMort]     = useState<Record<string,boolean>>({souches:false,boisMort:false,coupeRase:false});
   const [statutRed,       setStatutRed]       = useState("");
@@ -625,7 +687,7 @@ export const FormulaireVisite = ({lot, onBack, onSaved, toast, entrepriseId, use
   const [niveauSecurisation,setNiveauSecurisation]= useState("mobilisable_cond");
   const [preuveDestFin,     setPreuveDestFin]     = useState("");
 
-  // Flux bois â€” usage et destination par qualitÃ©
+  // Flux bois — usage et destination par qualité
   const [usagePrevu,      setUsagePrevu]     = useState(""); // bo|bi|be|mixte
   const [volBO,           setVolBO]          = useState("");
   const [volBI,           setVolBI]          = useState("");
@@ -636,7 +698,7 @@ export const FormulaireVisite = ({lot, onBack, onSaved, toast, entrepriseId, use
   const [preuveDestBE,    setPreuveDestBE]   = useState("");
   const [dateControleFlux,setDateControle]   = useState("");
 
-  // RÃ©glementation â€” snapshot dossier
+  // Réglementation — snapshot dossier
   const [dispositifAide,  setDispositifAide] = useState("");
   const [dateDepotPrevu,  setDateDepotPrevu] = useState("");
   const [clauseReserveOk, setClauseReserve] = useState(false);
@@ -644,15 +706,117 @@ export const FormulaireVisite = ({lot, onBack, onSaved, toast, entrepriseId, use
   const [decisionAttributive, setDecisionAttr] = useState("");
 
   const isDemo = !!(user?.id?.startsWith("demo-"));
+
+  // Auto-fill usagePrevu depuis typeBiomasse si non encore renseigné
+  useEffect(()=>{
+    if (!typeBiomasse || usagePrevu) return;
+    const MAP: Record<string,string> = {
+      bois_forestier:   "be",
+      remanents:        "be",
+      connexe_scierie:  "bi",
+      dechets_bois:     "be",
+      biomasse_agricole:"be",
+      csr_biogenique:   "mixte",
+    };
+    const val = MAP[typeBiomasse];
+    if (val) setUsagePrevu(val);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  },[typeBiomasse]);
+
+  // Auto-fill destBE depuis redDestination (certification RED) + commune du lot
+  useEffect(()=>{
+    if (!redDestination || destBE) return;
+    const LABEL: Record<string,string> = {
+      chaufferie:        "Chaufferie",
+      reseau_chaleur:    "Réseau de chaleur",
+      industrie:         "Site industriel",
+      plateforme_transit:"Plateforme de transit",
+    };
+    const lbl = LABEL[redDestination];
+    if (!lbl) return;
+    const commune = (lot as any).commune || "";
+    setDestBE(commune ? `${lbl} — ${commune}` : `${lbl} — à préciser`);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  },[redDestination]);
+
   const stepValid: Record<number, boolean> = {
     0:true, 1:isDemo||!!gps, 2:isDemo||photos.length>=2,
     3:!!typeBiomasse&&essences.length>0&&Math.abs(essences.reduce((s,e)=>s+e.pct,0)-100)<=1&&volumeT>0,
-    4:parseFloat(prixTonne)>0, 5:true, 6:true, 7:true, 8:true, 9:true, 10:clauseReserveOk||isDemo, 11:true,
+    4:true, 5:true, 6:true, 7:true, 8:true, 9:clauseReserveOk||isDemo, 10:parseFloat(prixTonne)>0,
   };
   const allValid = Object.values(stepValid).every(Boolean);
 
+  const genererAttestationPDF = () => {
+    const nomP = nomSignProprio||(lot as any).nom||"Le/la propriétaire";
+    const dateJour = new Date().toLocaleDateString("fr-FR",{day:"numeric",month:"long",year:"numeric"});
+    const sigImg = attestSigData
+      ? `<img src="${attestSigData}" alt="Signature" style="max-width:200px;border:1px solid #ccc;border-radius:4px;">`
+      : `<div style="height:70px;border:1px dashed #aaa;border-radius:4px;display:flex;align-items:center;justify-content:center;color:#aaa;font-size:12px;">Signature manquante</div>`;
+    const html = `<!DOCTYPE html><html lang="fr"><head><meta charset="utf-8">
+<title>Déclaration — ${lot.lotNumero||lot.numero}</title>
+<style>
+body{font-family:Georgia,serif;max-width:680px;margin:36px auto;color:#111;line-height:1.7;font-size:13.5px;}
+h1{font-size:17px;text-align:center;text-transform:uppercase;letter-spacing:.06em;border-bottom:2px solid #333;padding-bottom:10px;margin-bottom:6px;}
+.subtitle{text-align:center;font-size:11px;color:#555;margin-bottom:22px;}
+table{width:100%;border-collapse:collapse;margin:14px 0;}
+td{padding:5px 11px;border:1px solid #ccc;font-size:12.5px;}
+td:first-child{font-weight:600;width:36%;background:#f7f7f5;}
+.bloc{background:#f7f7f5;border-left:4px solid #2d6a2d;padding:11px 15px;margin:14px 0;font-size:12.5px;}
+.bloc li{margin:5px 0;}
+.sig{margin-top:30px;display:flex;justify-content:flex-end;}
+.sig-box{text-align:center;min-width:210px;}
+.sig-line{border-top:1px solid #555;margin-top:10px;padding-top:4px;font-size:11px;color:#555;}
+@media print{body{margin:16px;}}
+</style></head><body>
+<h1>Déclaration sur l'honneur<br>Gestion forestière durable</h1>
+<p class="subtitle">Art. 29-1 de la directive RED II — Critères de durabilité biomasse</p>
+<p>Je soussigné(e), <strong>${nomP}</strong>, propriétaire de la parcelle forestière désignée ci-après,</p>
+<p><strong>CERTIFIE SUR L'HONNEUR :</strong></p>
+<div class="bloc"><ul>
+<li>Que la forêt concernée est gérée durablement, conformément aux principes de la gestion forestière durable.</li>
+<li>Que la récolte de biomasse n'excède pas la capacité de production biologique de la forêt.</li>
+<li>Que cette biomasse n'est pas issue d'une forêt primaire ni d'une zone dont le statut en termes de carbone a changé après le 1er janvier 2008.</li>
+<li>Que les pratiques d'exploitation respectent la réglementation française en vigueur (Code forestier).</li>
+</ul></div>
+<table>
+<tr><td>Lot / Référence</td><td>${lot.lotNumero||lot.numero||"—"}</td></tr>
+<tr><td>Commune</td><td>${lot.commune||"—"}</td></tr>
+<tr><td>Surface</td><td>${lot.surfaceHa||"—"} ha</td></tr>
+<tr><td>Date</td><td>${dateJour}</td></tr>
+</table>
+<div class="sig"><div class="sig-box">
+<p style="font-size:11px;color:#555;margin-bottom:8px;">Signature du propriétaire</p>
+${sigImg}
+<div class="sig-line">${nomP}</div>
+</div></div>
+</body></html>`;
+    const win = window.open("","_blank","width=820,height=920");
+    if(win){ win.document.write(html); win.document.close(); win.focus(); setTimeout(()=>win.print(),600); }
+  };
+
+  const envoyerAttestation = async () => {
+    if(!attestEmail.trim()){alert("Veuillez saisir l'adresse email du propriétaire.");return;}
+    setAttestSending(true); setAttestSentOk(false);
+    try {
+      if(IS_DEMO_BUILD){
+        await new Promise(r=>setTimeout(r,900));
+        setAttestSentOk(true);
+      } else {
+        await apiPost("/documents/attestation-email",{
+          lotId:lot.id, lotNumero:lot.lotNumero||lot.numero,
+          commune:lot.commune||"", surfaceHa:lot.surfaceHa,
+          nomProprietaire:nomSignProprio||(lot as any).nom||"",
+          email:attestEmail, sigData:attestSigData, dateDocument:todayS(),
+        });
+        setAttestSentOk(true);
+      }
+    } catch(err:any){
+      alert(`Erreur envoi attestation : ${err?.message||"Erreur réseau"}`);
+    } finally { setAttestSending(false); }
+  };
+
   const handleSave = async () => {
-    if (!allValid) { toast("ComplÃ©ter toutes les Ã©tapes","warn"); return; }
+    if (!allValid) { toast("Compléter toutes les étapes","warn"); return; }
     setSaving(true);
     const visite = {
       lotId: lot.id, lotNumero: lot.lotNumero||lot.numero,
@@ -661,7 +825,7 @@ export const FormulaireVisite = ({lot, onBack, onSaved, toast, entrepriseId, use
       date: todayS(), gps, photos, typeBiomasse, essences,
       volumeEstimeT: volumeT, surfaceHa, dateLimite, observations,
       diametreMoyen, popParHa,
-      prixTonne, tauxTVA, acompte, delaiSolde, modeReglement,
+      modeleContractuel, prixTonne, tauxTVA, acompte, delaiSolde, modeReglement,
       iban, swift, nomBanque, villeBanque,
       sigProprio, sigExploit, nomSignProprio, nomSignExploit,
       sigDataProprio, sigDataExploit,
@@ -676,11 +840,11 @@ export const FormulaireVisite = ({lot, onBack, onSaved, toast, entrepriseId, use
       redCategorie, redDistance, redPays, redMassif, redPointCollecte,
       redSysVolontaire, redVssCertificat, redVssDateValidite, redVssOrganisme, redPerimetreCertif,
       redDestination, redForetPrimaire, redDocGestion, redBoisMort,
-      // Flux bois â€” usage et destination
+      // Flux bois — usage et destination
       usagePrevu, volBO:parseFloat(volBO)||0, volBI:parseFloat(volBI)||0, volBE:parseFloat(volBE)||0,
       destBO, destBE, preuveDestBO, preuveDestBE, dateControleFlux,
       usagePotentiel, usageRetenu, motifArbitrage, motifArbitrageLib, niveauSecurisation, preuveDestFin,
-      // Snapshot rÃ©glementaire â€” figÃ© Ã  la date de la visite
+      // Snapshot réglementaire — figé à la date de la visite
       reglementaireSnapshot:{
         dateSnapshot: todayS(),
         auteur: user ? `${user.prenom||""} ${user.nom||""}`.trim() : "Mandataire",
@@ -710,16 +874,16 @@ export const FormulaireVisite = ({lot, onBack, onSaved, toast, entrepriseId, use
           missionne: `${user?.prenom||""} ${user?.nom||""}`.trim(),
           dateAutorisationPrevue,
           dateAlerte,
-          message:`âš ï¸ Rappel autorisation coupe â€” lot ${lot.lotNumero||lot.numero} (${lot.commune||""}) : l'autorisation de coupe est attendue le ${new Date(dateAutorisationPrevue).toLocaleDateString("fr-FR",{day:"numeric",month:"long",year:"numeric"})}. VÃ©rifiez l'obtention de l'autorisation.`,
+          message:`⚠️ Rappel autorisation coupe — lot ${lot.lotNumero||lot.numero} (${lot.commune||""}) : l'autorisation de coupe est attendue le ${new Date(dateAutorisationPrevue).toLocaleDateString("fr-FR",{day:"numeric",month:"long",year:"numeric"})}. Vérifiez l'obtention de l'autorisation.`,
         };
         apiPost(`/messages-admin`, msgAlerte).catch(()=>{});
         apiPost(`/notifications`, {...msgAlerte,destinataire:"missionne"}).catch(()=>{});
       }
-      toast("Visite validÃ©e âœ“");
+      toast("Visite validée ✓");
       onSaved(saved);
     } catch {
       localStorage.removeItem(DRAFT_KEY+lot.id);
-      toast("Visite enregistrÃ©e localement âœ“");
+      toast("Visite enregistrée localement ✓");
       onSaved({...visite, id:uid()});
     }
     setSaving(false);
@@ -730,13 +894,17 @@ export const FormulaireVisite = ({lot, onBack, onSaved, toast, entrepriseId, use
     <div style={{display:"flex",flexDirection:"column",height:"100%"}}>
       <div style={{background:currentStep.color,color:"#fff",padding:"12px 16px 10px",flexShrink:0}}>
         <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:8}}>
-          <button onClick={onBack} style={{background:"rgba(255,255,255,.2)",border:"none",
+          <button onClick={()=>{
+              if(step===0){onBack();return;}
+              if(returnStep!==null){setStep(returnStep);setReturnStep(null);}
+              else{setStep(s=>s-1);}
+            }} style={{background:"rgba(255,255,255,.2)",border:"none",
             color:"#fff",width:36,height:36,borderRadius:9,cursor:"pointer",fontSize:18,
             display:"flex",alignItems:"center",justifyContent:"center",
             WebkitTapHighlightColor:"transparent"}}>{"<"}</button>
           <div style={{flex:1}}>
             <div style={{fontSize:16,fontWeight:600}}>{currentStep.icon} {currentStep.label}</div>
-            <div style={{fontSize:11,opacity:.7}}>{lot.lotNumero||lot.numero} Â· {lot.commune}</div>
+            <div style={{fontSize:11,opacity:.7}}>{lot.lotNumero||lot.numero} · {lot.commune}</div>
           </div>
           <div style={{fontSize:12,opacity:.75}}>{step+1}/{STEPS.length}</div>
         </div>
@@ -748,7 +916,7 @@ export const FormulaireVisite = ({lot, onBack, onSaved, toast, entrepriseId, use
                 background:i<=step?"rgba(255,255,255,.9)":"rgba(255,255,255,.25)"}}/>
               <div style={{height:10,display:"flex",alignItems:"center",justifyContent:"center"}}>
                 {i<step&&!stepValid[i]&&(
-                  <span style={{fontSize:11,color:"#ff4444",fontWeight:900,lineHeight:1}}>âœ±</span>
+                  <span style={{fontSize:11,color:"#ff4444",fontWeight:900,lineHeight:1}}>✱</span>
                 )}
               </div>
             </div>
@@ -760,26 +928,26 @@ export const FormulaireVisite = ({lot, onBack, onSaved, toast, entrepriseId, use
         {returnStep!==null&&(
           <div style={{background:C.amberL,border:`1px solid ${C.amber}`,borderRadius:10,
             padding:"10px 14px",marginBottom:14,display:"flex",alignItems:"center",gap:8}}>
-            <span style={{fontSize:16}}>â†©ï¸</span>
+            <span style={{fontSize:16}}>↩️</span>
             <span style={{fontSize:12,color:C.amberD,fontWeight:600}}>
-              Mode complÃ©ment â€” validez puis revenez au rÃ©capitulatif
+              Mode complément — validez puis revenez au récapitulatif
             </span>
           </div>
         )}
         {step===0&&(
           <div>
-            <SectionTitle icon="âœ…" label="Validation rÃ©glementaire"/>
+            <SectionTitle icon="✅" label="Validation réglementaire"/>
             {[
               {key:"coupeAutorisee", val:coupeAutorisee, set:setCoupeAutorisee,
-               label:"Coupe autorisÃ©e ?", sub:"Autorisation administrative en cours de validitÃ©"},
+               label:"Coupe autorisée ?", sub:"Autorisation administrative en cours de validité"},
               {key:"zoneProtegee",   val:zoneProtegee,   set:setZoneProtegee,
-               label:"Zone protÃ©gÃ©e ?",   sub:"Natura 2000, ZNIEFF, arrÃªtÃ© biotopeâ€¦"},
+               label:"Le chantier est-il dans une zone protégée ?",   sub:"Natura 2000, ZNIEFF, arrêté biotope…"},
             ].map(({key,val,set,label,sub})=>(
               <div key={key} style={{marginBottom:14}}>
                 <div style={{fontSize:13,fontWeight:600,color:C.tx,marginBottom:6}}>{label}</div>
                 <div style={{fontSize:12,color:C.tx3,marginBottom:8}}>{sub}</div>
                 <div style={{display:"flex",gap:8}}>
-                  {[["oui","âœ… Oui",C.green,C.greenL,C.greenD],["non","âŒ Non",C.red,"#fdecea","#b71c1c"]].map(([v,l,border,bg,tc])=>(
+                  {[["oui","✅ Oui",C.green,C.greenL,C.greenD],["non","❌ Non",C.red,"#fdecea","#b71c1c"]].map(([v,l,border,bg,tc])=>(
                     <button key={v} onClick={()=>set(val===v?"":v)} style={{
                       flex:1,padding:"11px 0",borderRadius:10,fontSize:13,fontWeight:val===v?700:400,
                       border:`2px solid ${val===v?border:C.bd}`,
@@ -796,14 +964,14 @@ export const FormulaireVisite = ({lot, onBack, onSaved, toast, entrepriseId, use
               <div style={{background:"#fdecea",border:"2px solid #e53935",borderRadius:12,
                 padding:14,marginBottom:14}}>
                 <div style={{fontWeight:700,color:"#b71c1c",fontSize:14,marginBottom:4}}>
-                  â›” Coupe non autorisÃ©e
+                  ⛔ Coupe non autorisée
                 </div>
                 <div style={{fontSize:12,color:"#b71c1c",marginBottom:12,lineHeight:1.5}}>
-                  Saisissez la date prÃ©vue d'obtention de l'autorisation. Un rappel sera
-                  envoyÃ© automatiquement 2 jours avant Ã  la personne missionnÃ©e et Ã  l'administrateur.
+                  Saisissez la date prévue d'obtention de l'autorisation. Un rappel sera
+                  envoyé automatiquement 2 jours avant à la personne missionnée et à l'administrateur.
                 </div>
                 <div style={{fontSize:13,fontWeight:600,color:"#b71c1c",marginBottom:6}}>
-                  Date prÃ©vue d'obtention
+                  Date prévue d'obtention
                 </div>
                 <input type="date" value={dateAutorisationPrevue}
                   onChange={e=>setDateAutorisationPrevue(e.target.value)}
@@ -812,15 +980,15 @@ export const FormulaireVisite = ({lot, onBack, onSaved, toast, entrepriseId, use
                     background:"#fff",color:"#b71c1c",boxSizing:"border-box"}}/>
                 {dateAutorisationPrevue&&(
                   <div style={{fontSize:11,color:"#b71c1c",marginTop:8,opacity:.8}}>
-                    ðŸ”” Alerte prÃ©vue le {new Date(new Date(dateAutorisationPrevue).getTime()-2*86400000).toLocaleDateString("fr-FR",{day:"numeric",month:"long",year:"numeric"})}
+                    🔔 Alerte prévue le {new Date(new Date(dateAutorisationPrevue).getTime()-2*86400000).toLocaleDateString("fr-FR",{day:"numeric",month:"long",year:"numeric"})}
                   </div>
                 )}
               </div>
             )}
-            <MInput label="Nom du gestionnaire forestier" value={nomGestionnaire} onChange={setNomGestionnaire}
-              placeholder="Ex : ONF, CRPF, gestionnaire privÃ©â€¦"/>
-            <MInput label="Personne en charge" value={personneEnCharge} onChange={setPersonneEnCharge}
-              placeholder="PrÃ©nom Nom du rÃ©fÃ©rent"/>
+            <MInput bold label="Nom du gestionnaire forestier ou coopérative" value={nomGestionnaire} onChange={setNomGestionnaire}
+              placeholder="Ex : ONF, CRPF, gestionnaire privé…"/>
+            <MInput label="Nom du contact" value={personneEnCharge} onChange={setPersonneEnCharge}
+              placeholder="Prénom Nom du référent"/>
             <div style={{display:"flex",gap:8}}>
               <div style={{flex:"0 0 110px"}}>
                 <MInput label="Code postal" value={cpGestionnaire} onChange={setCpGestionnaire}
@@ -835,7 +1003,7 @@ export const FormulaireVisite = ({lot, onBack, onSaved, toast, entrepriseId, use
         )}
         {step===1&&(
           <div>
-            <SectionTitle icon="ðŸ“" label="Position GPS de la parcelle"/>
+            <SectionTitle icon="📍" label="Position GPS de la parcelle"/>
             <div style={{fontSize:14,color:C.tx2,marginBottom:16,lineHeight:1.6}}>
               Capturez la position GPS de la parcelle.
             </div>
@@ -857,11 +1025,11 @@ export const FormulaireVisite = ({lot, onBack, onSaved, toast, entrepriseId, use
           <div>
             <div style={{marginBottom:16}}>
               <div style={{fontSize:18,fontWeight:700,color:C.tx,marginBottom:4}}>
-                ðŸƒ Quel type de biomasse selon RED ?
+                🍃 Quel type de biomasse selon RED ?
               </div>
               <div style={{fontSize:13,color:C.tx3,display:"flex",alignItems:"center",gap:4}}>
-                Appuyez sur le menu ci-dessous pour sÃ©lectionner
-                <span style={{fontSize:16}}>ðŸ‘‡</span>
+                Appuyez sur le menu ci-dessous pour sélectionner
+                <span style={{fontSize:16}}>👇</span>
               </div>
             </div>
             <select value={typeBiomasse} onChange={e=>setTypeBiomasse(e.target.value)}
@@ -873,37 +1041,37 @@ export const FormulaireVisite = ({lot, onBack, onSaved, toast, entrepriseId, use
                 backgroundImage:`url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24'%3E%3Cpath fill='%23999' d='M7 10l5 5 5-5z'/%3E%3C/svg%3E")`,
                 backgroundRepeat:"no-repeat",backgroundPosition:"right 12px center",
                 marginBottom:24}}>
-              <option value="">â€” SÃ©lectionner â€”</option>
+              <option value="">— Sélectionner —</option>
               <option value="bois_forestier">Bois forestier</option>
-              <option value="remanents">RÃ©manents</option>
+              <option value="remanents">Rémanents</option>
               <option value="connexe_scierie">Connexe de Scierie</option>
-              <option value="dechets_bois">DÃ©chets bois</option>
+              <option value="dechets_bois">Déchets bois</option>
               <option value="biomasse_agricole">Biomasse agricole</option>
-              <option value="csr_biogenique">CSR avec fraction biogÃ©nique</option>
+              <option value="csr_biogenique">CSR avec fraction biogénique</option>
             </select>
             {typeBiomasse&&(
               <div style={{marginTop:24,marginBottom:24,padding:12,borderRadius:10,
                 background:"#E8F5E9",border:"1px solid #A5D6A7",
                 fontSize:13,color:"#2E7D32",fontWeight:500}}>
-                âœ… {typeBiomasse==="bois_forestier"?"Bois forestier"
-                  :typeBiomasse==="remanents"?"RÃ©manents"
+                ✅ {typeBiomasse==="bois_forestier"?"Bois forestier"
+                  :typeBiomasse==="remanents"?"Rémanents"
                   :typeBiomasse==="connexe_scierie"?"Connexe de Scierie"
-                  :typeBiomasse==="dechets_bois"?"DÃ©chets bois"
+                  :typeBiomasse==="dechets_bois"?"Déchets bois"
                   :typeBiomasse==="biomasse_agricole"?"Biomasse agricole"
-                  :"CSR avec fraction biogÃ©nique"} sÃ©lectionnÃ©
+                  :"CSR avec fraction biogénique"} sélectionné
               </div>
             )}
-            <SectionTitle icon="ðŸŒ¿" label="Essences prÃ©sentes"/>
-            <div style={{fontSize:13,color:C.tx2,marginBottom:12}}>SÃ©lectionnez les essences prÃ©sentes. Total = 100%.</div>
+            <SectionTitle icon="🌿" label="Essences présentes"/>
+            <div style={{fontSize:13,color:C.tx2,marginBottom:12}}>Sélectionnez les essences présentes. Total = 100%.</div>
             <EssenceEditor essences={essences} onChange={setEssences}/>
-            <SectionTitle icon="ðŸ“" label="Surface & Volume"/>
+            <SectionTitle icon="📏" label="Surface & Volume"/>
             <MInput label="Surface (ha)" value={surfaceHa}
               onChange={setSurface}
               type="number" placeholder="ex : 12.5" hint="hectares"/>
 
             {/* Toggle saisie manuelle vs slider vs population/ha */}
             <div style={{display:"flex",gap:8,marginBottom:12}}>
-              {[["slider","ðŸŽšï¸ Slider"],["manuel","âŒ¨ï¸ Saisie manuelle"],["parha","ðŸ“ Par ha"]].map(([v,l])=>(
+              {[["slider","🎚️ Slider"],["manuel","⌨️ Saisie manuelle"],["parha","📐 Par ha"]].map(([v,l])=>(
                 <button key={v} onClick={()=>setModeVolume(v)} style={{
                   flex:1,padding:"9px 0",borderRadius:10,fontSize:12,fontWeight:modeVolume===v?600:400,
                   border:`1.5px solid ${modeVolume===v?C.amber:C.bd}`,
@@ -916,47 +1084,53 @@ export const FormulaireVisite = ({lot, onBack, onSaved, toast, entrepriseId, use
             </div>
 
             {modeVolume==="manuel" && (
-              <MInput label="Volume estimÃ© (tonnes)" value={volumeT===0?"":String(volumeT)}
+              <MInput label="Volume estimé (tonnes)" value={volumeT===0?"":String(volumeT)}
                 onChange={v=>setVolumeT(parseFloat(v)||0)}
-                type="number" placeholder="Saisir le tonnage estimÃ©" hint="saisie directe"
+                type="number" placeholder="Saisir le tonnage estimé" hint="saisie directe"
                 required/>
             )}
             {modeVolume==="slider" && (
-              <MSlider label="Volume estimÃ©" value={volumeT} onChange={setVolumeT}
+              <MSlider label="Volume estimé" value={volumeT} onChange={setVolumeT}
                 min={10} max={2000} step={10} unit=" t" color={C.amber}/>
             )}
             {modeVolume==="parha" && (
               <>
-                <MInput label="Population estimÃ©e (tiges/ha)" value={popParHa}
+                <MInput label="Population estimée (tiges/ha)" value={popParHa}
                   onChange={v=>{
                     setPopParHa(v);
                     setVolumeT(calcVolumeParHa(v, diametreMoyen, surfaceHa, indices));
                   }}
                   type="number" placeholder="ex: 300"/>
-                <MInput label="DiamÃ¨tre moyen Ã  1,20 m (cm)" value={diametreMoyen}
+                <MInput label="Diamètre moyen à 1,20 m (cm)" value={diametreMoyen}
                   onChange={v=>{
                     setDiametreMoyen(v);
                     setVolumeT(calcVolumeParHa(popParHa, v, surfaceHa, indices));
                   }}
-                  type="number" placeholder="ex: 35" hint="saisie en centimÃ¨tres"/>
+                  type="number" placeholder="ex: 35" hint="saisie en centimètres"/>
+                {diametreMoyen&&parseFloat(diametreMoyen)<5&&(
+                  <div style={{fontSize:12,color:C.amber,marginBottom:8,marginTop:-10,
+                    display:"flex",alignItems:"center",gap:6}}>
+                    ⚠️ Diamètre saisi &lt; 5 cm — vérifier la valeur (ex : 35 pour 35 cm)
+                  </div>
+                )}
                 <div style={{fontSize:12,color:C.tx3,marginBottom:14,marginTop:-6}}>
-                  = {volumeT>0?`${fmtNum(volumeT)} t`:"â€”"} volume estimÃ© total
+                  = {volumeT>0?`${fmtNum(volumeT,1)} t`:"—"} volume estimé total
                 </div>
               </>
             )}
 
-            {/* Estimation calculÃ©e â€” affichÃ©e seulement si volume > 0 */}
+            {/* Estimation calculée — affichée seulement si volume > 0 */}
             {volumeT>0&&(
               <div style={{background:C.amberL,borderRadius:12,padding:14,marginBottom:14,
                 border:`1px solid ${C.amber}`}}>
                 <div style={{fontSize:12,fontWeight:700,color:C.amberD,marginBottom:8}}>
-                  ðŸ“Š Estimations â€” composition pondÃ©rÃ©e ({essences.map(e=>`${e.label} ${e.pct}%`).join(", ")||essencePrincipale})
+                  📊 Estimations — composition pondérée ({essences.map(e=>`${e.label} ${e.pct}%`).join(", ")||essencePrincipale})
                 </div>
                 <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8}}>
                   {[
-                    [fmtNum(volumeT)+" t","Tonnage estimÃ©"],
-                    [fmtNum(volumeT/indices.foisonnement)+" mÂ³","Volume bois"],
-                    [fmtNum(volumeT*indices.pci/1000,1)+" MWh","Ã‰nergie PCI"],
+                    [fmtNum(volumeT,1)+" t","Tonnage estimé"],
+                    [fmtNum(volumeT/indices.foisonnement,1)+" m³","Volume bois"],
+                    [fmtNum(volumeT*indices.pci/1000,1)+" MWh","Énergie PCI"],
                   ].map(([v,l],i)=>(
                     <div key={i} style={{textAlign:"center",background:"rgba(186,117,23,.1)",
                       borderRadius:8,padding:8}}>
@@ -966,20 +1140,84 @@ export const FormulaireVisite = ({lot, onBack, onSaved, toast, entrepriseId, use
                   ))}
                 </div>
                 <div style={{fontSize:10,color:C.tx3,marginTop:8}}>
-                  DensitÃ© verte : {Math.round(indices.densite)} kg/mÂ³ Â· Foisonnement : {indices.foisonnement.toFixed(2)}
+                  Densité verte : {Math.round(indices.densite)} kg/m³ · Foisonnement : {indices.foisonnement.toFixed(2)}
                 </div>
               </div>
             )}
 
           </div>
         )}
-        {step===4&&(
+        {step===10&&(
           <div>
-            <SectionTitle icon="ðŸ’¶" label="Prix & Conditions commerciales"/>
+            <SectionTitle icon="📜" label="Modèle contractuel"/>
+            {/* Modèle contractuel — détermine la base de rémunération et les obligations de preuve */}
+            <div style={{marginBottom:16}}>
+              {([
+                ["forfaitaire",      "🤝","Vente forfaitaire",       "Montant convenu — pas de pesée obligatoire","L'ETF achète le bois pour un montant fixé. Preuve : contrat + réception chantier."],
+                ["poids_bord_route", "🌲","Vente au poids bord route","Pesée commerciale au transfert","Pesée avant chargement, avant mélange de lots. Preuve : ticket bord route."],
+                ["poids_livre",      "🔥","Vente au poids livré",     "Prix selon la réception finale","Les tickets de la chaufferie / destination sont obligatoirement transmis au propriétaire."],
+                ["prestation",       "🛠️","Prestation de travaux",    "Le propriétaire reste propriétaire","L'ETF réalise les travaux, un mandat de commercialisation définit qui vend et rend compte."],
+              ] as [string,string,string,string,string][]).map(([val,ico,titre,soustitre,note])=>{
+                const sel = modeleContractuel===val;
+                const borderColor = sel ? C.amber : C.bd;
+                return (
+                  <div key={val} onClick={()=>setModeleContractuel(val)}
+                    style={{display:"flex",gap:12,padding:"12px 14px",borderRadius:12,
+                      cursor:"pointer",marginBottom:8,WebkitTapHighlightColor:"transparent",
+                      border:`2px solid ${borderColor}`,
+                      background:sel?"#FFFBEB":"#fff"}}>
+                    <div style={{width:36,height:36,borderRadius:10,flexShrink:0,
+                      background:sel?"#FDE68A":"#F3F4F6",display:"flex",
+                      alignItems:"center",justifyContent:"center",fontSize:18}}>{ico}</div>
+                    <div style={{flex:1}}>
+                      <div style={{fontSize:13,fontWeight:700,color:sel?C.amber:C.tx}}>{titre}</div>
+                      <div style={{fontSize:11,color:sel?"#92400E":C.tx2,fontWeight:sel?600:400,marginTop:2}}>{soustitre}</div>
+                      {sel&&<div style={{fontSize:10,color:"#78350F",marginTop:5,lineHeight:1.5,padding:"6px 8px",background:"#FEF3C7",borderRadius:6}}>{note}</div>}
+                    </div>
+                    <div style={{width:18,height:18,borderRadius:"50%",flexShrink:0,marginTop:10,
+                      border:`2px solid ${sel?C.amber:C.bd}`,
+                      background:sel?C.amber:"transparent"}}/>
+                  </div>
+                );
+              })}
+              {!modeleContractuel&&<div style={{fontSize:11,color:C.tx3,fontStyle:"italic",textAlign:"center",marginTop:4}}>Sélectionnez le modèle applicable — il détermine les obligations de preuve et traçabilité</div>}
+            </div>
+
+            {/* Avertissement pesée livré */}
+            {modeleContractuel==="poids_livre"&&(
+              <div style={{background:"#FFF7ED",border:`1px solid #F59E0B`,borderRadius:10,
+                padding:"10px 12px",marginBottom:14,fontSize:11,color:"#92400E",lineHeight:1.6}}>
+                ⚠️ <strong>Pesée au poids livré :</strong> l'ETF s'engage contractuellement à transmettre les justificatifs de pesée de la destination finale. À défaut, une pesée indépendante est réalisée avant mélange de lots.
+              </div>
+            )}
+
+            <SectionTitle icon="💶" label="Prix & Conditions commerciales"/>
+
+            {/* Volume de référence issu de l'estimation (step Biomasse) */}
+            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",
+              background:volumeT>0?C.bg2:C.amberL,borderRadius:10,padding:"10px 14px",marginBottom:14,
+              border:`1px solid ${volumeT>0?C.bd:C.amber}`}}>
+              <div>
+                <div style={{fontSize:12,fontWeight:600,color:volumeT>0?C.tx2:C.amberD}}>
+                  📦 Volume estimé lors de la visite
+                </div>
+                <div style={{fontSize:10,color:C.tx3,marginTop:2}}>
+                  {volumeT>0
+                    ? (modeleContractuel==="poids_bord_route"||modeleContractuel==="poids_livre"
+                        ? "Base de calcul provisoire — sera confirmée par la pesée commerciale"
+                        : "Issu de l'étape Biomasse — sert de base au calcul de la valeur estimée")
+                    : "⚠ À renseigner à l'étape Biomasse (étape 3)"}
+                </div>
+              </div>
+              <div style={{fontSize:20,fontWeight:800,color:volumeT>0?C.greenD:C.amberD,
+                fontVariantNumeric:"tabular-nums"}}>
+                {volumeT>0?`${fmtNum(volumeT)} t`:"—"}
+              </div>
+            </div>
 
             {/* Prix HT + TVA */}
             <div style={{display:"grid",gridTemplateColumns:"2fr 1fr",gap:10}}>
-              <MInput label="Prix Ã  la tonne (â‚¬ HT)" value={prixTonne} onChange={setPrixTonne}
+              <MInput label="Prix à la tonne (€ HT)" value={prixTonne} onChange={setPrixTonne}
                 type="number" placeholder="ex: 42.50" required/>
               <div style={{marginBottom:14}}>
                 <div style={{fontSize:13,fontWeight:600,color:C.tx2,marginBottom:5}}>
@@ -997,7 +1235,7 @@ export const FormulaireVisite = ({lot, onBack, onSaved, toast, entrepriseId, use
               </div>
             </div>
 
-            {/* RÃ©cap HT / TVA / TTC */}
+            {/* Récap HT / TVA / TTC */}
             {prixTonne&&volumeT>0&&(()=>{
               const ht = volumeT*parseFloat(prixTonne);
               const tva = ht*(parseFloat(tauxTVA||"20")/100);
@@ -1006,13 +1244,13 @@ export const FormulaireVisite = ({lot, onBack, onSaved, toast, entrepriseId, use
                 <div style={{background:C.greenL,borderRadius:12,padding:14,marginBottom:14,
                   border:`1.5px solid ${C.green}`}}>
                   <div style={{fontSize:12,fontWeight:700,color:C.greenD,marginBottom:8}}>
-                    ðŸ’° Valeur estimÃ©e du lot
+                    💰 Valeur estimée du lot
                   </div>
                   <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8}}>
                     {[
-                      [fmtNum(ht,2)+" â‚¬","Total HT"],
-                      [fmtNum(tva,2)+" â‚¬",`TVA ${tauxTVA||"20"}%`],
-                      [fmtNum(ttc,2)+" â‚¬","Total TTC"],
+                      [fmtNum(ht,2)+" €","Total HT"],
+                      [fmtNum(tva,2)+" €",`TVA ${tauxTVA||"20"}%`],
+                      [fmtNum(ttc,2)+" €","Total TTC"],
                     ].map(([v,l],i)=>(
                       <div key={i} style={{textAlign:"center",
                         background:"rgba(29,158,117,.1)",borderRadius:8,padding:8}}>
@@ -1026,10 +1264,10 @@ export const FormulaireVisite = ({lot, onBack, onSaved, toast, entrepriseId, use
               );
             })()}
 
-            {/* Conditions de rÃ¨glement */}
-            <SectionTitle icon="ðŸ“…" label="Conditions de rÃ¨glement"/>
+            {/* Conditions de règlement */}
+            <SectionTitle icon="📅" label="Conditions de règlement"/>
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:14}}>
-              <MInput label="Acompte Ã  la commande (â‚¬)" value={acompte} onChange={setAcompte}
+              <MInput label="Acompte à la commande (€)" value={acompte} onChange={setAcompte}
                 type="number" placeholder="ex: 500"/>
               <div>
                 <div style={{fontSize:13,fontWeight:600,color:C.tx2,marginBottom:5}}>
@@ -1049,15 +1287,15 @@ export const FormulaireVisite = ({lot, onBack, onSaved, toast, entrepriseId, use
             {acompte&&prixTonne&&volumeT>0&&(
               <div style={{background:C.blueL,borderRadius:10,padding:12,marginBottom:14,
                 border:`1px solid ${C.blue}`,fontSize:12,color:C.blueD}}>
-                Acompte : {fmtNum(acompte,2)} â‚¬ Â· Solde : {fmtNum(Math.max(0,volumeT*parseFloat(prixTonne)*(1+parseFloat(tauxTVA||"20")/100)-parseFloat(acompte)),2)} â‚¬ ({delaiSolde})
+                Acompte : {fmtNum(acompte,2)} € · Solde : {fmtNum(Math.max(0,volumeT*parseFloat(prixTonne)*(1+parseFloat(tauxTVA||"20")/100)-parseFloat(acompte)),2)} € ({delaiSolde})
               </div>
             )}
 
-            {/* Mode de rÃ¨glement */}
-            <SectionTitle icon="ðŸ’³" label="Mode de rÃ¨glement"/>
+            {/* Mode de règlement */}
+            <SectionTitle icon="💳" label="Mode de règlement"/>
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:14}}>
-              {[["cheque","ðŸ“ ChÃ¨que"],["virement","ðŸ¦ Virement"],
-                ["sepa","ðŸ”„ PrÃ©lÃ¨vement SEPA"],["cb","ðŸ’³ Carte bancaire"]].map(([v,l])=>(
+              {[["cheque","📝 Chèque"],["virement","🏦 Virement"],
+                ["sepa","🔄 Prélèvement SEPA"],["cb","💳 Carte bancaire"]].map(([v,l])=>(
                 <div key={v} onClick={()=>setModeReglement(v)} style={{
                   padding:"12px 10px",borderRadius:10,cursor:"pointer",textAlign:"center",
                   border:`2px solid ${modeReglement===v?C.green:C.bd}`,
@@ -1069,10 +1307,10 @@ export const FormulaireVisite = ({lot, onBack, onSaved, toast, entrepriseId, use
               ))}
             </div>
 
-            {/* CoordonnÃ©es bancaires */}
+            {/* Coordonnées bancaires */}
             {(modeReglement==="virement"||modeReglement==="sepa")&&(
               <>
-                <SectionTitle icon="ðŸ¦" label="CoordonnÃ©es bancaires"/>
+                <SectionTitle icon="🏦" label="Coordonnées bancaires"/>
                 <MInput label="IBAN" value={iban} hint="format IBAN"
                   placeholder="Ex : FR76 3000 4028 3798 7654 3210 943"
                   onChange={v=>{
@@ -1086,7 +1324,7 @@ export const FormulaireVisite = ({lot, onBack, onSaved, toast, entrepriseId, use
                     const fmt = combined.replace(/(.{4})/g,"$1 ").trim();
                     setIban(fmt);
                   }}/>
-                <MInput label="BIC / SWIFT" value={swift} hint="8 ou 11 caractÃ¨res"
+                <MInput label="BIC / SWIFT" value={swift} hint="8 ou 11 caractères"
                   placeholder="Ex : BNPAFRPPXXX"
                   onChange={v=>{
                     const raw = v.replace(/\s/g,"").toUpperCase().replace(/[^A-Z0-9]/g,"").slice(0,11);
@@ -1102,18 +1340,18 @@ export const FormulaireVisite = ({lot, onBack, onSaved, toast, entrepriseId, use
               </>
             )}
 
-            <SectionTitle icon="âœï¸" label="Signatures terrain"/>
+            <SectionTitle icon="✍️" label="Signatures terrain"/>
             <div style={{fontSize:12,color:C.tx3,marginBottom:12,lineHeight:1.6}}>
-              Signatures recueillies sur le terrain â€” reportÃ©es sur le bon de commande.
+              Signatures recueillies sur le terrain — reportées sur le bon de commande.
             </div>
             <SignatureCanvas
-              label="ðŸ  PropriÃ©taire / Vendeur"
-              nomSignataire={nomSignProprio||lot.nom||"PropriÃ©taire"}
+              label="🏠 Propriétaire / Vendeur"
+              nomSignataire={nomSignProprio||lot.nom||"Propriétaire"}
               signed={sigProprio}
               onSigned={data=>{ setSigProprio(true); setSigDataProprio(data); }}
               onClear={()=>{ setSigProprio(false); setSigDataProprio(null); }}/>
             <SignatureCanvas
-              label="ðŸ¢ Exploitant / Acheteur"
+              label="🏢 Exploitant / Acheteur"
               nomSignataire={nomSignExploit||"Donneur d'ordre"}
               signed={sigExploit}
               onSigned={data=>{ setSigExploit(true); setSigDataExploit(data); }}
@@ -1122,28 +1360,28 @@ export const FormulaireVisite = ({lot, onBack, onSaved, toast, entrepriseId, use
             <MInput label="Date limite exploitation" value={dateLimite} onChange={setDateL}
               type="date" hint="optionnel"/>
             <MInput label="Observations" value={observations} onChange={setObs}
-              placeholder="Notesâ€¦" big hint="optionnel"/>
+              placeholder="Notes…" big hint="optionnel"/>
           </div>
         )}
-        {step===5&&(
+        {step===4&&(
           <div>
             <div style={{background:"#fff",border:`1px solid ${C.bd}`,borderRadius:14,
               padding:"0 14px"}}>
               {[
-                {k:"ligneEDF",      l:"Ligne Ã©lectrique HT/BT", s:"Risque abattage â€” signaler ERDF"},
-                {k:"lignesTelecom", l:"CÃ¢bles tÃ©lÃ©com",          s:"VÃ©rifier avant travaux"},
-                {k:"penteForte",    l:"Pente forte >30%",        s:"DÃ©bardage difficile"},
+                {k:"ligneEDF",      l:"Ligne électrique HT/BT", s:"Risque abattage — signaler ERDF"},
+                {k:"lignesTelecom", l:"Câbles télécom",          s:"Vérifier avant travaux"},
+                {k:"penteForte",    l:"Pente forte >30%",        s:"Débardage difficile"},
                 {k:"zoneHumide",      l:"Zone humide",               s:"Passage restreint"},
-                {k:"tourbieres",      l:"TourbiÃ¨res",                s:"Milieu protÃ©gÃ© â€” accÃ¨s trÃ¨s limitÃ©"},
-                {k:"solsVulnerables", l:"Sols vulnÃ©rables",          s:"Risque de compactage ou d'Ã©rosion"},
-                {k:"natura2000",    l:"Natura 2000",             s:"Contraintes rÃ©glementaires"},
-                {k:"routeLimitee",  l:"Route limitÃ©e tonnage",   s:"VÃ©rifier gabarit camion"},
-                {k:"accesDifficile",l:"AccÃ¨s difficile",         s:"Chemin dÃ©gradÃ©"},
-                {k:"remanents",     l:"RÃ©manents importants",    s:"Broyage nÃ©cessaire"},
-                {k:"autorisationVoirie",l:"Autorisation de voirie nÃ©cessaire",s:"ArrÃªtÃ© ou permission de voirie"},
-                {k:"prevenir_mairie",l:"Mairie Ã  prÃ©venir",      s:"Information prÃ©alable obligatoire"},
-                {k:"prevenir_voisinage",l:"Voisinage Ã  prÃ©venir",s:"Bruit, horaires, poussiÃ¨re"},
-                {k:"voisinage",     l:"Voisinage sensible",      s:"PrÃ©cautions particuliÃ¨res"},
+                {k:"tourbieres",      l:"Tourbières",                s:"Milieu protégé — accès très limité"},
+                {k:"solsVulnerables", l:"Sols vulnérables",          s:"Risque de compactage ou d'érosion"},
+                {k:"natura2000",    l:"Natura 2000",             s:"Contraintes réglementaires"},
+                {k:"routeLimitee",  l:"Route limitée tonnage",   s:"Vérifier gabarit camion"},
+                {k:"accesDifficile",l:"Accès difficile",         s:"Chemin dégradé"},
+                {k:"remanents",     l:"Rémanents importants",    s:"Broyage nécessaire"},
+                {k:"autorisationVoirie",l:"Autorisation de voirie nécessaire",s:"Arrêté ou permission de voirie"},
+                {k:"prevenir_mairie",l:"Mairie à prévenir",      s:"Information préalable obligatoire"},
+                {k:"prevenir_voisinage",l:"Voisinage à prévenir",s:"Bruit, horaires, poussière"},
+                {k:"voisinage",     l:"Voisinage sensible",      s:"Précautions particulières"},
               ].map(({k,l,s})=>(
                 <div key={k}>
                   <CheckItem checked={contraintes[k]||false}
@@ -1152,7 +1390,7 @@ export const FormulaireVisite = ({lot, onBack, onSaved, toast, entrepriseId, use
                     <div style={{marginLeft:16,marginBottom:8,padding:"10px 12px",
                       background:C.amberL,borderRadius:10,border:`1px solid ${C.amber}`}}>
                       <div style={{fontSize:12,fontWeight:600,color:C.tx2,marginBottom:6}}>
-                        Qui se charge de la dÃ©marche ?
+                        Qui se charge de la démarche ?
                       </div>
                       <select value={detailsContraintes[k]?.responsable||""}
                         onChange={e=>setDetailsCont(p=>({...p,[k]:{...p[k],responsable:e.target.value}}))}
@@ -1160,17 +1398,17 @@ export const FormulaireVisite = ({lot, onBack, onSaved, toast, entrepriseId, use
                           fontSize:14,border:`1.5px solid ${C.amber}`,
                           fontFamily:"inherit",background:"#fff",color:C.tx,
                           marginBottom:8,appearance:"auto"}}>
-                        <option value="">â€” SÃ©lectionner â€”</option>
-                        <option value="proprietaire">ðŸ  PropriÃ©taire</option>
-                        <option value="etf">ðŸª“ ETF / Exploitant</option>
-                        <option value="donneurOrdre">ðŸ¢ Donneur d'ordre</option>
-                        <option value="geometre">ðŸ“ GÃ©omÃ¨tre</option>
-                        <option value="commune">ðŸ›ï¸ Commune / Mairie</option>
-                        <option value="autre">ðŸ‘¤ Autre</option>
+                        <option value="">— Sélectionner —</option>
+                        <option value="proprietaire">🏠 Propriétaire</option>
+                        <option value="etf">🪓 ETF / Exploitant</option>
+                        <option value="donneurOrdre">🏢 Donneur d'ordre</option>
+                        <option value="geometre">📐 Géomètre</option>
+                        <option value="commune">🏛️ Commune / Mairie</option>
+                        <option value="autre">👤 Autre</option>
                       </select>
-                      <MInput label="CoordonnÃ©es / qualitÃ©" value={detailsContraintes[k]?.contact||""}
+                      <MInput label="Coordonnées / qualité" value={detailsContraintes[k]?.contact||""}
                         onChange={v=>setDetailsCont(p=>({...p,[k]:{...p[k],contact:v}}))}
-                        placeholder="TÃ©lÃ©phone, emailâ€¦" hint="optionnel"/>
+                        placeholder="Téléphone, email…" hint="optionnel"/>
                     </div>
                   )}
                 </div>
@@ -1178,16 +1416,16 @@ export const FormulaireVisite = ({lot, onBack, onSaved, toast, entrepriseId, use
             </div>
             <div style={{marginTop:10,padding:"10px 14px",background:C.bg2,
               borderRadius:10,fontSize:12,color:C.tx3}}>
-              {Object.values(contraintes).filter(Boolean).length} contrainte(s) identifiÃ©e(s)
+              {Object.values(contraintes).filter(Boolean).length} contrainte(s) identifiée(s)
             </div>
           </div>
         )}
-        {step===6&&(
+        {step===5&&(
           <div>
             <div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:14}}>
-              {[["praticable","âœ… Praticable","AccÃ¨s normal"],
-                ["difficile","âš ï¸ Difficile","Conditions dÃ©gradÃ©es"],
-                ["impossible","ðŸš« Impossible","AccÃ¨s interdit"]].map(([v,l,s])=>(
+              {[["praticable","✅ Praticable","Accès normal"],
+                ["difficile","⚠️ Difficile","Conditions dégradées"],
+                ["impossible","🚫 Impossible","Accès interdit"]].map(([v,l,s])=>(
                 <div key={v} onClick={()=>setAcces(v)} style={{padding:"14px",
                   borderRadius:12,cursor:"pointer",
                   border:`2px solid ${accesCamion===v?C.green:C.bd}`,
@@ -1207,18 +1445,18 @@ export const FormulaireVisite = ({lot, onBack, onSaved, toast, entrepriseId, use
               padding:16,marginTop:8,border:`1.5px solid ${allValid?C.green:C.amber}`}}>
               <div style={{fontSize:13,fontWeight:700,
                 color:allValid?C.greenD:C.amberD,marginBottom:10}}>
-                {allValid?"âœ… Visite complÃ¨te":"âš  Ã‰tapes incomplÃ¨tes"}
+                {allValid?"✅ Visite complète":"⚠ Étapes incomplètes"}
               </div>
               {STEPS.map((s,i)=>(
                 <div key={s.id} style={{display:"flex",alignItems:"center",
                   gap:8,padding:"4px 0",fontSize:12,color:stepValid[i]?C.greenD:C.red}}>
-                  <span>{stepValid[i]?"âœ“":"âœ—"}</span>
+                  <span>{stepValid[i]?"✓":"✗"}</span>
                   <span>{s.icon} {s.label}</span>
                   {!stepValid[i]&&(
                     <button onClick={()=>{ setReturnStep(step); setStep(i); }} style={{marginLeft:"auto",
                       background:"none",border:"none",color:C.red,cursor:"pointer",
                       fontSize:11,textDecoration:"underline",fontFamily:"inherit"}}>
-                      ComplÃ©ter
+                      Compléter
                     </button>
                   )}
                 </div>
@@ -1227,9 +1465,9 @@ export const FormulaireVisite = ({lot, onBack, onSaved, toast, entrepriseId, use
           </div>
         )}
 
-        {step===7&&(
+        {step===6&&(
           <div>
-            <SectionTitle icon="ðŸ“" label="Dimensions approximatives"/>
+            <SectionTitle icon="📐" label="Dimensions approximatives"/>
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:4}}>
               <MInput label="Largeur (m)" value={platLargeur} onChange={v=>setPlatLarg(parseFloat(v)||0)}
                 type="number" placeholder="ex: 10"/>
@@ -1239,13 +1477,13 @@ export const FormulaireVisite = ({lot, onBack, onSaved, toast, entrepriseId, use
             <div style={{background:C.purpleL,borderRadius:10,padding:10,marginBottom:14,
               textAlign:"center",border:`1px solid ${C.purple}`}}>
               <span style={{fontSize:13,fontWeight:600,color:C.purpleD}}>
-                Surface : {fmtNum(platLargeur*platLongueur)} mÂ²
+                Surface : {fmtNum(platLargeur*platLongueur)} m²
               </span>
             </div>
 
-            <SectionTitle icon="ðŸ›£ï¸" label="RevÃªtement"/>
+            <SectionTitle icon="🛣️" label="Revêtement"/>
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:14}}>
-              {[["terre","ðŸŸ¤ Terre"],["gravier","â¬œ Gravier"],["beton","ðŸ”² BÃ©ton"],["enrobe","â¬› EnrobÃ©"]].map(([v,l])=>(
+              {[["terre","🟤 Terre"],["gravier","⬜ Gravier"],["beton","🔲 Béton"],["enrobe","⬛ Enrobé"]].map(([v,l])=>(
                 <button key={v} onClick={()=>setPlatRev(v)} style={{
                   padding:"10px 8px",borderRadius:10,fontSize:12,cursor:"pointer",
                   border:`1.5px solid ${platRevetement===v?C.purple:C.bd}`,
@@ -1257,14 +1495,14 @@ export const FormulaireVisite = ({lot, onBack, onSaved, toast, entrepriseId, use
               ))}
             </div>
 
-            <SectionTitle icon="ðŸ›¤ï¸" label="BordÃ©e par"/>
+            <SectionTitle icon="🛤️" label="Bordée par"/>
             <div style={{display:"flex",flexDirection:"column",gap:6,marginBottom:14}}>
               {["route_departementale","route_communale","chemin_public","chemin_prive"].map(v=>{
               const labels = {
-                route_departementale:"ðŸ›£ï¸ Route dÃ©partementale",
-                route_communale:"ðŸ˜ï¸ Route communale",
-                chemin_public:"ðŸŒ¿ Chemin public",
-                chemin_prive:"ðŸ”’ Chemin privÃ©",
+                route_departementale:"🛣️ Route départementale",
+                route_communale:"🏘️ Route communale",
+                chemin_public:"🌿 Chemin public",
+                chemin_prive:"🔒 Chemin privé",
               };
               return (
                 <div key={v} onClick={()=>setPlatBord(v)} style={{
@@ -1279,9 +1517,9 @@ export const FormulaireVisite = ({lot, onBack, onSaved, toast, entrepriseId, use
             })}
             </div>
 
-            <SectionTitle icon="ðŸš›" label="AccÃ¨s camion sur plateforme"/>
+            <SectionTitle icon="🚛" label="Accès camion sur plateforme"/>
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8,marginBottom:14}}>
-              {[["direct","âž¡ï¸","Direct"],["marche_arriere","â†©ï¸","Marche AR"],["retournement","ðŸ”„","Retournement"]].map(([v,e,l])=>(
+              {[["direct","➡️","Direct"],["marche_arriere","↩️","Marche AR"],["retournement","🔄","Retournement"]].map(([v,e,l])=>(
                 <button key={v} onClick={()=>setPlatAccCam(v)} style={{
                   padding:"10px 4px",borderRadius:10,fontSize:11,cursor:"pointer",
                   border:`1.5px solid ${platAccesCam===v?C.purple:C.bd}`,
@@ -1294,9 +1532,9 @@ export const FormulaireVisite = ({lot, onBack, onSaved, toast, entrepriseId, use
               ))}
             </div>
 
-            <SectionTitle icon="âš™ï¸" label="Position du broyeur"/>
+            <SectionTitle icon="⚙️" label="Position du broyeur"/>
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8,marginBottom:14}}>
-              {[["devant","â¬†ï¸","Devant"],["derriere","â¬‡ï¸","DerriÃ¨re"],["cote","âž¡ï¸","Ã€ cÃ´tÃ©"]].map(([v,e,l])=>(
+              {[["devant","⬆️","Devant"],["derriere","⬇️","Derrière"],["cote","➡️","À côté"]].map(([v,e,l])=>(
                 <button key={v} onClick={()=>setPlatPosBr(v)} style={{
                   padding:"10px 4px",borderRadius:10,fontSize:11,cursor:"pointer",
                   border:`1.5px solid ${platPosBroyeur===v?C.purple:C.bd}`,
@@ -1309,7 +1547,7 @@ export const FormulaireVisite = ({lot, onBack, onSaved, toast, entrepriseId, use
               ))}
             </div>
 
-            <SectionTitle icon="ðŸ“" label="GPS emplacement"/>
+            <SectionTitle icon="📍" label="GPS emplacement"/>
             {!platGps?(
               <button onClick={()=>{
                 setPlatGpsL(true);
@@ -1323,25 +1561,25 @@ export const FormulaireVisite = ({lot, onBack, onSaved, toast, entrepriseId, use
                 border:`1.5px solid ${C.purple}`,color:C.purpleD,
                 fontFamily:"inherit",fontSize:14,fontWeight:600,cursor:"pointer",
                 WebkitTapHighlightColor:"transparent"}}>
-                {platGpsLoading?"ðŸ“¡ Localisationâ€¦":"ðŸ“ Capturer GPS plateforme"}
+                {platGpsLoading?"📡 Localisation…":"📍 Capturer GPS plateforme"}
               </button>
             ):(
               <div style={{background:C.purpleL,borderRadius:10,padding:12,marginBottom:14,
                 border:`1px solid ${C.purple}`,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
                 <div>
-                  <div style={{fontSize:12,fontWeight:600,color:C.purpleD}}>ðŸ“ Position capturÃ©e</div>
+                  <div style={{fontSize:12,fontWeight:600,color:C.purpleD}}>📍 Position capturée</div>
                   <div style={{fontFamily:"monospace",fontSize:11,color:C.purpleD,marginTop:2}}>
-                    {platGps.lat.toFixed(5)}Â°N Â· {platGps.lng.toFixed(5)}Â°E
+                    {platGps.lat.toFixed(5)}°N · {platGps.lng.toFixed(5)}°E
                   </div>
                 </div>
                 <button onClick={()=>setPlatGps(null)} style={{background:"none",border:"none",
-                  color:C.tx3,cursor:"pointer",fontSize:18}}>âœ•</button>
+                  color:C.tx3,cursor:"pointer",fontSize:18}}>✕</button>
               </div>
             )}
 
-            <SectionTitle icon="ðŸ”‘" label="Autorisation nÃ©cessaire"/>
+            <SectionTitle icon="🔑" label="Autorisation nécessaire"/>
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:12}}>
-              {[[false,"âœ… Non","Aucune autorisation"],[true,"âš ï¸ Oui","DÃ©marche requise"]].map(([v,l,s])=>(
+              {[[false,"✅ Non","Aucune autorisation"],[true,"⚠️ Oui","Démarche requise"]].map(([v,l,s])=>(
                 <div key={String(v)} onClick={()=>setPlatAutor(v as any)} style={{
                   padding:"12px",borderRadius:10,cursor:"pointer",textAlign:"center",
                   border:`2px solid ${platAutorisation===v?(v?C.amber:C.green):C.bd}`,
@@ -1356,14 +1594,14 @@ export const FormulaireVisite = ({lot, onBack, onSaved, toast, entrepriseId, use
             {platAutorisation&&(
               <div style={{marginBottom:14}}>
                 <div style={{fontSize:13,fontWeight:600,color:C.tx2,marginBottom:8}}>
-                  Qui se charge de la dÃ©marche ?
+                  Qui se charge de la démarche ?
                 </div>
                 <select value={platQuiAutoris} onChange={e=>setPlatQui(e.target.value)}
                   style={{width:"100%",height:INPUT_H,padding:"0 14px",borderRadius:12,
                     border:`1.5px solid ${C.bd}`,fontSize:FONT_INPUT,fontFamily:"inherit",
                     background:"#fff",color:C.tx,outline:"none"}}>
-                  <option value="">â€” SÃ©lectionner â€”</option>
-                  <option value="proprietaire">PropriÃ©taire</option>
+                  <option value="">— Sélectionner —</option>
+                  <option value="proprietaire">Propriétaire</option>
                   <option value="etf">ETF</option>
                   <option value="exploitant">Exploitant</option>
                   <option value="applitag">APPLITAG</option>
@@ -1379,26 +1617,26 @@ export const FormulaireVisite = ({lot, onBack, onSaved, toast, entrepriseId, use
               background:platPhoto?C.purpleL:"#fff",
               border:`2px solid ${platPhoto?C.purple:C.bd}`,
               WebkitTapHighlightColor:"transparent"}}>
-              <span style={{fontSize:28}}>{platPhoto?"âœ…":"ðŸ“·"}</span>
+              <span style={{fontSize:28}}>{platPhoto?"✅":"📷"}</span>
               <div>
                 <div style={{fontSize:14,fontWeight:600,color:platPhoto?C.purpleD:C.tx}}>
                   Photo emplacement
                 </div>
                 <div style={{fontSize:11,color:C.tx3,marginTop:2}}>
-                  {platPhoto?"âœ“ Photo confirmÃ©e":"Photographier la plateforme"}
+                  {platPhoto?"✓ Photo confirmée":"Photographier la plateforme"}
                 </div>
               </div>
             </div>
           </div>
         )}
 
-        {step===8&&(
+        {step===7&&(
           <div>
-            <SectionTitle icon="ðŸŒ±" label="Replantation prÃ©vue ?"/>
+            <SectionTitle icon="🌱" label="Replantation prévue ?"/>
             <div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:16}}>
-              {[["non","âŒ","Non","Pas de replantation prÃ©vue"],
-                ["oui","âœ…","Oui","Replantation planifiÃ©e"],
-                ["a_definir","â“","Ã€ dÃ©finir","DÃ©cision ultÃ©rieure"]].map(([v,e,l,s])=>(
+              {[["non","❌","Non","Pas de replantation prévue"],
+                ["oui","✅","Oui","Replantation planifiée"],
+                ["a_definir","❓","À définir","Décision ultérieure"]].map(([v,e,l,s])=>(
                 <div key={v} onClick={()=>setReplantation(v)} style={{
                   padding:14,borderRadius:12,cursor:"pointer",
                   border:`2px solid ${replantation===v?C.green:C.bd}`,
@@ -1414,53 +1652,53 @@ export const FormulaireVisite = ({lot, onBack, onSaved, toast, entrepriseId, use
               <div>
                 <div style={{marginBottom:14}}>
                   <div style={{fontSize:13,fontWeight:600,color:C.tx2,marginBottom:8}}>
-                    Essence(s) Ã  replanter
+                    Essence(s) à replanter
                   </div>
                   <select value={essenceReplanT} onChange={e=>setEssenceReplant(e.target.value)}
                     style={{width:"100%",padding:"12px 14px",borderRadius:12,fontSize:14,
                       border:`1.5px solid ${C.bd}`,fontFamily:"inherit",
                       background:"#fff",color:C.tx,appearance:"auto"}}>
-                    <option value="">â€” SÃ©lectionner une essence â€”</option>
+                    <option value="">— Sélectionner une essence —</option>
                     <optgroup label="Feuillus">
-                      <option value="chene">ðŸŒ³ ChÃªne</option>
-                      <option value="charme">ðŸŒ¿ Charme</option>
-                      <option value="hetre">ðŸŒ² HÃªtre</option>
-                      <option value="frene">ðŸŒ¿ FrÃªne</option>
-                      <option value="orme">ðŸŒ¿ Orme</option>
-                      <option value="acacia">ðŸŒ¿ Acacia</option>
-                      <option value="bouleau">ðŸŒ¿ Bouleau</option>
-                      <option value="chataignier">ðŸŒ° ChÃ¢taignier</option>
-                      <option value="fruitiers">ðŸ’ Fruitiers</option>
-                      <option value="erables">ðŸ Ã‰rables</option>
-                      <option value="tilleul">ðŸŒ¿ Tilleul</option>
-                      <option value="aulne">ðŸŒ¿ Aulne</option>
-                      <option value="peupliers">ðŸŒ¾ Peupliers</option>
-                      <option value="saule">ðŸŒ¿ Saule</option>
+                      <option value="chene">🌳 Chêne</option>
+                      <option value="charme">🌿 Charme</option>
+                      <option value="hetre">🌲 Hêtre</option>
+                      <option value="frene">🌿 Frêne</option>
+                      <option value="orme">🌿 Orme</option>
+                      <option value="acacia">🌿 Acacia</option>
+                      <option value="bouleau">🌿 Bouleau</option>
+                      <option value="chataignier">🌰 Châtaignier</option>
+                      <option value="fruitiers">🍒 Fruitiers</option>
+                      <option value="erables">🍁 Érables</option>
+                      <option value="tilleul">🌿 Tilleul</option>
+                      <option value="aulne">🌿 Aulne</option>
+                      <option value="peupliers">🌾 Peupliers</option>
+                      <option value="saule">🌿 Saule</option>
                     </optgroup>
-                    <optgroup label="RÃ©sineux">
-                      <option value="pin_sylvestre">ðŸŒ² Pin sylvestre</option>
-                      <option value="pin_maritime">ðŸŒ² Pin maritime</option>
-                      <option value="sapin">ðŸŒ² Sapin</option>
-                      <option value="epicea">ðŸŒ² Ã‰picÃ©a</option>
-                      <option value="meleze">ðŸŒ² MÃ©lÃ¨ze</option>
-                      <option value="douglas">ðŸŒ² Douglas</option>
+                    <optgroup label="Résineux">
+                      <option value="pin_sylvestre">🌲 Pin sylvestre</option>
+                      <option value="pin_maritime">🌲 Pin maritime</option>
+                      <option value="sapin">🌲 Sapin</option>
+                      <option value="epicea">🌲 Épicéa</option>
+                      <option value="meleze">🌲 Mélèze</option>
+                      <option value="douglas">🌲 Douglas</option>
                     </optgroup>
                     <optgroup label="Autres">
-                      <option value="rdv_proprietaire">ðŸ“‹ Ã€ dÃ©finir avec le propriÃ©taire</option>
+                      <option value="rdv_proprietaire">📋 À définir avec le propriétaire</option>
                     </optgroup>
                   </select>
                 </div>
-                <MSlider label="Surface Ã  replanter" value={surfaceReplant}
+                <MSlider label="Surface à replanter" value={surfaceReplant}
                   onChange={setSurfaceReplant} min={0.1} max={50} step={0.1}
                   unit=" ha" color={C.green}/>
-                <MInput label="PÃ©riode prÃ©vue" value={dateReplant}
+                <MInput label="Période prévue" value={dateReplant}
                   onChange={setDateReplant} type="month"/>
                 <div style={{marginBottom:14}}>
                   <div style={{fontSize:13,fontWeight:600,color:C.tx2,marginBottom:8}}>
-                    ChargÃ© de cette mission
+                    Chargé de cette mission
                   </div>
                   <div style={{display:"flex",gap:8}}>
-                    {[["proprietaire","ðŸ  PropriÃ©taire"],["etf","ðŸª“ ETF"],["autre","ðŸ‘¤ Autre"]].map(([v,l])=>(
+                    {[["proprietaire","🏠 Propriétaire"],["etf","🪓 ETF"],["autre","👤 Autre"]].map(([v,l])=>(
                       <button key={v} onClick={()=>setRespReplant(v)} style={{
                         flex:1,padding:"10px 4px",borderRadius:10,fontSize:12,
                         border:`1.5px solid ${respReplant===v?C.green:C.bd}`,
@@ -1476,12 +1714,12 @@ export const FormulaireVisite = ({lot, onBack, onSaved, toast, entrepriseId, use
                   <div style={{background:C.greenL,borderRadius:12,padding:14,marginTop:4,
                     border:`1px solid ${C.green}`}}>
                     <div style={{fontSize:13,fontWeight:600,color:C.greenD,marginBottom:12}}>
-                      {respReplant==="etf"?"ðŸª“ CoordonnÃ©es ETF":"ðŸ‘¤ CoordonnÃ©es du responsable"}
+                      {respReplant==="etf"?"🪓 Coordonnées ETF":"👤 Coordonnées du responsable"}
                     </div>
                     <MInput label="Nom de l'entreprise" value={replantNomEntreprise}
                       onChange={setReplantNomEntreprise} placeholder="Raison sociale"/>
                     <MInput label="Personne en charge" value={replantPersonne}
-                      onChange={setReplantPersonne} placeholder="PrÃ©nom Nom du rÃ©fÃ©rent"/>
+                      onChange={setReplantPersonne} placeholder="Prénom Nom du référent"/>
                     <div style={{display:"flex",gap:8}}>
                       <div style={{flex:"0 0 110px"}}>
                         <MInput label="Code postal" value={replantCp}
@@ -1492,7 +1730,7 @@ export const FormulaireVisite = ({lot, onBack, onSaved, toast, entrepriseId, use
                           onChange={setReplantVille} placeholder="Auxerre"/>
                       </div>
                     </div>
-                    <MInput label="TÃ©lÃ©phone" value={replantTel}
+                    <MInput label="Téléphone" value={replantTel}
                       onChange={setReplantTel} placeholder="06 00 00 00 00" type="tel"/>
                     <MInput label="Email" value={replantEmail}
                       onChange={setReplantEmail} placeholder="contact@entreprise.fr" type="email"/>
@@ -1503,17 +1741,17 @@ export const FormulaireVisite = ({lot, onBack, onSaved, toast, entrepriseId, use
           </div>
         )}
 
-        {step===9&&(
+        {step===8&&(
           <div>
-            <SectionTitle icon="ðŸ…" label="Certification"/>
+            <SectionTitle icon="🏅" label="Certification"/>
             <div style={{fontSize:12,color:C.tx3,marginBottom:14,lineHeight:1.6}}>
-              Optionnel â€” sÃ©lectionnez si ce lot est soumis Ã  une certification forestiÃ¨re ou Ã©nergÃ©tique.
+              Optionnel — sélectionnez si ce lot est soumis à une certification forestière ou énergétique.
             </div>
             <div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:16}}>
-              {[["aucune","â¬œ","Aucune","Pas de certification requise"],
-                ["pefc","ðŸŒ¿","PEFC","Programme de reconnaissance des certifications forestiÃ¨res"],
-                ["fsc","ðŸŒ³","FSC","Forest Stewardship Council"],
-                ["red","âš¡","RED","Renewable Energy Directive (directive europÃ©enne)"]].map(([v,e,l,s])=>(
+              {[["aucune","⬜","Aucune","Pas de certification requise"],
+                ["pefc","🌿","PEFC","Programme de reconnaissance des certifications forestières"],
+                ["fsc","🌳","FSC","Forest Stewardship Council"],
+                ["red","⚡","RED","Renewable Energy Directive (directive européenne)"]].map(([v,e,l,s])=>(
                 <div key={v} onClick={()=>setCertification(v)} style={{
                   padding:14,borderRadius:12,cursor:"pointer",
                   border:`2px solid ${certification===v?C.blue:C.bd}`,
@@ -1529,7 +1767,7 @@ export const FormulaireVisite = ({lot, onBack, onSaved, toast, entrepriseId, use
               <>
                 <MInput label="Organisme certificateur"
                   value={organismeCertif} onChange={setOrganismeCertif}
-                  placeholder="Ex : Bureau Veritas, SGS, ECOCERTâ€¦"/>
+                  placeholder="Ex : Bureau Veritas, SGS, ECOCERT…"/>
                 <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:14}}>
                   <div>
                     <div style={{fontSize:12,fontWeight:600,color:C.tx2,marginBottom:6}}>Date de l'audit</div>
@@ -1546,20 +1784,20 @@ export const FormulaireVisite = ({lot, onBack, onSaved, toast, entrepriseId, use
                         color:C.tx,fontFamily:"inherit",fontSize:14,outline:"none"}}/>
                   </div>
                 </div>
-                <MInput label={`NÂ° de certification ${certification.toUpperCase()}`}
+                <MInput label={`N° de certification ${certification.toUpperCase()}`}
                   value={numeroCertification} onChange={setNumeroCert}
                   placeholder="Ex: PEFC/10-31-1234 ou FSC-C012345"
-                  hint="Obligatoire si certification validÃ©e"/>
+                  hint="Obligatoire si certification validée"/>
                 {certification==="red"&&(
                   <>
-                    {/* â”€â”€ SÃ©lecteur VSS enrichi â”€â”€ */}
+                    {/* ── Sélecteur VSS enrichi ── */}
                     <div style={{marginBottom:6,marginTop:4}}>
                       <div style={{fontSize:13,fontWeight:700,color:C.tx,marginBottom:4}}>
-                        SystÃ¨me volontaire de certification (VSS)
+                        Système volontaire de certification (VSS)
                       </div>
                       <div style={{fontSize:11,color:C.tx3,marginBottom:10,lineHeight:1.5}}>
-                        SystÃ¨mes reconnus par la Commission europÃ©enne pour RED II.
-                        SÃ©lectionnez le systÃ¨me utilisÃ© pour ce lot.
+                        Systèmes reconnus par la Commission européenne pour RED II.
+                        Sélectionnez le système utilisé pour ce lot.
                       </div>
                       {VSS_RECONNUS.map(vss=>{
                         const sel = redSysVolontaire===vss.id;
@@ -1577,15 +1815,15 @@ export const FormulaireVisite = ({lot, onBack, onSaved, toast, entrepriseId, use
                                 {vss.vigilance&&(
                                   <span style={{marginLeft:8,fontSize:10,fontWeight:700,
                                     color:"#E65100",background:"#FFF3E0",
-                                    padding:"2px 6px",borderRadius:4}}>âš ï¸ Vigilance</span>
+                                    padding:"2px 6px",borderRadius:4}}>⚠️ Vigilance</span>
                                 )}
                                 {vss.reconnu==="UE"&&!vss.vigilance&&(
                                   <span style={{marginLeft:8,fontSize:10,fontWeight:600,
                                     color:"#1565C0",background:"#E3F2FD",
-                                    padding:"2px 6px",borderRadius:4}}>âœ… Reconnu UE</span>
+                                    padding:"2px 6px",borderRadius:4}}>✅ Reconnu UE</span>
                                 )}
                               </div>
-                              {sel&&<span style={{color:vss.couleur,fontSize:16}}>â—</span>}
+                              {sel&&<span style={{color:vss.couleur,fontSize:16}}>●</span>}
                             </div>
                             <div style={{fontSize:11,color:C.tx3,marginTop:3}}>{vss.org}</div>
                             {sel&&(
@@ -1593,7 +1831,7 @@ export const FormulaireVisite = ({lot, onBack, onSaved, toast, entrepriseId, use
                                 lineHeight:1.5,padding:"8px 10px",
                                 background:"rgba(255,255,255,.7)",borderRadius:8}}>
                                 <div style={{marginBottom:3}}>
-                                  <strong>PÃ©rimÃ¨tre :</strong> {vss.perimetre}
+                                  <strong>Périmètre :</strong> {vss.perimetre}
                                 </div>
                                 <div style={{color:C.tx3}}>{vss.note}</div>
                               </div>
@@ -1602,25 +1840,25 @@ export const FormulaireVisite = ({lot, onBack, onSaved, toast, entrepriseId, use
                         );
                       })}
                     </div>
-                    {/* Fiche certificat complÃ¨te */}
+                    {/* Fiche certificat complète */}
                     {redSysVolontaire&&(
                       <div style={{background:"rgba(255,255,255,.8)",borderRadius:12,
                         padding:"12px 14px",marginBottom:8,
                         border:`1px solid ${C.bd}`}}>
                         <div style={{fontSize:12,fontWeight:700,color:C.tx,marginBottom:10}}>
-                          ðŸ“„ DÃ©tails du certificat VSS
+                          📄 Détails du certificat VSS
                         </div>
-                        <MInput label="NÂ° de certificat VSS"
+                        <MInput label="N° de certificat VSS"
                           value={redVssCertificat} onChange={setRedVssCertificat}
-                          placeholder="Ex : SBP-COC-FR-123456 / SURE-FR-2026-â€¦"
-                          hint="NumÃ©ro attribuÃ© par l'organisme certificateur"/>
+                          placeholder="Ex : SBP-COC-FR-123456 / SURE-FR-2026-…"
+                          hint="Numéro attribué par l'organisme certificateur"/>
                         <MInput label="Organisme certificateur"
                           value={redVssOrganisme} onChange={setRedVssOrganisme}
-                          placeholder="Ex : Bureau Veritas, SGS, DNV, ECOCERTâ€¦"
-                          hint="Organisme ayant rÃ©alisÃ© l'audit de certification"/>
+                          placeholder="Ex : Bureau Veritas, SGS, DNV, ECOCERT…"
+                          hint="Organisme ayant réalisé l'audit de certification"/>
                         <div style={{marginBottom:10}}>
                           <div style={{fontSize:12,fontWeight:600,color:C.tx2,marginBottom:6}}>
-                            Date de validitÃ© du certificat
+                            Date de validité du certificat
                           </div>
                           <input type="date" value={redVssDateValidite}
                             onChange={e=>setRedVssDateValidite(e.target.value)}
@@ -1630,20 +1868,20 @@ export const FormulaireVisite = ({lot, onBack, onSaved, toast, entrepriseId, use
                               background:"#fff",color:C.tx}}/>
                           {redVssDateValidite&&new Date(redVssDateValidite)<new Date()&&(
                             <div style={{fontSize:11,color:"#B91C1C",marginTop:4,fontWeight:600}}>
-                              âš ï¸ Ce certificat est expirÃ© â€” mettre Ã  jour avant dÃ©claration RED
+                              ⚠️ Ce certificat est expiré — mettre à jour avant déclaration RED
                             </div>
                           )}
                           {redVssDateValidite&&new Date(redVssDateValidite)>=new Date()&&
                            new Date(redVssDateValidite)<new Date(Date.now()+60*86400000)&&(
                             <div style={{fontSize:11,color:"#E65100",marginTop:4,fontWeight:600}}>
-                              ðŸ”” Certificat expirant dans moins de 60 jours
+                              🔔 Certificat expirant dans moins de 60 jours
                             </div>
                           )}
                         </div>
-                        <MInput label="PÃ©rimÃ¨tre certifiÃ©"
+                        <MInput label="Périmètre certifié"
                           value={redPerimetreCertif} onChange={setRedPerimetreCertif}
-                          placeholder="Ex : rÃ©gion, massif, entitÃ© certifiÃ©e, rayon gÃ©ographiqueâ€¦"
-                          hint="Zone ou entitÃ© couverte par le certificat VSS"/>
+                          placeholder="Ex : région, massif, entité certifiée, rayon géographique…"
+                          hint="Zone ou entité couverte par le certificat VSS"/>
                       </div>
                     )}
                   </>
@@ -1654,16 +1892,16 @@ export const FormulaireVisite = ({lot, onBack, onSaved, toast, entrepriseId, use
               <div style={{background:C.blueL,borderRadius:12,padding:14,
                 border:`1px solid ${C.blue}`}}>
                 <div style={{fontSize:13,fontWeight:700,color:C.blueD,marginBottom:12}}>
-                  âš¡ Informations RED obligatoires
+                  ⚡ Informations RED obligatoires
                 </div>
                 <div style={{marginBottom:12}}>
                   <div style={{fontSize:13,fontWeight:600,color:C.tx2,marginBottom:8}}>
-                    CatÃ©gorie biomasse
+                    Catégorie biomasse
                   </div>
                   <div style={{display:"flex",flexDirection:"column",gap:6}}>
-                    {[["bois_forestier","ðŸŒ² Bois forestier"],
-                      ["residus","â™»ï¸ RÃ©sidus forestiers"],
-                      ["dechets_bois","ðŸ—‘ï¸ DÃ©chets bois"]].map(([v,l])=>(
+                    {[["bois_forestier","🌲 Bois forestier"],
+                      ["residus","♻️ Résidus forestiers"],
+                      ["dechets_bois","🗑️ Déchets bois"]].map(([v,l])=>(
                       <button key={v} onClick={()=>setRedCategorie(v)} style={{
                         padding:"10px 14px",borderRadius:10,textAlign:"left",
                         border:`1.5px solid ${redCategorie===v?C.blue:C.bd}`,
@@ -1676,20 +1914,20 @@ export const FormulaireVisite = ({lot, onBack, onSaved, toast, entrepriseId, use
                     ))}
                   </div>
                 </div>
-                <MSlider label="Distance chaufferie estimÃ©e" value={redDistance}
+                <MSlider label="Distance chaufferie estimée" value={redDistance}
                   onChange={setRedDistance} min={10} max={500} step={10}
                   unit=" km" color={C.blue}/>
                 <MInput label="Pays d&apos;origine" value={redPays}
                   onChange={setRedPays} placeholder="France"/>
                 <MInput label="Massif / zone d&apos;approvisionnement"
                   value={redMassif} onChange={setRedMassif}
-                  placeholder="Ex : ForÃªt de TronÃ§ais, massif des Vosgesâ€¦"
-                  hint="Nom du massif forestier ou zone d'approvisionnement identifiÃ©e"/>
+                  placeholder="Ex : Forêt de Tronçais, massif des Vosges…"
+                  hint={gps ? "Pré-rempli depuis la position GPS — à compléter si nécessaire" : "Nom du massif forestier ou zone d'approvisionnement identifiée"}/>
                 <div style={{marginBottom:14}}>
                   <div style={{fontSize:13,fontWeight:600,color:C.tx2,marginBottom:8}}>
                     Premier point de collecte
                   </div>
-                  {[["foret","ðŸŒ² Bord de route forÃªt"],["plateforme","ðŸ—ï¸ Plateforme de stockage"],["depot","ðŸ“¦ DÃ©pÃ´t intermÃ©diaire"],["broyage","ðŸŒ€ Site de broyage/dÃ©chiquetage"]].map(([v,l])=>(
+                  {[["foret","🌲 Bord de route forêt"],["plateforme","🏗️ Plateforme de stockage"],["depot","📦 Dépôt intermédiaire"],["broyage","🌀 Site de broyage/déchiquetage"]].map(([v,l])=>(
                     <button key={v} onClick={()=>setRedPointCollecte(v)} style={{
                       display:"block",width:"100%",padding:"9px 14px",borderRadius:10,
                       textAlign:"left",marginBottom:5,
@@ -1706,7 +1944,7 @@ export const FormulaireVisite = ({lot, onBack, onSaved, toast, entrepriseId, use
                   <div style={{fontSize:13,fontWeight:600,color:C.tx2,marginBottom:8}}>
                     Destination finale
                   </div>
-                  {[["chaufferie","ðŸ”¥ Chaufferie / installation de combustion"],["reseau_chaleur","â™¨ï¸ RÃ©seau de chaleur"],["industrie","ðŸ­ Usage industriel"],["plateforme_transit","ðŸ—ï¸ Plateforme de transit"]].map(([v,l])=>(
+                  {[["chaufferie","🔥 Chaufferie / installation de combustion"],["reseau_chaleur","♨️ Réseau de chaleur"],["industrie","🏭 Usage industriel"],["plateforme_transit","🏗️ Plateforme de transit"]].map(([v,l])=>(
                     <button key={v} onClick={()=>setRedDestination(v)} style={{
                       display:"block",width:"100%",padding:"9px 14px",borderRadius:10,
                       textAlign:"left",marginBottom:5,
@@ -1721,19 +1959,19 @@ export const FormulaireVisite = ({lot, onBack, onSaved, toast, entrepriseId, use
                 </div>
                 <div style={{fontSize:11,color:C.blueD,marginTop:8,padding:8,
                   background:"rgba(255,255,255,.6)",borderRadius:8}}>
-                  â„¹ï¸ Le GPS de la parcelle et les tonnages serviront Ã  gÃ©nÃ©rer l&apos;auto-dÃ©claration RED lors de la livraison.
+                  ℹ️ Le GPS de la parcelle et les tonnages serviront à générer l&apos;auto-déclaration RED lors de la livraison.
                 </div>
-                {/* â”€â”€ CritÃ¨re RED : forÃªts primaires / anciennes â”€â”€ */}
+                {/* ── Critère RED : forêts primaires / anciennes ── */}
                 <div style={{marginBottom:14}}>
                   <div style={{fontSize:13,fontWeight:600,color:C.tx2,marginBottom:4}}>
-                    ForÃªts primaires / anciennes
+                    Forêts primaires / anciennes
                   </div>
                   <div style={{fontSize:11,color:C.tx3,marginBottom:8,lineHeight:1.5}}>
-                    La biomasse ne provient pas d'une forÃªt primaire ni d'une zone dont le statut a changÃ© aprÃ¨s janvier 2008 (art. 29 RED II).
+                    La biomasse ne provient pas d'une forêt primaire ni d'une zone dont le statut a changé après janvier 2008 (art. 29 RED II).
                   </div>
-                  {[["confirme","âœ… ConfirmÃ© â€” aucune forÃªt primaire ou ancienne concernÃ©e"],
-                    ["a_verifier","ðŸ” Ã€ vÃ©rifier â€” origine Ã  documenter"],
-                    ["non_concerne","âž– Non applicable Ã  ce lot"]].map(([v,l])=>(
+                  {[["confirme","✅ Confirmé — aucune forêt primaire ou ancienne concernée"],
+                    ["a_verifier","🔍 À vérifier — origine à documenter"],
+                    ["non_concerne","➖ Non applicable à ce lot"]].map(([v,l])=>(
                     <button key={v} onClick={()=>setRedForetPrimaire(v)} style={{
                       display:"block",width:"100%",padding:"9px 14px",borderRadius:10,
                       textAlign:"left",marginBottom:5,
@@ -1747,18 +1985,18 @@ export const FormulaireVisite = ({lot, onBack, onSaved, toast, entrepriseId, use
                   ))}
                 </div>
 
-                {/* â”€â”€ CritÃ¨re RED : maintien capacitÃ© productive â”€â”€ */}
+                {/* ── Critère RED : maintien capacité productive ── */}
                 <div style={{marginBottom:14}}>
                   <div style={{fontSize:13,fontWeight:600,color:C.tx2,marginBottom:4}}>
-                    Document de gestion forestiÃ¨re
+                    Document de gestion forestière
                   </div>
                   <div style={{fontSize:11,color:C.tx3,marginBottom:8,lineHeight:1.5}}>
-                    Preuve du maintien de la capacitÃ© productive de la forÃªt (art. 29 RED II).
+                    Preuve du maintien de la capacité productive de la forêt (art. 29 RED II).
                   </div>
-                  {[["psg","ðŸ“„ PSG â€” Plan Simple de Gestion (validÃ© ONF/CRPF)"],
-                    ["cbps","ðŸ“‹ CBPS â€” Code de Bonnes Pratiques Sylvicoles"],
-                    ["amenagement","ðŸ—‚ï¸ AmÃ©nagement forestier (forÃªt publique)"],
-                    ["aucun","â¬œ Aucun document â€” dÃ©claration sur l'honneur"]].map(([v,l])=>(
+                  {[["psg","📄 PSG — Plan Simple de Gestion (validé ONF/CRPF)"],
+                    ["cbps","📋 CBPS — Code de Bonnes Pratiques Sylvicoles"],
+                    ["amenagement","🗂️ Aménagement forestier (forêt publique)"],
+                    ["aucun","⬜ Aucun document — déclaration sur l'honneur"]].map(([v,l])=>(
                     <button key={v} onClick={()=>setRedDocGestion(v)} style={{
                       display:"block",width:"100%",padding:"9px 14px",borderRadius:10,
                       textAlign:"left",marginBottom:5,
@@ -1772,17 +2010,65 @@ export const FormulaireVisite = ({lot, onBack, onSaved, toast, entrepriseId, use
                   ))}
                 </div>
 
-                {/* â”€â”€ CritÃ¨re RED : limitation souches / bois mort â”€â”€ */}
+                {/* ── Attestation déclaration sur l'honneur ── */}
+                {redDocGestion==="aucun"&&(
+                  <div style={{background:"#FFFBEB",border:`1.5px solid ${C.amber}`,borderRadius:12,padding:14,marginBottom:14}}>
+                    <div style={{fontSize:13,fontWeight:700,color:"#92400E",marginBottom:4}}>
+                      📝 Déclaration sur l'honneur
+                    </div>
+                    <div style={{fontSize:11,color:"#92400E",marginBottom:12,lineHeight:1.5}}>
+                      Aucun document de gestion fourni — une déclaration sur l'honneur est requise (art. 29 RED II).
+                      Le document sera pré-rempli au nom du propriétaire, signé sur l'écran et envoyé par email.
+                    </div>
+                    <div style={{background:"#fff",border:`1px solid ${C.bd}`,borderRadius:8,padding:12,marginBottom:12,fontSize:12,lineHeight:1.7,color:C.tx}}>
+                      <div style={{fontWeight:700,textAlign:"center",marginBottom:6,fontSize:13}}>DÉCLARATION SUR L'HONNEUR</div>
+                      <div style={{fontSize:11,textAlign:"center",color:C.tx3,marginBottom:10}}>Art. 29-1 directive RED II — Gestion forestière durable</div>
+                      Je soussigné(e), <strong>{nomSignProprio||(lot as any).nom||"___________________"}</strong>, propriétaire de la parcelle forestière<br/>
+                      Lot : <strong>{lot.lotNumero||lot.numero}</strong> · Commune : <strong>{lot.commune}</strong> · Surface : <strong>{lot.surfaceHa} ha</strong><br/>
+                      certifie sur l'honneur que la forêt est gérée durablement, que la récolte n'excède pas la capacité de production biologique, et que la biomasse n'est pas issue d'une forêt primaire (critères art. 29 RED II).
+                    </div>
+                    <SignatureCanvas
+                      label="Signature du propriétaire"
+                      nomSignataire={nomSignProprio||(lot as any).nom||"Propriétaire"}
+                      signed={attestSigned}
+                      onSigned={d=>{setAttestSigned(true);setAttestSigData(d);}}
+                      onClear={()=>{setAttestSigned(false);setAttestSigData(null);}}/>
+                    <MInput label="Email du propriétaire" value={attestEmail} onChange={setAttestEmail}
+                      type="email" placeholder="prenom.nom@exemple.fr"
+                      hint="Pour envoi de l'attestation signée en pièce jointe"/>
+                    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginTop:4}}>
+                      <button onClick={genererAttestationPDF}
+                        style={{padding:"12px 0",borderRadius:10,background:C.bg2,border:`1px solid ${C.bd}`,
+                          color:C.tx,fontFamily:"inherit",fontSize:13,fontWeight:500,cursor:"pointer",
+                          WebkitTapHighlightColor:"transparent"}}>
+                        📄 Aperçu / PDF
+                      </button>
+                      <button onClick={envoyerAttestation}
+                        disabled={attestSending||!attestEmail||!attestSigned}
+                        style={{padding:"12px 0",borderRadius:10,
+                          background:attestSentOk?C.green:attestSending?"#aaa":(!attestEmail||!attestSigned?C.bg2:C.amber),
+                          border:"none",color:attestSentOk||attestSending||(!attestEmail||!attestSigned)?"#fff":"#92400E",
+                          fontFamily:"inherit",fontSize:13,fontWeight:600,
+                          cursor:attestSending||!attestEmail||!attestSigned?"not-allowed":"pointer",
+                          WebkitTapHighlightColor:"transparent"}}>
+                        {attestSentOk?"✅ Envoyé":attestSending?"Envoi…":"📧 Envoyer"}
+                      </button>
+                    </div>
+                    {!attestSigned&&<div style={{fontSize:11,color:C.amber,marginTop:6,textAlign:"center"}}>⚠️ Signature requise avant envoi</div>}
+                  </div>
+                )}
+
+                {/* ── Critère RED : limitation souches / bois mort ── */}
                 <div style={{marginBottom:14}}>
                   <div style={{fontSize:13,fontWeight:600,color:C.tx2,marginBottom:4}}>
                     Pratiques d'exploitation durables
                   </div>
                   <div style={{fontSize:11,color:C.tx3,marginBottom:8,lineHeight:1.5}}>
-                    Cochez les engagements respectÃ©s sur ce chantier (art. 29 RED II).
+                    Cochez les engagements respectés sur ce chantier (art. 29 RED II).
                   </div>
-                  {[["souches","RÃ©colte de souches et racines limitÃ©e ou absente"],
-                    ["boisMort","RÃ©tention de bois mort respectÃ©e (arbres sÃ©nescents maintenus)"],
-                    ["coupeRase","Coupe rase dans les limites rÃ©glementaires (seuil surface)"]].map(([k,l])=>(
+                  {[["souches","Récolte de souches et racines limitée ou absente"],
+                    ["boisMort","Rétention de bois mort respectée (arbres sénescents maintenus)"],
+                    ["coupeRase","Coupe rase dans les limites réglementaires (seuil surface)"]].map(([k,l])=>(
                     <div key={k} onClick={()=>setRedBoisMort(p=>({...p,[k]:!p[k]}))}
                       style={{display:"flex",alignItems:"center",gap:10,padding:"10px 14px",
                         borderRadius:10,marginBottom:5,cursor:"pointer",
@@ -1794,7 +2080,7 @@ export const FormulaireVisite = ({lot, onBack, onSaved, toast, entrepriseId, use
                         background:redBoisMort[k]?C.green:"#fff",
                         display:"flex",alignItems:"center",justifyContent:"center",
                         color:"#fff",fontSize:12,fontWeight:800}}>
-                        {redBoisMort[k]?"âœ“":""}
+                        {redBoisMort[k]?"✓":""}
                       </div>
                       <span style={{fontSize:12,color:redBoisMort[k]?C.greenD:C.tx2,lineHeight:1.4}}>{l}</span>
                     </div>
@@ -1803,14 +2089,14 @@ export const FormulaireVisite = ({lot, onBack, onSaved, toast, entrepriseId, use
 
                 <div style={{marginTop:16}}>
                   <div style={{fontSize:13,fontWeight:600,color:C.tx2,marginBottom:8}}>
-                    Statut conformitÃ© RED
+                    Statut conformité RED
                   </div>
                   <div style={{display:"flex",flexDirection:"column",gap:6}}>
                     {[
-                      ["conforme",    "âœ…","Conforme",    C.green,  C.greenL,  C.greenD],
-                      ["a_verifier",  "ðŸ”","Ã€ vÃ©rifier",  C.amber,  C.amberL,  C.amber],
-                      ["incomplet",   "âš ï¸","Incomplet",   (C as any).orange||"#E65100", "#FFF3E0","#E65100"],
-                      ["non_conforme","âŒ","Non conforme", C.red,    "#FFEBEE",  "#B71C1C"],
+                      ["conforme",    "✅","Conforme",    C.green,  C.greenL,  C.greenD],
+                      ["a_verifier",  "🔍","À vérifier",  C.amber,  C.amberL,  C.amber],
+                      ["incomplet",   "⚠️","Incomplet",   (C as any).orange||"#E65100", "#FFF3E0","#E65100"],
+                      ["non_conforme","❌","Non conforme", C.red,    "#FFEBEE",  "#B71C1C"],
                     ].map(([v,e,l,border,bg,col])=>(
                       <button key={v} onClick={()=>setStatutRed(v)} style={{
                         padding:"10px 14px",borderRadius:10,textAlign:"left",
@@ -1828,14 +2114,14 @@ export const FormulaireVisite = ({lot, onBack, onSaved, toast, entrepriseId, use
             )}
           </div>
         )}
-        {step===10&&(
+        {step===9&&(
           <div style={{display:"flex",flexDirection:"column",gap:14}}>
-            {/* Alerte si textes annulÃ©s */}
+            {/* Alerte si textes annulés */}
             {TEXTES_REGL.some(t=>t.alerteActive)&&(
               <div style={{background:"#FEF2F2",border:"1px solid #FECACA",borderRadius:12,
                 padding:"12px 14px"}}>
                 <div style={{fontSize:12,fontWeight:800,color:"#991B1B",marginBottom:6}}>
-                  ðŸš¨ Alerte rÃ©glementaire â€” textes impactant ce dossier
+                  🚨 Alerte réglementaire — textes impactant ce dossier
                 </div>
                 {TEXTES_REGL.filter(t=>t.alerteActive).map(t=>(
                   <div key={t.id} style={{marginBottom:8}}>
@@ -1843,22 +2129,22 @@ export const FormulaireVisite = ({lot, onBack, onSaved, toast, entrepriseId, use
                     <div style={{fontSize:10,color:"#991B1B",marginTop:2}}>{t.motifStatut}</div>
                     {t.reservesJuridiques.slice(0,2).map((r,i)=>(
                       <div key={i} style={{fontSize:10,color:"#7F1D1D",marginTop:3,
-                        padding:"4px 8px",background:"#FFF1F2",borderRadius:5}}>â€¢ {r}</div>
+                        padding:"4px 8px",background:"#FFF1F2",borderRadius:5}}>• {r}</div>
                     ))}
                   </div>
                 ))}
               </div>
             )}
 
-            {/* Clause de rÃ©serve â€” obligatoire */}
+            {/* Clause de réserve — obligatoire */}
             <div style={{background:"#F5F3FF",border:`2px solid ${clauseReserveOk?"#7C3AED":"#C4B5FD"}`,
               borderRadius:12,padding:"12px 14px"}}>
               <div style={{fontSize:11,fontWeight:700,color:"#6D28D9",marginBottom:8,
-                textTransform:"uppercase",letterSpacing:".5px"}}>Clause de rÃ©serve obligatoire</div>
+                textTransform:"uppercase",letterSpacing:".5px"}}>Clause de réserve obligatoire</div>
               <div style={{fontSize:12,color:"#4C1D95",fontStyle:"italic",
                 lineHeight:1.6,marginBottom:12,padding:"8px 10px",
                 background:"rgba(124,58,237,.08)",borderRadius:8}}>
-                Â« {CLAUSE_RESERVE} Â»
+                « {CLAUSE_RESERVE} »
               </div>
               <div onClick={()=>setClauseReserve(v=>!v)}
                 style={{display:"flex",alignItems:"center",gap:10,cursor:"pointer",
@@ -1867,22 +2153,22 @@ export const FormulaireVisite = ({lot, onBack, onSaved, toast, entrepriseId, use
                   border:`2px solid ${clauseReserveOk?"#7C3AED":"#9CA3AF"}`,
                   background:clauseReserveOk?"#7C3AED":"transparent",
                   display:"flex",alignItems:"center",justifyContent:"center"}}>
-                  {clauseReserveOk&&<span style={{color:"#fff",fontWeight:900,fontSize:13}}>âœ“</span>}
+                  {clauseReserveOk&&<span style={{color:"#fff",fontWeight:900,fontSize:13}}>✓</span>}
                 </div>
                 <span style={{fontSize:13,fontWeight:600,color:clauseReserveOk?"#6D28D9":"#374151"}}>
-                  Je confirme que cette clause est apposÃ©e sur tous les documents prÃ©paratoires *
+                  Je confirme que cette clause est apposée sur tous les documents préparatoires *
                 </span>
               </div>
             </div>
 
-            {/* Dispositif d'aide visÃ© */}
+            {/* Dispositif d'aide visé */}
             <div>
               <div style={{fontSize:13,fontWeight:600,color:C.tx2,marginBottom:8}}>
-                Dispositif d'aide visÃ© (si applicable)
+                Dispositif d'aide visé (si applicable)
               </div>
               <div style={{display:"flex",flexDirection:"column",gap:6}}>
                 {[
-                  ["","Aucune aide publique visÃ©e"],
+                  ["","Aucune aide publique visée"],
                   ...TEXTES_REGL.filter(t=>t.statut==="applicable").map(t=>[t.id,t.dispositif]),
                 ].map(([val,lbl])=>(
                   <div key={val} onClick={()=>setDispositifAide(val)}
@@ -1900,17 +2186,17 @@ export const FormulaireVisite = ({lot, onBack, onSaved, toast, entrepriseId, use
               </div>
             </div>
 
-            {/* Flux bois â€” usage prÃ©vu */}
+            {/* Flux bois — usage prévu */}
             <div style={{background:"#fff",border:`1px solid ${C.bd}`,borderRadius:12,padding:"12px 14px"}}>
               <div style={{fontSize:13,fontWeight:600,color:C.tx2,marginBottom:10}}>
-                ðŸ”€ Usage prÃ©vu du bois mobilisÃ©
+                🔀 Usage prévu du bois mobilisé
               </div>
               <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:12}}>
                 {[
-                  ["bo","ðŸªµ","Bois d'Å“uvre","Sciage, charpente"],
-                  ["bi","ðŸ“¦","Bois d'industrie","PÃ¢te, panneaux"],
-                  ["be","ðŸ”¥","Bois Ã©nergie","Plaquettes, granulÃ©s"],
-                  ["mixte","ðŸ”€","Mixte","Plusieurs usages"],
+                  ["bo","🪵","Bois d'œuvre","Sciage, charpente"],
+                  ["bi","📦","Bois d'industrie","Pâte, panneaux"],
+                  ["be","🔥","Bois énergie","Plaquettes, granulés"],
+                  ["mixte","🔀","Mixte","Plusieurs usages"],
                 ].map(([v,ico,lbl,sub])=>(
                   <div key={v} onClick={()=>setUsagePrevu(v)}
                     style={{padding:"10px 10px",borderRadius:10,cursor:"pointer",
@@ -1925,41 +2211,42 @@ export const FormulaireVisite = ({lot, onBack, onSaved, toast, entrepriseId, use
               </div>
               {(usagePrevu==="bo"||usagePrevu==="mixte")&&(
                 <div style={{marginBottom:8}}>
-                  <MInput label="Volume bois d'Å“uvre prÃ©vu (mÂ³)" value={volBO} onChange={setVolBO}
-                    placeholder="ex: 180" hint="Usage matiÃ¨re â€” stockage carbone long terme"/>
+                  <MInput label="Volume bois d'œuvre prévu (m³)" value={volBO} onChange={setVolBO}
+                    placeholder="ex: 180" hint="Usage matière — stockage carbone long terme"/>
                   <MInput label="Destination BO" value={destBO} onChange={setDestBO}
-                    placeholder="ex: Scierie Marchais â€” Moulins (03)"/>
-                  <MInput label="RÃ©fÃ©rence preuve / bon" value={preuveDestBO} onChange={setPreuveDestBO}
+                    placeholder="ex: Scierie Marchais — Moulins (03)"/>
+                  <MInput label="Référence preuve / bon" value={preuveDestBO} onChange={setPreuveDestBO}
                     placeholder="ex: BON-SC-2026-0441"/>
                 </div>
               )}
               {(usagePrevu==="be"||usagePrevu==="mixte")&&(
                 <div style={{marginBottom:8}}>
-                  <MInput label="Volume bois Ã©nergie prÃ©vu (mÂ³)" value={volBE} onChange={setVolBE}
+                  <MInput label="Volume bois énergie prévu (m³)" value={volBE} onChange={setVolBE}
                     placeholder="ex: 320"/>
                   <MInput label="Destination BE" value={destBE} onChange={setDestBE}
-                    placeholder="ex: Chaufferie Municipale St-Amand"/>
-                  <MInput label="RÃ©fÃ©rence preuve / BL" value={preuveDestBE} onChange={setPreuveDestBE}
+                    placeholder="ex: Chaufferie Municipale St-Amand"
+                    {...(redDestination?{hint:"Pré-rempli depuis la certification RED — à préciser"}:{})}/>
+                  <MInput label="Référence preuve / BL" value={preuveDestBE} onChange={setPreuveDestBE}
                     placeholder="ex: BL-2026-0831"/>
                 </div>
               )}
               {usagePrevu==="bi"&&(
-                <MInput label="Volume bois d'industrie prÃ©vu (mÂ³)" value={volBI} onChange={setVolBI}
+                <MInput label="Volume bois d'industrie prévu (m³)" value={volBI} onChange={setVolBI}
                   placeholder="ex: 50"/>
               )}
-              {usagePrevu&&<MInput label="Date de contrÃ´le prÃ©vue" value={dateControleFlux}
-                onChange={setDateControle} placeholder="JJ/MM/AAAA" hint="VÃ©rification aprÃ¨s travaux"/>}
+              {usagePrevu&&<MInput label="Date de contrôle prévue" value={dateControleFlux}
+                onChange={setDateControle} placeholder="JJ/MM/AAAA" hint="Vérification après travaux"/>}
             </div>
 
-            {/* â”€â”€ Arbitrage SNBC 3 â”€â”€ */}
+            {/* ── Arbitrage SNBC 3 ── */}
             <div style={{background:"linear-gradient(135deg,#FFFBEB,#FEF3C7)",borderRadius:14,
               padding:"14px",border:"1.5px solid #F59E0B",marginTop:4}}>
               <div style={{fontSize:13,fontWeight:800,color:"#78350F",marginBottom:4}}>
-                âš–ï¸ Arbitrage de la ressource â€” SNBC 3
+                ⚖️ Arbitrage de la ressource — SNBC 3
               </div>
               <div style={{fontSize:11,color:"#92400E",marginBottom:12,lineHeight:1.5}}>
-                La biomasse doit Ãªtre qualifiÃ©e selon son usage potentiel et l'usage effectivement retenu,
-                conformÃ©ment Ã  la hiÃ©rarchie des usages SNBC 3 (matiÃ¨re prioritaire sur Ã©nergie).
+                La biomasse doit être qualifiée selon son usage potentiel et l'usage effectivement retenu,
+                conformément à la hiérarchie des usages SNBC 3 (matière prioritaire sur énergie).
               </div>
 
               {/* Usage potentiel */}
@@ -1967,11 +2254,11 @@ export const FormulaireVisite = ({lot, onBack, onSaved, toast, entrepriseId, use
                 <div style={{fontSize:12,fontWeight:700,color:"#78350F",marginBottom:6}}>
                   Usage potentiel de cette ressource
                 </div>
-                {[["bois_oeuvre","ðŸªµ","Bois d'Å“uvre (BO)","Sciage, grumes â€” valorisation matiÃ¨re haute"],
-                  ["bois_industrie","ðŸ“¦","Bois d'industrie (BI)","Panneaux, pÃ¢te, trituration"],
-                  ["bois_energie","ðŸ”¥","Bois-Ã©nergie exclusif (BE)","QualitÃ© ou dimension hors marchÃ© matiÃ¨re"],
-                  ["mixte_bo_be","ðŸŒ²","Mixte BO + BE","Lot hÃ©tÃ©rogÃ¨ne â€” partie valorisable matiÃ¨re"],
-                  ["mixte_bi_be","ðŸŒ¿","Mixte BI + BE","Lot partiellement valorisable industrie"],
+                {[["bois_oeuvre","🪵","Bois d'œuvre (BO)","Sciage, grumes — valorisation matière haute"],
+                  ["bois_industrie","📦","Bois d'industrie (BI)","Panneaux, pâte, trituration"],
+                  ["bois_energie","🔥","Bois-énergie exclusif (BE)","Qualité ou dimension hors marché matière"],
+                  ["mixte_bo_be","🌲","Mixte BO + BE","Lot hétérogène — partie valorisable matière"],
+                  ["mixte_bi_be","🌿","Mixte BI + BE","Lot partiellement valorisable industrie"],
                 ].map(([v,ico,l,s])=>(
                   <div key={v} onClick={()=>setUsagePotentiel(v)} style={{
                     display:"flex",alignItems:"center",gap:10,padding:"9px 12px",
@@ -1993,9 +2280,9 @@ export const FormulaireVisite = ({lot, onBack, onSaved, toast, entrepriseId, use
                 <div style={{fontSize:12,fontWeight:700,color:"#78350F",marginBottom:6}}>
                   Usage effectivement retenu
                 </div>
-                {[["bois_oeuvre","ðŸªµ","Bois d'Å“uvre"],
-                  ["bois_industrie","ðŸ“¦","Bois d'industrie"],
-                  ["bois_energie","ðŸ”¥","Bois-Ã©nergie"],
+                {[["bois_oeuvre","🪵","Bois d'œuvre"],
+                  ["bois_industrie","📦","Bois d'industrie"],
+                  ["bois_energie","🔥","Bois-énergie"],
                 ].map(([v,ico,l])=>(
                   <button key={v} onClick={()=>setUsageRetenu(v)} style={{
                     display:"inline-flex",alignItems:"center",gap:6,
@@ -2010,26 +2297,26 @@ export const FormulaireVisite = ({lot, onBack, onSaved, toast, entrepriseId, use
                 ))}
               </div>
 
-              {/* Alerte dÃ©classement */}
+              {/* Alerte déclassement */}
               {usagePotentiel!=="bois_energie"&&usageRetenu==="bois_energie"&&(
                 <div style={{background:"#FEE2E2",borderRadius:10,padding:"10px 12px",
                   marginBottom:12,border:"1px solid #FECACA"}}>
                   <div style={{fontSize:12,fontWeight:800,color:"#991B1B",marginBottom:8}}>
-                    âš ï¸ DÃ©classement vers l'Ã©nergie dÃ©tectÃ© â€” motif obligatoire
+                    ⚠️ Déclassement vers l'énergie détecté — motif obligatoire
                   </div>
                   <div style={{fontSize:12,color:"#991B1B",marginBottom:10,lineHeight:1.5}}>
-                    Ce lot prÃ©sente un potentiel matiÃ¨re mais est orientÃ© vers l'Ã©nergie.
-                    ConformÃ©ment Ã  la hiÃ©rarchie des usages SNBC 3, un motif doit Ãªtre documentÃ©.
+                    Ce lot présente un potentiel matière mais est orienté vers l'énergie.
+                    Conformément à la hiérarchie des usages SNBC 3, un motif doit être documenté.
                   </div>
                   <div style={{display:"flex",flexDirection:"column",gap:5}}>
-                    {[["qualite_insuffisante","QualitÃ© insuffisante pour la valorisation matiÃ¨re"],
-                      ["pas_de_client_matiere","Absence de client matiÃ¨re Ã  distance acceptable"],
-                      ["couts_logistiques","CoÃ»ts logistiques prohibitifs vers scierie/industrie"],
-                      ["essence_non_valorisable","Essence ou dimension hors marchÃ© matiÃ¨re local"],
-                      ["degradation_acces","DÃ©gradation lors du transport, orientation Ã©nergie contrainte"],
-                      ["urgence_exploitation","Contrainte calendaire â€” chablis, tempÃªte, urgence sanitaire"],
-                      ["choix_proprietaire","Choix documentÃ© du propriÃ©taire"],
-                      ["autre","Autre motif â€” prÃ©ciser ci-dessous"],
+                    {[["qualite_insuffisante","Qualité insuffisante pour la valorisation matière"],
+                      ["pas_de_client_matiere","Absence de client matière à distance acceptable"],
+                      ["couts_logistiques","Coûts logistiques prohibitifs vers scierie/industrie"],
+                      ["essence_non_valorisable","Essence ou dimension hors marché matière local"],
+                      ["degradation_acces","Dégradation lors du transport, orientation énergie contrainte"],
+                      ["urgence_exploitation","Contrainte calendaire — chablis, tempête, urgence sanitaire"],
+                      ["choix_proprietaire","Choix documenté du propriétaire"],
+                      ["autre","Autre motif — préciser ci-dessous"],
                     ].map(([v,l])=>(
                       <button key={v} onClick={()=>setMotifArbitrage(v)} style={{
                         padding:"8px 12px",borderRadius:8,textAlign:"left",
@@ -2046,7 +2333,7 @@ export const FormulaireVisite = ({lot, onBack, onSaved, toast, entrepriseId, use
                     <div style={{marginTop:8}}>
                       <textarea value={motifArbitrageLib}
                         onChange={e=>setMotifArbitrageLib(e.target.value)}
-                        rows={2} placeholder="DÃ©crire le motif de dÃ©classementâ€¦"
+                        rows={2} placeholder="Décrire le motif de déclassement…"
                         style={{width:"100%",padding:"8px 10px",borderRadius:8,fontSize:12,
                           border:"1.5px solid #FECACA",fontFamily:"inherit",
                           outline:"none",resize:"vertical",boxSizing:"border-box"}}/>
@@ -2055,14 +2342,14 @@ export const FormulaireVisite = ({lot, onBack, onSaved, toast, entrepriseId, use
                 </div>
               )}
 
-              {/* Niveau de sÃ©curisation */}
+              {/* Niveau de sécurisation */}
               <div style={{marginBottom:12}}>
                 <div style={{fontSize:12,fontWeight:700,color:"#78350F",marginBottom:6}}>
-                  Niveau de sÃ©curisation du volume
+                  Niveau de sécurisation du volume
                 </div>
-                {[["securise","âœ…","SÃ©curisÃ©","Contrat signÃ©, preuve de destination disponible","#065F46","#D1FAE5"],
-                  ["mobilisable_cond","âš ï¸","Mobilisable sous conditions","Accord propriÃ©taire, certification ou accÃ¨s Ã  confirmer","#92400E","#FEF3C7"],
-                  ["theorique","ðŸ”µ","ThÃ©orique","Estimation statistique ou territoriale â€” non sÃ©curisÃ©e","#1E40AF","#DBEAFE"],
+                {[["securise","✅","Sécurisé","Contrat signé, preuve de destination disponible","#065F46","#D1FAE5"],
+                  ["mobilisable_cond","⚠️","Mobilisable sous conditions","Accord propriétaire, certification ou accès à confirmer","#92400E","#FEF3C7"],
+                  ["theorique","🔵","Théorique","Estimation statistique ou territoriale — non sécurisée","#1E40AF","#DBEAFE"],
                 ].map(([v,ico,l,s,col,bg])=>(
                   <div key={v} onClick={()=>setNiveauSecurisation(v)} style={{
                     display:"flex",alignItems:"center",gap:10,padding:"10px 12px",
@@ -2082,27 +2369,27 @@ export const FormulaireVisite = ({lot, onBack, onSaved, toast, entrepriseId, use
               {/* Preuve de destination finale */}
               <MInput label="Preuve de destination finale"
                 value={preuveDestFin} onChange={setPreuveDestFin}
-                placeholder="RÃ©f. contrat, BL, attestation clientâ€¦"
-                hint="Lien ou rÃ©fÃ©rence documentaire prouvant l'usage effectif"/>
+                placeholder="Réf. contrat, BL, attestation client…"
+                hint="Lien ou référence documentaire prouvant l'usage effectif"/>
             </div>
 
-            {/* Date de dÃ©pÃ´t et dÃ©cision */}
+            {/* Date de dépôt et décision */}
             {dispositifAide&&dispositifAide!==""&&(
               <div style={{display:"flex",flexDirection:"column",gap:8}}>
-                <MInput label="Date de dÃ©pÃ´t prÃ©vue" value={dateDepotPrevu}
+                <MInput label="Date de dépôt prévue" value={dateDepotPrevu}
                   onChange={setDateDepotPrevu} placeholder="JJ/MM/AAAA"/>
-                <MInput label="DÃ©cision attributive (si dÃ©jÃ  obtenue)" value={decisionAttributive}
-                  onChange={setDecisionAttr} placeholder="ex: DÃ©cision nÂ° 2026-XXX du ..."/>
-                <MInput label="RÃ©serves spÃ©cifiques Ã  ce dossier" value={reserveManuelle}
-                  onChange={setReserveManuelle} placeholder="Observations juridiques particuliÃ¨res"/>
+                <MInput label="Décision attributive (si déjà obtenue)" value={decisionAttributive}
+                  onChange={setDecisionAttr} placeholder="ex: Décision n° 2026-XXX du ..."/>
+                <MInput label="Réserves spécifiques à ce dossier" value={reserveManuelle}
+                  onChange={setReserveManuelle} placeholder="Observations juridiques particulières"/>
               </div>
             )}
 
-            {/* Snapshot â€” aperÃ§u */}
+            {/* Snapshot — aperçu */}
             <div style={{background:"#EFF6FF",border:"1px solid #BFDBFE",borderRadius:10,
               padding:"10px 12px",fontSize:11,color:"#1E40AF"}}>
               <div style={{fontWeight:700,marginBottom:6}}>
-                ðŸ’¾ Snapshot rÃ©glementaire â€” sera figÃ© Ã  la date d'aujourd'hui
+                💾 Snapshot réglementaire — sera figé à la date d'aujourd'hui
               </div>
               <div style={{color:"#1D4ED8",lineHeight:1.6}}>
                 {TEXTES_REGL.map(t=>(
@@ -2120,21 +2407,17 @@ export const FormulaireVisite = ({lot, onBack, onSaved, toast, entrepriseId, use
           </div>
         )}
 
-        {step===11&&(
-          <ChecklistChantier/>
-        )}
-
         {step<STEPS.length-1 ? (
           <BigBtn onClick={()=>{ if(returnStep!==null){setStep(returnStep);setReturnStep(null);}else{setStep(s=>s+1);} }}
-            bg={step<10?C.green:stepValid[step]?currentStep.color:C.amber} style={{flex:1}}>
-            {returnStep!==null?`â†© Retour au rÃ©capitulatif`
-              :step<11?`Valider`
+            bg={step<9?C.green:stepValid[step]?currentStep.color:C.amber} style={{flex:1}}>
+            {returnStep!==null?`↩ Retour au récapitulatif`
+              :step<10?`Valider`
               :`${STEPS[step+1].icon} ${STEPS[step+1].label}`}
           </BigBtn>
         ) : (
           <BigBtn onClick={handleSave} bg={allValid?C.green:C.bg2}
-            disabled={saving} style={{flex:1}} icon={saving?"":"âœ…"}>
-            {saving?"Enregistrementâ€¦":"VALIDER LA VISITE"}
+            disabled={saving} style={{flex:1}} icon={saving?"":"✅"}>
+            {saving?"Enregistrement…":"VALIDER LA VISITE"}
           </BigBtn>
         )}
         {step>0&&(
@@ -2143,7 +2426,7 @@ export const FormulaireVisite = ({lot, onBack, onSaved, toast, entrepriseId, use
             borderRadius:14,background:C.bg2,color:C.tx2,border:"none",
             fontFamily:"inherit",fontSize:15,fontWeight:500,cursor:"pointer",
             WebkitTapHighlightColor:"transparent"}}>
-            {returnStep!==null?"â†© RÃ©cap.":"< Retour"}
+            {returnStep!==null?"↩ Récap.":"< Retour"}
           </button>
         )}
       </div>
@@ -2155,7 +2438,7 @@ export const ListeVisites = ({visites}: any) => (
   <div data-scrollable="1" style={{flex:1,overflowY:"auto",padding:PADDING}}>
     {visites.length===0 ? (
       <div style={{textAlign:"center",padding:"48px 0",color:C.tx3}}>
-        <div style={{fontSize:40,marginBottom:12}}>ðŸ”­</div>
+        <div style={{fontSize:40,marginBottom:12}}>🔭</div>
         <div style={{fontSize:16,fontWeight:500}}>Aucune visite</div>
         <div style={{fontSize:13,marginTop:6}}>Lancez une visite depuis une fiche contact</div>
       </div>
@@ -2165,18 +2448,18 @@ export const ListeVisites = ({visites}: any) => (
         <div style={{display:"flex",justifyContent:"space-between",marginBottom:8}}>
           <div style={{fontSize:14,fontWeight:600}}>{v.lotNumero}</div>
           <div style={{fontSize:11,padding:"3px 8px",borderRadius:6,
-            background:C.greenL,color:C.greenD,fontWeight:500}}>âœ… ValidÃ©e</div>
+            background:C.greenL,color:C.greenD,fontWeight:500}}>✅ Validée</div>
         </div>
         <div style={{fontSize:12,color:C.tx3,lineHeight:1.7}}>
-          ðŸ“… {v.date} Â· ðŸ“¦ {fmtNum(v.volumeEstimeT)}t Â· {v.surfaceHa}ha<br/>
-          ðŸš› AccÃ¨s {v.accesCamion}
+          📅 {v.date} · 📦 {fmtNum(v.volumeEstimeT)}t · {v.surfaceHa}ha<br/>
+          🚛 Accès {v.accesCamion}
           {Array.isArray(v.photos)&&v.photos.length>0&&
-            <span> Â· ðŸ“· {v.photos.length} photo{v.photos.length>1?"s":""}</span>}
+            <span> · 📷 {v.photos.length} photo{v.photos.length>1?"s":""}</span>}
         </div>
       </div>
     ))}
   </div>
 );
 
-// â”€â”€ APP â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-// â”€â”€ Ã‰CRAN RELEVÃ‰S â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── APP ────────────────────────────────────────────────────────
+// ── ÉCRAN RELEVÉS ─────────────────────────────────────────────
