@@ -161,16 +161,17 @@ export const EcranRoleProprietaire = ({user, contacts, visites, reportings=[], l
         const visite=visites.find((v: any)=>v.lotId===lot.id||v.lotNumero===lot.lotNumero);
 
         const livraisonsChaufferie = livraisons
-          .filter((l: any)=>(l.lotId===lot.id||l.lotNumero===lot.lotNumero)&&l.typeDest==="chaufferie")
-          .sort((a: any,b: any)=>+new Date(a.dateHeureLivraison||0)-+new Date(b.dateHeureLivraison||0));
-        const poidsCumule = livraisonsChaufferie.reduce((s: any,l: any)=>s+(parseFloat(l.pesee)||0),0);
+          .filter((l: any)=>l.lotId===lot.id||l.lotNumero===lot.lotNumero)
+          .sort((a: any,b: any)=>(a.date||"").localeCompare(b.date||""));
+        const poidsNet = (l: any) => l.poidsNet ?? Math.max(0, (l.poidsBrut??0)-(l.tare??0));
+        const poidsCumule = livraisonsChaufferie.reduce((s: any,l: any)=>s+poidsNet(l),0);
         const prixTonne = parseFloat(visite?.prixTonne)||0;
         const sommeDue = poidsCumule*prixTonne;
 
         // Niveau de traçabilité APPLITAG (1/2/3)
         const hasVisite = !!visite;
         const hasLivraisons = livraisonsChaufferie.length > 0;
-        const hasPeseeVerifiee = livraisonsChaufferie.some((l: any)=>l.peseeVerifiee||l.humiditeReception);
+        const hasPeseeVerifiee = livraisonsChaufferie.some((l: any)=>!!l.peseeVerifiee);
         const niveauTracabilite = hasPeseeVerifiee ? 3 : hasLivraisons ? 2 : hasVisite ? 1 : 0;
         const NIVEAUX_TRACABILITE = [
           null,
@@ -344,44 +345,40 @@ export const EcranRoleProprietaire = ({user, contacts, visites, reportings=[], l
               {livraisonsChaufferie.length===0?(
                 <div style={{fontSize:12,color:C.tx3}}>Aucune livraison enregistrée à ce jour</div>
               ):livraisonsChaufferie.map((l: any,i: any)=>{
-                const pesee = parseFloat(l.pesee)||0;
-                const poidsBrut = parseFloat(l.poidsBrut)||0;
-                const tare = parseFloat(l.tare)||0;
-                const humidite = l.humiditeReception;
+                const pn      = poidsNet(l);
                 const verifiee = !!l.peseeVerifiee;
-                const statut = statutPreuve(pesee>0, !!l.numTicket||verifiee, verifiee);
-                const isManquante = pesee===0 && !l.peseeVerifiee;
+                const statut  = statutPreuve(pn>0, !!l.numTicket||verifiee, verifiee);
+                const isManquante = pn===0 && !verifiee;
+                const dateAff = l.date ? new Date(l.date).toLocaleDateString("fr-FR") : "—";
                 return (
                   <div key={l.id||i} style={{padding:"8px 0",borderBottom:`1px solid ${C.bd}`}}>
                     <div style={{display:"flex",justifyContent:"space-between",fontSize:12,marginBottom:2}}>
                       <div style={{display:"flex",alignItems:"center",gap:6}}>
-                        <span style={{fontSize:13,color:isManquante?"#DC2626":verifiee?"#7C3AED":pesee>0?"#1E5B3A":C.tx3}}>
+                        <span style={{fontSize:13,color:isManquante?"#DC2626":verifiee?"#7C3AED":pn>0?"#1E5B3A":C.tx3}}>
                           {isManquante?"!":statut}
                         </span>
-                        <span style={{color:C.tx2}}>
-                          {l.dateHeureLivraison?new Date(l.dateHeureLivraison).toLocaleDateString("fr-FR"):"—"}
-                        </span>
+                        <span style={{color:C.tx2}}>{dateAff}</span>
                         {l.nomDestination&&<span style={{color:C.tx3,fontSize:10}}> · {l.nomDestination}</span>}
                       </div>
                       <span style={{fontWeight:700,color:isManquante?"#DC2626":verifiee?"#7C3AED":C.tx}}>
-                        {pesee>0?fmtNum(pesee)+" t":"—"}
+                        {pn>0?fmtNum(pn)+" t":"—"}
                       </span>
                     </div>
-                    {(poidsBrut>0||tare>0)&&(
+                    {(l.poidsBrut>0||l.tare>0)&&(
                       <div style={{fontSize:10,color:C.tx3,paddingLeft:20}}>
-                        Brut : {fmtNum(poidsBrut)} t · Tare : {fmtNum(tare)} t
+                        Brut : {fmtNum(l.poidsBrut??0)} t · Tare : {fmtNum(l.tare??0)} t
                       </div>
                     )}
-                    {humidite&&(
+                    {l.humiditeReception&&(
                       <div style={{fontSize:10,color:C.tx3,paddingLeft:20}}>
-                        Humidité mesurée : {humidite} %
+                        Humidité mesurée : {l.humiditeReception} %
                       </div>
                     )}
                     {verifiee?(
                       <div style={{fontSize:10,color:"#7C3AED",paddingLeft:20,fontWeight:600}}>
                         Pesée enregistrée sur justificatif transmis par la destination
                       </div>
-                    ):(pesee>0)?(
+                    ):pn>0?(
                       <div style={{fontSize:10,color:C.tx3,paddingLeft:20,fontStyle:"italic"}}>
                         Pesée déclarée par l'opérateur — justificatif non encore reçu
                       </div>
@@ -408,7 +405,7 @@ export const EcranRoleProprietaire = ({user, contacts, visites, reportings=[], l
                 </div>
                 {livraisonsChaufferie.some((l: any)=>l.peseeVerifiee)&&(
                   <div style={{fontSize:10,color:C.greenD,opacity:.7,marginBottom:4,paddingLeft:4}}>
-                    dont ✓✓ {fmtNum(livraisonsChaufferie.filter((l: any)=>l.peseeVerifiee).reduce((s: any,l: any)=>s+(parseFloat(l.pesee)||0),0))} t vérifiées par justificatif
+                    dont ✓✓ {fmtNum(livraisonsChaufferie.filter((l: any)=>l.peseeVerifiee).reduce((s: any,l: any)=>s+poidsNet(l),0))} t vérifiées par justificatif
                   </div>
                 )}
                 <div style={{display:"flex",justifyContent:"space-between",marginBottom:4}}>
