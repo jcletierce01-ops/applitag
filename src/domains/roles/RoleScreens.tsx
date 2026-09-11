@@ -2,7 +2,7 @@
 import { C, PADDING } from "../../design-system/tokens.js";
 import { todayS } from "../../shared/utils.js";
 import { fmtNum } from "../../shared/format.js";
-import { apiGet, apiPost, apiPostPublic, apiPatch } from "../../services/api.service.js";
+import { apiGet, apiPost, apiPostPublic, apiPatch, apiDelete } from "../../services/api.service.js";
 import { BigBtn, MInput, SectionTitle } from "../../shared/ui.jsx";
 import { generatePdfFromHtml, buildRedHTML } from "../../domains/documents/pdf-templates.js";
 import { validateCMR, formatCMR, formatImmat, validateImmat } from "../../shared/validators.js";
@@ -1441,15 +1441,18 @@ export const EcranRoleDechiquetage = ({user, contacts, avisArrivee={}, camionsPa
 
 // ── ENTREPRISE SOLLICITÉE ─────────────────────────────────────────────────────
 const FONCTIONS_ETF = [
-  {value:"abattage",      label:"Opérateur abattage"},
-  {value:"debardage",     label:"Porteur / débardage"},
-  {value:"dechiquetage",  label:"Opérateur déchiquetage"},
-  {value:"chauffeur",     label:"Chauffeur camion"},
+  {value:"abattage",     label:"Opérateur abattage"},
+  {value:"debardage",    label:"Porteur / débardeur"},
+  {value:"dechiquetage", label:"Broyeur / déchiqueteur"},
+  {value:"chargement",   label:"Chargeur / grutier"},
+  {value:"chauffeur",    label:"Chauffeur camion"},
+  {value:"stockage",     label:"Gestionnaire plateforme"},
+  {value:"controle",     label:"Contrôle / pesée"},
 ];
 
 export const EcranEntrepriseSollicitee = ({user, lots=[], toast}: any) => {
   const storageKey = `applitag_etf_operateurs_${user.id}`;
-  const [operateurs, setOperateurs] = useState(()=>{
+  const [operateurs, setOperateurs] = useState<any[]>(()=>{
     try{const s=localStorage.getItem(storageKey);return s?JSON.parse(s):[]}catch{return[]}
   });
   const [showForm, setShowForm] = useState(false);
@@ -1458,12 +1461,21 @@ export const EcranEntrepriseSollicitee = ({user, lots=[], toast}: any) => {
   const [fonction, setFonction] = useState("abattage");
   const [lotId,    setLotId]    = useState("");
 
+  useEffect(() => {
+    apiGet('/operateurs-etf').then((r: any) => {
+      if (Array.isArray(r) && r.length > 0) {
+        setOperateurs(r);
+        try { localStorage.setItem(storageKey, JSON.stringify(r)); } catch { /* noop */ }
+      }
+    }).catch(() => {});
+  }, [storageKey]);
+
   const lotsEtf = lots.filter((l: any)=>
     l.etfNom===(user.nomEntreprise||user.nom) ||
     l.etfId===user.id
   );
 
-  const save = (list: any) => {
+  const save = (list: any[]) => {
     setOperateurs(list);
     try{localStorage.setItem(storageKey,JSON.stringify(list))} catch { /* noop */ }
   };
@@ -1483,9 +1495,13 @@ export const EcranEntrepriseSollicitee = ({user, lots=[], toast}: any) => {
     setNom(""); setPrenom(""); setFonction("abattage"); setLotId("");
     setShowForm(false);
     toast("Opérateur ajouté ✓");
+    apiPost('/operateurs-etf', nouvel).catch(() => {});
   };
 
-  const handleSupprimer = (id: any) => save(operateurs.filter((o: any)=>o.id!==id));
+  const handleSupprimer = (id: any) => {
+    save(operateurs.filter((o: any)=>o.id!==id));
+    apiDelete(`/operateurs-etf/${id}`).catch(() => {});
+  };
 
   const fonctionLabel = (v: any) => FONCTIONS_ETF.find(f=>f.value===v)?.label||v;
 
@@ -2762,10 +2778,17 @@ const COPROD_STATUT = {
 };
 
 export const EcranRoleScierie = (_props: any) => {
-  const [onglet, setOnglet] = useState<"coprods"|"enlevements">("coprods");
+  const [onglet,    setOnglet]    = useState<"coprods"|"enlevements">("coprods");
+  const [coprods,   setCoprods]   = useState<any[]>(SCIERIE_COPRODS_DEMO);
+  const [enlevs,    setEnlevs]    = useState<any[]>(SCIERIE_ENLEVS_DEMO);
 
-  const dispo = SCIERIE_COPRODS_DEMO.filter(c=>c.statut==="disponible");
-  const qteDispoT = dispo.reduce((s,c)=>s+c.qte,0);
+  useEffect(() => {
+    apiGet('/coprods-scierie').then((r: any) => { if (Array.isArray(r) && r.length>0) setCoprods(r); }).catch(() => {});
+    apiGet('/enlevements-scierie').then((r: any) => { if (Array.isArray(r) && r.length>0) setEnlevs(r); }).catch(() => {});
+  }, []);
+
+  const dispo = coprods.filter((c: any)=>c.statut==="disponible");
+  const qteDispoT = dispo.reduce((s: any,c: any)=>s+c.qte,0);
 
   return (
     <div data-scrollable="1" style={{flex:1,overflowY:"auto",padding:PADDING,background:C.bg}}>
@@ -2801,7 +2824,7 @@ export const EcranRoleScierie = (_props: any) => {
 
       {onglet==="coprods"&&(
         <div style={{display:"flex",flexDirection:"column",gap:8}}>
-          {SCIERIE_COPRODS_DEMO.map(cp=>{
+          {coprods.map((cp: any)=>{
             const st = COPROD_STATUT[cp.statut as keyof typeof COPROD_STATUT]||COPROD_STATUT.disponible;
             return (
               <div key={cp.id} style={{background:C.bg,borderRadius:12,padding:"11px 13px",
@@ -2826,7 +2849,7 @@ export const EcranRoleScierie = (_props: any) => {
 
       {onglet==="enlevements"&&(
         <div style={{display:"flex",flexDirection:"column",gap:8}}>
-          {SCIERIE_ENLEVS_DEMO.map(e=>(
+          {enlevs.map((e: any)=>(
             <div key={e.id} style={{background:C.bg,borderRadius:12,padding:"11px 13px",
               border:`1px solid ${C.bd}`}}>
               <div style={{display:"flex",justifyContent:"space-between",marginBottom:4}}>
@@ -2842,7 +2865,7 @@ export const EcranRoleScierie = (_props: any) => {
               </div>
             </div>
           ))}
-          {SCIERIE_ENLEVS_DEMO.length===0&&(
+          {enlevs.length===0&&(
             <div style={{padding:24,textAlign:"center",color:C.tx3,fontSize:13}}>
               Aucun enlèvement enregistré aujourd'hui.
             </div>
