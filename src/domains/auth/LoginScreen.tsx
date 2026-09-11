@@ -345,10 +345,15 @@ export const LoginScreen = ({onLogin, onLoginOperateur, onLoginDemo}: any) => {
 
   return (
     <div style={{display:"flex",flexDirection:"column",height:"100%",
-      background:"linear-gradient(170deg,#061c13 0%,#0d3b27 55%,#0b3022 100%)",
+      position:"relative",
+      background:"#040908",
       color:"#fff",fontFamily:"Inter,system-ui,-apple-system,sans-serif"}}>
+      {/* Fond d'écran */}
+      <img src="/wallpaper-bg.svg" alt=""
+        style={{position:"absolute",inset:0,width:"100%",height:"100%",
+          objectFit:"cover",zIndex:0,pointerEvents:"none"}}/>
       {/* Header */}
-      <div style={{padding:"36px 24px 20px",textAlign:"center"}}>
+      <div style={{padding:"36px 24px 20px",textAlign:"center",position:"relative",zIndex:1}}>
         <img src="/logo.png" alt="APPLITAG" style={{width:72,height:72,objectFit:"contain",marginBottom:14,
           filter:"drop-shadow(0 4px 12px rgba(0,0,0,.35))"}}/>
         <div style={{fontSize:10,fontWeight:700,letterSpacing:"0.16em",color:"rgba(255,255,255,.5)",
@@ -360,7 +365,7 @@ export const LoginScreen = ({onLogin, onLoginOperateur, onLoginDemo}: any) => {
       </div>
 
       <div style={{flex:1,padding:PADDING,overflowY:"scroll",
-        background:"transparent"}}>
+        background:"transparent",position:"relative",zIndex:1}}>
 
         {/* ── BIENVENUE ── */}
         {step==="bienvenue"&&(
