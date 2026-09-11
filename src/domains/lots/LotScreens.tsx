@@ -39,7 +39,7 @@ export const FicheLotCentrale = ({
   useEffect(()=>{
     setLoading(true);
     Promise.all([
-      apiGet(`/relevés/lot/${lot.id}`).catch(()=>[]),
+      apiGet(`/releves/releves-abatteur/${lot.id}`).catch(()=>[]),
       apiGet(`/transports/lot/${lot.id}`).catch(()=>[]),
       apiGet(`/livraisons/lot/${lot.id}`).catch(()=>[]),
     ]).then(([r,t,l])=>{
