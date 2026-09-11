@@ -3657,3 +3657,129 @@ export const EcranRoleFinanceur = (_props: any) => {
     </div>
   );
 };
+
+// ── LOGISTIQUE / AFFRÈTEMENT ──────────────────────────────────────────────────
+const LOGISTIQUE_TRANSPORTS_DEMO = [
+  {id:"tr1",date:"2026-09-11",lot:"LOT-2026-034",origine:"Chantier Combrailles",destination:"Chaufferie Moulins Centre",transporteur:"Camion Rossi",poidsT:14.2,statut:"en_cours"},
+  {id:"tr2",date:"2026-09-11",lot:"LOT-2026-031",origine:"Plateforme Vichy",destination:"Industrie Lapeyre SA",transporteur:"Trans-Allier SARL",poidsT:22.0,statut:"planifé"},
+  {id:"tr3",date:"2026-09-10",lot:"LOT-2026-029",origine:"Chantier Thiers",destination:"Chaufferie Clermont-Fd",transporteur:"Camion Rossi",poidsT:18.4,statut:"livré"},
+  {id:"tr4",date:"2026-09-13",lot:"LOT-2026-036",origine:"Forêt Domaniale Tronçais",destination:"Scierie Auvergne",transporteur:"Non affecté",poidsT:31.5,statut:"à_affrêter"},
+];
+const LOGISTIQUE_BESOINS_DEMO = [
+  {id:"b1",lot:"LOT-2026-036",volume:"31.5 t",essence:"Chêne",date:"2026-09-13",priorite:"haute",contact:"M. Dupont (ETF Boisiers du Centre)"},
+  {id:"b2",lot:"LOT-2026-038",volume:"18.0 t",essence:"Hêtre",date:"2026-09-18",priorite:"normale",contact:"Mme Vidal (Prop. Lapalisse)"},
+];
+
+export const EcranRoleLogistique = (_props: any) => {
+  const [onglet,     setOnglet]     = useState<"transports"|"besoins"|"contacts">("transports");
+  const [transports, setTransports] = useState<any[]>(LOGISTIQUE_TRANSPORTS_DEMO);
+  const [besoins,    setBesoins]    = useState<any[]>(LOGISTIQUE_BESOINS_DEMO);
+
+  useEffect(() => {
+    apiGet('/transports').then((r: any) => { if (Array.isArray(r) && r.length>0) setTransports(r); }).catch(() => {});
+    apiGet('/livraisons').then((r: any) => { if (Array.isArray(r) && r.length>0) setBesoins(r); }).catch(() => {});
+  }, []);
+
+  const enCours   = transports.filter((t: any)=>t.statut==="en_cours");
+  const aAffreter = transports.filter((t: any)=>t.statut==="à_affrêter");
+  const totalT    = transports.reduce((s: any,t: any)=>s+(t.poidsT||0), 0);
+
+  const statutColor = (s: string) => s==="livré"?"#065F46":s==="en_cours"?"#1D4ED8":s==="planifé"?"#92400E":"#7C3AED";
+  const statutBg    = (s: string) => s==="livré"?"#D1FAE5":s==="en_cours"?"#DBEAFE":s==="planifé"?"#FEF9C3":"#EDE9FE";
+  const statutLabel = (s: string) => s==="livré"?"✅ Livré":s==="en_cours"?"🚛 En cours":s==="planifé"?"📅 Planifié":"🔴 À affrêter";
+
+  return (
+    <div style={{display:"flex",flexDirection:"column",height:"100%",background:C.bg}}>
+      <div style={{background:"#1E3A5F",color:"#fff",padding:"16px 16px 12px"}}>
+        <div style={{fontSize:11,opacity:.75,marginBottom:3}}>🚛 Logistique · Affrètement</div>
+        <div style={{fontSize:17,fontWeight:800}}>Coordination transport bois</div>
+        <div style={{fontSize:10,opacity:.7,marginTop:4}}>Planification · Suivi · Affrètement filière</div>
+      </div>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:1,background:C.bd,flexShrink:0}}>
+        {([
+          ["🚛", enCours.length,        "En cours"],
+          ["🔴", aAffreter.length,      "À affrêter"],
+          ["📦", transports.length,     "Total"],
+          ["⚖️", `${totalT.toFixed(0)} t`, "Tonnage"],
+        ] as [string,any,string][]).map(([ic,v,lb],i)=>(
+          <div key={i} style={{background:"#fff",padding:"10px 6px",textAlign:"center"}}>
+            <div style={{fontSize:14,marginBottom:2}}>{ic}</div>
+            <div style={{fontSize:14,fontWeight:800,color:"#1E3A5F"}}>{v}</div>
+            <div style={{fontSize:9,color:C.tx3,fontWeight:600}}>{lb}</div>
+          </div>
+        ))}
+      </div>
+      <div style={{display:"flex",background:"#fff",borderBottom:`1px solid ${C.bd}`,flexShrink:0}}>
+        {([["transports","🚛 Transports"],["besoins","📋 À affrêter"],["contacts","📞 Contacts"]] as [typeof onglet,string][]).map(([k,lbl])=>(
+          <button key={k} onClick={()=>setOnglet(k)} style={{flex:1,padding:"11px 4px",border:"none",
+            cursor:"pointer",fontFamily:"inherit",fontSize:11,fontWeight:700,background:"transparent",
+            borderBottom:onglet===k?"3px solid #1E3A5F":"3px solid transparent",
+            color:onglet===k?"#1E3A5F":C.tx3}}>
+            {lbl}
+          </button>
+        ))}
+      </div>
+      <div style={{flex:1,overflowY:"auto",padding:14,display:"flex",flexDirection:"column",gap:12}}>
+        {onglet==="transports"&&transports.map((t: any)=>(
+          <div key={t.id} style={{background:"#fff",borderRadius:12,border:`1px solid ${C.bd}`,
+            borderLeft:`4px solid ${statutColor(t.statut)}`,padding:14}}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:6,gap:8}}>
+              <div style={{fontWeight:700,fontSize:12,color:C.tx,flex:1}}>{t.lot}</div>
+              <span style={{fontSize:9,padding:"3px 7px",borderRadius:12,fontWeight:700,flexShrink:0,
+                background:statutBg(t.statut),color:statutColor(t.statut)}}>
+                {statutLabel(t.statut)}
+              </span>
+            </div>
+            <div style={{fontSize:10,color:C.tx3,marginBottom:6,display:"flex",flexDirection:"column",gap:2}}>
+              <span>📍 {t.origine} → {t.destination}</span>
+              <span>🚛 {t.transporteur} · <strong style={{color:C.tx}}>{t.poidsT} t</strong></span>
+              <span>📅 {new Date(t.date).toLocaleDateString("fr-FR",{day:"numeric",month:"short"})}</span>
+            </div>
+          </div>
+        ))}
+        {onglet==="besoins"&&(
+          besoins.length===0
+            ? <div style={{textAlign:"center",padding:40,color:C.tx3,fontSize:12}}>Aucun besoin en attente</div>
+            : besoins.map((b: any)=>(
+              <div key={b.id} style={{background:"#fff",borderRadius:12,border:`1px solid ${C.bd}`,
+                borderLeft:"4px solid #7C3AED",padding:14}}>
+                <div style={{display:"flex",justifyContent:"space-between",marginBottom:6,gap:8}}>
+                  <div style={{fontWeight:700,fontSize:12,color:C.tx,flex:1}}>{b.lot}</div>
+                  <span style={{fontSize:9,padding:"3px 7px",borderRadius:12,fontWeight:700,flexShrink:0,
+                    background:"#EDE9FE",color:"#7C3AED"}}>
+                    {b.priorite==="haute"?"🔴 Urgent":"📋 Normal"}
+                  </span>
+                </div>
+                <div style={{fontSize:10,color:C.tx3,display:"flex",flexDirection:"column",gap:2}}>
+                  <span>🌲 {b.volume} · {b.essence}</span>
+                  <span>📅 Enlèvement souhaité : {new Date(b.date).toLocaleDateString("fr-FR",{day:"numeric",month:"short"})}</span>
+                  <span>👤 {b.contact}</span>
+                </div>
+              </div>
+            ))
+        )}
+        {onglet==="contacts"&&(
+          <div style={{background:"#fff",borderRadius:12,border:`1px solid ${C.bd}`,padding:14}}>
+            <div style={{fontSize:12,fontWeight:800,marginBottom:10,color:C.tx}}>📞 Contacts filière</div>
+            {[
+              {role:"🚛 Transporteur",nom:"Camion Rossi",tel:"06 12 34 56 78",zone:"Allier / PdD"},
+              {role:"🚛 Transporteur",nom:"Trans-Allier SARL",tel:"06 23 45 67 89",zone:"Allier"},
+              {role:"🏗️ Plateforme",nom:"Plateforme Vichy",tel:"04 70 11 22 33",zone:"Vichy"},
+              {role:"🔥 Chaufferie",nom:"Chaufferie Moulins Centre",tel:"04 70 44 55 66",zone:"Moulins"},
+            ].map((c,i)=>(
+              <div key={i} style={{paddingBlock:9,borderBottom:i<3?`1px solid ${C.bd}`:"none"}}>
+                <div style={{fontSize:10,color:C.tx3,fontWeight:600,marginBottom:2}}>{c.role} · {c.zone}</div>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                  <span style={{fontSize:12,fontWeight:700,color:C.tx}}>{c.nom}</span>
+                  <a href={`tel:${c.tel.replace(/\s/g,"")}`} style={{fontSize:11,color:"#1E3A5F",fontWeight:600,textDecoration:"none"}}>
+                    📞 {c.tel}
+                  </a>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};

@@ -25,7 +25,7 @@ import { BigBtn, SectionTitle } from "./shared/ui.jsx";
 import { FormulaireVisite } from "./domains/visites/FormulaireVisite.jsx";
 import { EcranDashboardPC } from "./domains/dashboard/EcranDashboardPC.jsx";
 import { FicheLotCentrale, EcranFinChantier, EcranDechiquetage, EcranTransporteur, EcranLivraison } from "./domains/lots/LotScreens.jsx";
-import { EcranRoleMandataire, EcranRoleProprietaire, EcranRoleChauffeur, EcranRoleDechiquetage, EcranEntrepriseSollicitee, EcranRoleChaufferie, EcranRoleReceptionnaire, EcranAutoDeclarationRED, EcranCarte, EcranRoleCollectivite, EcranRoleBET, EcranRoleETF, EcranRoleAssociation, EcranRoleInstitutionnel, EcranRoleFinanceur } from "./domains/roles/RoleScreens.jsx";
+import { EcranRoleMandataire, EcranRoleProprietaire, EcranRoleChauffeur, EcranRoleDechiquetage, EcranEntrepriseSollicitee, EcranRoleChaufferie, EcranRoleReceptionnaire, EcranAutoDeclarationRED, EcranCarte, EcranRoleCollectivite, EcranRoleBET, EcranRoleETF, EcranRoleAssociation, EcranRoleInstitutionnel, EcranRoleFinanceur, EcranRoleLogistique } from "./domains/roles/RoleScreens.jsx";
 import { QrCodeAdmin, EcranReleves, EcranOperateur, EcranAccueil, EcranDelegations, Fiche0, Fiche0Edit } from "./domains/screens/MobileScreens.jsx";
 import { EcranLots, ModalDelegationVisite, ModalSuggestionETF, EcranValidationExploitation, EcranClotureExploitation, EcranBonCommande, EcranSaisiesAdmin } from "./domains/exploitation/ExploitationScreens.jsx";
 import { LoginScreen } from "./domains/auth/LoginScreen.jsx";
@@ -501,6 +501,13 @@ export default function App() {
     <div style={{display:"flex",flexDirection:"column",height:"100dvh",
       fontFamily:FONT_BODY,maxWidth:430,margin:"0 auto",boxShadow:"0 0 40px rgba(0,0,0,.15)"}}>
       <EcranRoleFinanceur user={user}/>
+    </div>
+  );
+
+  if (roleEffectif==="logistique") return (
+    <div style={{display:"flex",flexDirection:"column",height:"100dvh",
+      fontFamily:FONT_BODY,maxWidth:430,margin:"0 auto",boxShadow:"0 0 40px rgba(0,0,0,.15)"}}>
+      <EcranRoleLogistique user={user}/>
     </div>
   );
 
