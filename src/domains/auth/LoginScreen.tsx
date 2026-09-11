@@ -359,7 +359,7 @@ export const LoginScreen = ({onLogin, onLoginOperateur, onLoginDemo}: any) => {
           textTransform:"uppercase",marginBottom:6}}>Plateforme bois-énergie</div>
         <div style={{fontSize:26,fontWeight:800,letterSpacing:"-0.01em",fontFamily:"inherit"}}>APPLITAG</div>
         <div style={{fontSize:13,color:"rgba(255,255,255,.55)",marginTop:5,lineHeight:1.5,maxWidth:260,margin:"6px auto 0"}}>
-          Piloter, tracer et prouver chaque flux de bois-énergie.
+          Pilotage, traçabilité et continuité des flux bois-énergie.
         </div>
       </div>
 
