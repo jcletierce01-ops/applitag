@@ -1252,13 +1252,15 @@ export const EcranOperateur = ({operateur, onLogout, toast, onUpdateOperateur}: 
     setPinSaving(true);
     try {
       await apiPatch(`/operateurs/${operateur.id}`, {pin:pinNouveau});
-    } catch { /* noop */ }
-    const opMaj = {...operateur, pin:pinNouveau};
-    onUpdateOperateur?.(opMaj);
-    setPinActuel(""); setPinNouveau(""); setPinNouveauConf("");
+      const opMaj = {...operateur, pin:pinNouveau};
+      onUpdateOperateur?.(opMaj);
+      setPinActuel(""); setPinNouveau(""); setPinNouveauConf("");
+      toast?.("PIN modifié ✓");
+      setScreen("lots");
+    } catch {
+      setPinErreur("Impossible de modifier le PIN — réessayez quand vous êtes connecté");
+    }
     setPinSaving(false);
-    toast?.("PIN modifié ✓");
-    setScreen("lots");
   };
   const [lotsStatus, setLotsStatus] = useState<Record<string,any>>({}); // {lotId: statutLot} — rafraîchi depuis le serveur
   const [visites, setVisites] = useState<any[]>([]);
