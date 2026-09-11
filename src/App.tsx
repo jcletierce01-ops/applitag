@@ -315,13 +315,15 @@ export default function App() {
         onBack={handleLogout}
         onSaved={()=>{}}
         toast={toast}
-        _contactCount={9}
-        entrepriseId={DEMO_ENTREPRISE_ID}
-        prefill={({
-          nom:"Dubois", prenom:"Marie",
-          telephone:"0386491234", email:"",
-          id:"demo-prop2",
-        } as any)}
+        _contactCount={contacts.length}
+        entrepriseId={entrepriseId}
+        prefill={user ? ({
+          nom:       user.nom       ?? "",
+          prenom:    user.prenom    ?? "",
+          telephone: user.telephone ?? "",
+          email:     user.email     ?? "",
+          id:        user.id        ?? "",
+        } as any) : null}
         comptes={[] as any}
       />
     </div>
