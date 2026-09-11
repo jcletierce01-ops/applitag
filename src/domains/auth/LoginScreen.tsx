@@ -1,4 +1,5 @@
 ﻿import { useState, useEffect, useRef } from "react";
+import { WallpaperBg } from "./WallpaperBg";
 import { Html5Qrcode } from "html5-qrcode";
 import { C, BTN_H, INPUT_H, FONT_INPUT, PADDING } from "../../design-system/tokens.js";
 import { uid, nowISO, todayS, genCodeAPT } from "../../shared/utils.js";
@@ -349,9 +350,7 @@ export const LoginScreen = ({onLogin, onLoginOperateur, onLoginDemo}: any) => {
       background:"#040908",
       color:"#fff",fontFamily:"Inter,system-ui,-apple-system,sans-serif"}}>
       {/* Fond d'écran */}
-      <img src="/wallpaper-bg.svg" alt=""
-        style={{position:"absolute",inset:0,width:"100%",height:"100%",
-          objectFit:"cover",zIndex:0,pointerEvents:"none"}}/>
+      <WallpaperBg/>
       {/* Header */}
       <div style={{padding:"36px 24px 20px",textAlign:"center",position:"relative",zIndex:1}}>
         <img src="/logo.png" alt="APPLITAG" style={{width:72,height:72,objectFit:"contain",marginBottom:14,
