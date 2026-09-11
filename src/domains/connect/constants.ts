@@ -9,6 +9,12 @@ export const TYPES_PRESTATION_ANNONCE: [string, string, string][] = [
   ["debardage",   "🚜", "Débardage"],
   ["dechiquetage","🌀", "Déchiquetage"],
   ["transport",   "🚛", "Transport"],
+  ["stockage",    "🏗️", "Stockage / Plateforme"],
+  ["scierie",     "🪚", "Scierie / Industrie"],
+  ["bet",         "📐", "Bureau d'études"],
+  ["maintenance", "🔧", "Maintenance"],
+  ["controle",    "✅", "Contrôle qualité"],
+  ["autre",       "⚙️", "Autre prestation"],
 ];
 
 type StatutAnnonce = { label: string; color: string; bg: string };

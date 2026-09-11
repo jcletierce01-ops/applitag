@@ -199,6 +199,44 @@ export const FicheLotCentrale = ({
               ))}
             </div>
 
+            {/* Niveau de justification des données */}
+            {(()=>{
+              const niveau = livraisons.length>0 ? 3 : releves.length>0 ? 2 : derniereVisite ? 1 : 0;
+              const niveaux = [
+                {n:1, label:"Estimé",   icon:"📐", desc:"Volume issu de la visite terrain",            color:"#B45309", bg:"#FEF3C7"},
+                {n:2, label:"Déclaré",  icon:"📋", desc:"Données d'exploitation saisies par l'équipe", color:"#1D4ED8", bg:"#DBEAFE"},
+                {n:3, label:"Justifié", icon:"✅", desc:"Livraisons documentées (CMR / bons)",         color:"#15803D", bg:"#DCFCE7"},
+              ];
+              const niv = niveaux[Math.max(niveau-1,0)];
+              return (
+                <div style={{borderRadius:14,padding:14,marginBottom:16,
+                  background:niveau>0?niv.bg:"#F3F4F6",
+                  border:`1.5px solid ${niveau>0?niv.color:"#E5E7EB"}`}}>
+                  <div style={{fontSize:11,fontWeight:700,color:C.tx2,marginBottom:10,
+                    letterSpacing:"0.06em",textTransform:"uppercase"}}>
+                    Niveau de justification
+                  </div>
+                  <div style={{display:"flex",gap:6}}>
+                    {niveaux.map((n)=>{
+                      const active = niveau>=n.n;
+                      const current = niveau===n.n;
+                      return (
+                        <div key={n.n} style={{flex:1,borderRadius:10,padding:"10px 6px",textAlign:"center",
+                          background:active?n.bg:"#F9FAFB",
+                          border:`1.5px solid ${active?n.color:"#E5E7EB"}`,
+                          opacity:active?1:0.45}}>
+                          <div style={{fontSize:20,marginBottom:3}}>{active?n.icon:"○"}</div>
+                          <div style={{fontSize:11,fontWeight:700,color:active?n.color:C.tx3}}>{n.label}</div>
+                          {current&&<div style={{fontSize:9,color:n.color,marginTop:2,fontWeight:700}}>actuel</div>}
+                        </div>
+                      );
+                    })}
+                  </div>
+                  <div style={{fontSize:10,color:niv.color,marginTop:8,fontWeight:500}}>{niv.desc}</div>
+                </div>
+              );
+            })()}
+
             {/* Volumes calculés depuis relevés */}
             {releves.length>0&&(
               <div style={{background:C.amberL,borderRadius:14,padding:16,marginBottom:16,

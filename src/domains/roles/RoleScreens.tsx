@@ -2,7 +2,7 @@
 import { C, PADDING } from "../../design-system/tokens.js";
 import { todayS } from "../../shared/utils.js";
 import { fmtNum } from "../../shared/format.js";
-import { apiPost, apiPostPublic, apiPatch } from "../../services/api.service.js";
+import { apiGet, apiPost, apiPostPublic, apiPatch } from "../../services/api.service.js";
 import { BigBtn, MInput, SectionTitle } from "../../shared/ui.jsx";
 import { generatePdfFromHtml, buildRedHTML } from "../../domains/documents/pdf-templates.js";
 import { validateCMR, formatCMR, formatImmat, validateImmat } from "../../shared/validators.js";
@@ -1767,12 +1767,12 @@ export const EcranRoleReceptionnaire = ({user, livraisons=[], contacts=[], visit
   const [lotStockSelec, setLotStockSelec] = useState<any>(null); // lot contact ouvert dans "En stock"
   const [rechercheHisto, setRechercheHisto] = useState("");
 
-  const platLivs = livraisons.filter((l: any)=>l.typeDest==="plateforme");
-  const enAttente = platLivs.filter((l: any)=>!l.statut||l.statut==="en_attente");
-  const recues    = platLivs.filter((l: any)=>l.statut==="recu"||confirmes[l.id]);
+  const platLivs = livraisons; // toutes les livraisons de ce réceptionnaire (filtrées par l'API)
+  const enAttente = platLivs.filter((l: any)=>!l.statut||l.statut==="declaree");
+  const recues    = platLivs.filter((l: any)=>l.statut==="verifiee"||confirmes[l.id]);
   const enStock   = contacts.filter((c: any)=>["BORD_ROUTE","A_DECHIQUETER","EN_STOCK_PLATEFORME"].includes(c.statutLot));
-  const tonnageStock = platLivs.filter((l: any)=>l.statut==="recu"||confirmes[l.id]).reduce((s: any,l: any)=>s+(parseFloat(l.pesee)||0),0);
-  const tonnageRecus = recues.reduce((s: any,l: any)=>s+(parseFloat(l.pesee)||0),0);
+  const tonnageStock = platLivs.filter((l: any)=>l.statut==="verifiee"||confirmes[l.id]).reduce((s: any,l: any)=>s+((l.poidsNet||l.poidsBrut)||0),0);
+  const tonnageRecus = recues.reduce((s: any,l: any)=>s+((l.poidsNet||l.poidsBrut)||0),0);
 
   const handleConfirmer = (l: any) => {
     setConfirmes(p=>({...p,[l.id]:true}));
@@ -1874,9 +1874,9 @@ export const EcranRoleReceptionnaire = ({user, livraisons=[], contacts=[], visit
                   </div>
                 )}
                 <div style={{fontSize:12,color:C.tx3,lineHeight:1.9,marginBottom:12}}>
-                  🚛 CMR : {l.numeroCMR||"—"}<br/>
-                  ⚖️ Pesée transport : <strong style={{color:C.tx}}>{l.pesee} t</strong><br/>
-                  📅 {new Date(l.dateHeureLivraison).toLocaleDateString("fr-FR",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"})}
+                  🚛 BL : {l.numeroBL||"—"}<br/>
+                  ⚖️ Pesée transport : <strong style={{color:C.tx}}>{(l.poidsNet||l.poidsBrut||0)} t</strong><br/>
+                  📅 {new Date(l.date).toLocaleDateString("fr-FR",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"})}
                 </div>
                 <div style={{marginBottom:12}}>
                   <div style={{fontSize:12,fontWeight:600,color:C.tx,marginBottom:6}}>
@@ -1920,8 +1920,8 @@ export const EcranRoleReceptionnaire = ({user, livraisons=[], contacts=[], visit
             </div>
           )}
           {enStock.map((c: any)=>{
-            const entrees = platLivs.filter((l: any)=>l.lotId===c.id&&(l.statut==="recu"||confirmes[l.id]));
-            const tonnageLot = entrees.reduce((s: any,l: any)=>s+(parseFloat(l.pesee)||0),0);
+            const entrees = platLivs.filter((l: any)=>l.lotId===c.id&&(l.statut==="verifiee"||confirmes[l.id]));
+            const tonnageLot = entrees.reduce((s: any,l: any)=>s+((l.poidsNet||l.poidsBrut)||0),0);
             return (
               <div key={c.id} onClick={()=>setLotStockSelec(c)}
                 style={{background:"#fff",borderRadius:14,padding:14,marginBottom:10,
@@ -1973,28 +1973,28 @@ export const EcranRoleReceptionnaire = ({user, livraisons=[], contacts=[], visit
           <div style={{fontSize:12,fontWeight:700,color:C.tx,marginBottom:10}}>
             Historique des entrées
           </div>
-          {platLivs.filter((l: any)=>l.lotId===lotStockSelec.id&&(l.statut==="recu"||confirmes[l.id])).length===0&&(
+          {platLivs.filter((l: any)=>l.lotId===lotStockSelec.id&&(l.statut==="verifiee"||confirmes[l.id])).length===0&&(
             <div style={{textAlign:"center",color:C.tx3,padding:"24px 0",fontSize:13}}>
               Aucune entrée enregistrée pour ce lot
             </div>
           )}
-          {platLivs.filter((l: any)=>l.lotId===lotStockSelec.id&&(l.statut==="recu"||confirmes[l.id])).map((l: any,i: any)=>(
+          {platLivs.filter((l: any)=>l.lotId===lotStockSelec.id&&(l.statut==="verifiee"||confirmes[l.id])).map((l: any,i: any)=>(
             <div key={l.id||i} style={{background:"#fff",borderRadius:12,padding:14,
               marginBottom:8,border:`1px solid ${C.bd}`}}>
               <div style={{display:"flex",justifyContent:"space-between",marginBottom:4}}>
                 <div style={{fontSize:12,fontWeight:600,color:C.tx}}>Entrée {i+1}</div>
                 <div style={{textAlign:"right"}}>
                   <div style={{fontSize:10,color:C.tx3}}>
-                    {new Date(l.dateHeureLivraison).toLocaleDateString("fr-FR")}
+                    {new Date(l.date).toLocaleDateString("fr-FR")}
                   </div>
                   <div style={{fontSize:11,fontWeight:600,color:C.tx2}}>
-                    {new Date(l.dateHeureLivraison).toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"})}
+                    {new Date(l.date).toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"})}
                   </div>
                 </div>
               </div>
               <div style={{fontSize:12,color:C.tx3,lineHeight:1.7}}>
-                ⚖️ {l.pesee} t · 💧 {l.humiditeReception??humidite[l.id]??"—"}%<br/>
-                📄 CMR : {l.numeroCMR||"—"}
+                ⚖️ {(l.poidsNet||l.poidsBrut||0)} t · 💧 {l.humiditeReception??humidite[l.id]??"—"}%<br/>
+                📄 BL : {l.numeroBL||"—"}
               </div>
               <div style={{marginTop:6,fontSize:11,fontWeight:600,
                 color:(l.humiditeReception||humidite[l.id])<=30?C.greenD
@@ -2043,15 +2043,15 @@ export const EcranRoleReceptionnaire = ({user, livraisons=[], contacts=[], visit
                 </div>
                 <div style={{textAlign:"right"}}>
                   <div style={{fontSize:10,color:C.tx3}}>
-                    {new Date(l.dateHeureLivraison).toLocaleDateString("fr-FR")}
+                    {new Date(l.date).toLocaleDateString("fr-FR")}
                   </div>
                   <div style={{fontSize:11,fontWeight:600,color:C.tx2,marginTop:1}}>
-                    {new Date(l.dateHeureLivraison).toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"})}
+                    {new Date(l.date).toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"})}
                   </div>
                 </div>
               </div>
               <div style={{fontSize:12,color:C.tx3,lineHeight:1.7}}>
-                ⚖️ {l.pesee} t · 💧 {l.humiditeReception??humidite[l.id]??"—"}% · 📄 {l.numeroCMR}
+                ⚖️ {(l.poidsNet||l.poidsBrut||0)} t · 💧 {l.humiditeReception??humidite[l.id]??"—"}% · 📄 {l.numeroBL||"—"}
               </div>
               <div style={{marginTop:6,fontSize:11,fontWeight:600,
                 color:(l.humiditeReception||humidite[l.id])<=30?C.greenD:(l.humiditeReception||humidite[l.id])<=45?C.amberD:C.red}}>
@@ -2070,7 +2070,7 @@ export const EcranAutoDeclarationRED = ({lot, visites, transports=[], livraisons
   const transport = transports.find((t: any)=>t.lotId===lot.id||t.lotNumero===lot.lotNumero);
   const livraison = livraisons.find((l: any)=>l.lotId===lot.id||l.lotNumero===lot.lotNumero);
 
-  const tonnage = parseFloat(livraison?.pesee||visite?.volumeEstimeT||0);
+  const tonnage = parseFloat((livraison?.poidsNet||livraison?.poidsBrut||visite?.volumeEstimeT||0) as any);
   // Seuil 500 t/an → auto-déclaration, sinon déclaration durabilité
   const typeAuto = tonnage<=500 ? "auto" : "durabilite";
   const [typeDecl, setTypeDecl] = useState(typeAuto);
@@ -2619,8 +2619,12 @@ const STATUT_PARC = {
 
 export const EcranRoleGestionnaire = (_props: any) => {
   const [selected, setSelected] = useState<string|null>(null);
+  const [parcelles, setParcelles] = useState<any[]>(GESTIONNAIRE_PARCELLES);
+  useEffect(() => {
+    apiGet('/parcelles-gestionnaire').then((r: any) => { if (Array.isArray(r) && r.length>0) setParcelles(r); }).catch(() => {});
+  }, []);
 
-  const parc = selected ? GESTIONNAIRE_PARCELLES.find(p=>p.id===selected) : null;
+  const parc = selected ? parcelles.find((p: any)=>p.id===selected) : null;
 
   if (parc) {
     const st = STATUT_PARC[parc.statut as keyof typeof STATUT_PARC]||STATUT_PARC.libre;
@@ -2661,7 +2665,7 @@ export const EcranRoleGestionnaire = (_props: any) => {
         <div style={{marginBottom:10,fontSize:11,fontWeight:700,color:C.tx}}>
           🔨 Chantiers liés ({parc.chantiers.length})
         </div>
-        {parc.chantiers.map(cid=>(
+        {(parc.chantiers||[]).map((cid: any)=>(
           <div key={cid} style={{background:C.bg,borderRadius:10,padding:"9px 12px",
             marginBottom:6,fontSize:11,border:`1px solid ${C.bd}`,
             display:"flex",alignItems:"center",gap:8}}>
@@ -2672,7 +2676,7 @@ export const EcranRoleGestionnaire = (_props: any) => {
         <div style={{marginTop:10,marginBottom:10,fontSize:11,fontWeight:700,color:C.tx}}>
           📦 Lots en gestion ({parc.lots.length})
         </div>
-        {parc.lots.map(lid=>(
+        {(parc.lots||[]).map((lid: any)=>(
           <div key={lid} style={{background:C.bg,borderRadius:10,padding:"9px 12px",
             marginBottom:6,fontSize:11,border:`1px solid ${C.bd}`,
             display:"flex",alignItems:"center",gap:8}}>
@@ -2694,9 +2698,9 @@ export const EcranRoleGestionnaire = (_props: any) => {
       {/* KPIs */}
       <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8,marginBottom:14}}>
         {[
-          {ico:"🌳",label:"Parcelles",val:GESTIONNAIRE_PARCELLES.length,col:"#1E5B3A",bg:"#D1FAE5"},
-          {ico:"🔨",label:"En cours",val:GESTIONNAIRE_PARCELLES.filter(p=>p.statut==="chantier_en_cours").length,col:"#B45309",bg:"#FEF3C7"},
-          {ico:"📦",label:"Lots gérés",val:GESTIONNAIRE_PARCELLES.reduce((s,p)=>s+p.lots.length,0),col:"#0369A1",bg:"#DBEAFE"},
+          {ico:"🌳",label:"Parcelles",val:parcelles.length,col:"#1E5B3A",bg:"#D1FAE5"},
+          {ico:"🔨",label:"En cours",val:parcelles.filter((p: any)=>p.statut==="chantier_en_cours").length,col:"#B45309",bg:"#FEF3C7"},
+          {ico:"📦",label:"Lots gérés",val:parcelles.reduce((s,p: any)=>s+(p.lots||[]).length,0),col:"#0369A1",bg:"#DBEAFE"},
         ].map(kpi=>(
           <div key={kpi.label} style={{background:kpi.bg,borderRadius:10,padding:"10px 12px",textAlign:"center"}}>
             <div style={{fontSize:18}}>{kpi.ico}</div>
@@ -2708,7 +2712,7 @@ export const EcranRoleGestionnaire = (_props: any) => {
 
       {/* Liste parcelles */}
       <div style={{display:"flex",flexDirection:"column",gap:8}}>
-        {GESTIONNAIRE_PARCELLES.map(p=>{
+        {parcelles.map((p: any)=>{
           const st = STATUT_PARC[p.statut as keyof typeof STATUT_PARC]||STATUT_PARC.libre;
           return (
             <div key={p.id} onClick={()=>setSelected(p.id)}
@@ -2869,12 +2873,19 @@ const COLLECTIVITE_DEMO = {
 
 export const EcranRoleCollectivite = (_props: any) => {
   const [onglet, setOnglet] = useState<"synthese"|"chaufferies"|"conformite">("synthese");
-  const demo = COLLECTIVITE_DEMO;
+  const [data, setData]     = useState(COLLECTIVITE_DEMO);
 
-  const totalT   = demo.chaufferies.reduce((s,c)=>s+c.consoAnnuelT,0);
-  const totalMWh = demo.chaufferies.reduce((s,c)=>s+c.energieMWh,0);
-  const avgCout  = Math.round(demo.chaufferies.reduce((s,c)=>s+c.coutTonne,0)/demo.chaufferies.length);
-  const avgGhg   = Math.round(demo.chaufferies.reduce((s,c)=>s+c.ghgEco,0)/demo.chaufferies.length);
+  useEffect(() => {
+    apiGet('/chaufferies').then((r: any) => {
+      if (Array.isArray(r) && r.length > 0) setData(d => ({...d, chaufferies: r}));
+    }).catch(() => {});
+  }, []);
+
+  const demo = data;
+  const totalT   = demo.chaufferies.reduce((s,c: any)=>s+c.consoAnnuelT,0);
+  const totalMWh = demo.chaufferies.reduce((s,c: any)=>s+c.energieMWh,0);
+  const avgCout  = Math.round(demo.chaufferies.reduce((s,c: any)=>s+c.coutTonne,0)/demo.chaufferies.length);
+  const avgGhg   = Math.round(demo.chaufferies.reduce((s,c: any)=>s+c.ghgEco,0)/demo.chaufferies.length);
 
   const KPIS = [
     {icon:"🔥",val:demo.chaufferies.length,label:"Chaufferies"},
@@ -3045,9 +3056,17 @@ const BET_RAPPORTS_DEMO = [
 ];
 
 export const EcranRoleBET = (_props: any) => {
-  const [onglet, setOnglet] = useState<"etudes"|"rapports"|"agenda">("etudes");
-  const enCours = BET_ETUDES_DEMO.filter(e=>e.statut==="en_cours");
-  const haTotal = BET_ETUDES_DEMO.filter(e=>e.surface).reduce((s,e)=>s+(e.surface||0),0);
+  const [onglet,  setOnglet]  = useState<"etudes"|"rapports"|"agenda">("etudes");
+  const [etudes,  setEtudes]  = useState<any[]>(BET_ETUDES_DEMO);
+  const [rapports,setRapports]= useState<any[]>(BET_RAPPORTS_DEMO);
+
+  useEffect(() => {
+    apiGet('/projets-bet').then((r: any) => { if (Array.isArray(r) && r.length>0) setEtudes(r); }).catch(() => {});
+    apiGet('/rapports-bet').then((r: any) => { if (Array.isArray(r) && r.length>0) setRapports(r); }).catch(() => {});
+  }, []);
+
+  const enCours = etudes.filter((e: any)=>e.statut==="en_cours");
+  const haTotal = etudes.filter((e: any)=>e.surface).reduce((s,e: any)=>s+(e.surface||0),0);
 
   return (
     <div style={{display:"flex",flexDirection:"column",height:"100%",background:C.bg}}>
@@ -3057,7 +3076,7 @@ export const EcranRoleBET = (_props: any) => {
         <div style={{fontSize:10,opacity:.7,marginTop:4}}>Allier (03) · PEFC · SBP · SURE</div>
       </div>
       <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:1,background:C.bd,flexShrink:0}}>
-        {([["📋",enCours.length,"Études en cours"],["🌲",haTotal+" ha","Ha traités"],["📄",BET_RAPPORTS_DEMO.length,"Rapports"],["👥","12","Clients actifs"]] as [string,any,string][]).map(([ic,v,lb],i)=>(
+        {([["📋",enCours.length,"Études en cours"],["🌲",haTotal+" ha","Ha traités"],["📄",rapports.length,"Rapports"],["👥","12","Clients actifs"]] as [string,any,string][]).map(([ic,v,lb],i)=>(
           <div key={i} style={{background:"#fff",padding:"10px 6px",textAlign:"center"}}>
             <div style={{fontSize:14,marginBottom:2}}>{ic}</div>
             <div style={{fontSize:14,fontWeight:800,color:"#1E40AF"}}>{v}</div>
@@ -3076,7 +3095,7 @@ export const EcranRoleBET = (_props: any) => {
         ))}
       </div>
       <div style={{flex:1,overflowY:"auto",padding:14,display:"flex",flexDirection:"column",gap:12}}>
-        {onglet==="etudes"&&BET_ETUDES_DEMO.map(et=>(
+        {onglet==="etudes"&&etudes.map((et: any)=>(
           <div key={et.id} style={{background:"#fff",borderRadius:12,border:`1px solid ${C.bd}`,
             borderLeft:`4px solid ${et.statut==="livré"?"#6B7280":"#1E40AF"}`,padding:14}}>
             <div style={{display:"flex",justifyContent:"space-between",marginBottom:6}}>
@@ -3098,7 +3117,7 @@ export const EcranRoleBET = (_props: any) => {
             {et.notes&&<div style={{fontSize:10,color:C.tx2,marginTop:6,fontStyle:"italic"}}>{et.notes}</div>}
           </div>
         ))}
-        {onglet==="rapports"&&BET_RAPPORTS_DEMO.map(r=>(
+        {onglet==="rapports"&&rapports.map((r: any)=>(
           <div key={r.id} style={{background:"#fff",borderRadius:12,border:`1px solid ${C.bd}`,padding:14}}>
             <div style={{fontWeight:700,fontSize:12,marginBottom:4}}>{r.titre}</div>
             <div style={{fontSize:11,color:C.tx3,display:"flex",gap:12,flexWrap:"wrap"}}>
@@ -3154,7 +3173,13 @@ const ETF_MATERIEL_DEMO = [
 
 export const EcranRoleETF = (_props: any) => {
   const [onglet, setOnglet] = useState<"chantiers"|"planning"|"materiel">("chantiers");
-  const totalM3 = ETF_CHANTIERS_DEMO.reduce((s,c)=>s+Math.round(c.volumeEstimeM3*c.avancement/100),0);
+  const [chantiers, setChantiers] = useState<any[]>(ETF_CHANTIERS_DEMO);
+  const [materiel, setMateriel]   = useState<any[]>(ETF_MATERIEL_DEMO);
+  useEffect(() => {
+    apiGet('/chantiers-etf').then((r: any) => { if (Array.isArray(r) && r.length>0) setChantiers(r); }).catch(() => {});
+    apiGet('/materiel-etf').then((r: any)  => { if (Array.isArray(r) && r.length>0) setMateriel(r);  }).catch(() => {});
+  }, []);
+  const totalM3 = chantiers.reduce((s,c: any)=>s+Math.round((c.volumeEstimeM3||0)*(c.avancement||0)/100),0);
 
   return (
     <div style={{display:"flex",flexDirection:"column",height:"100%",background:C.bg}}>
@@ -3164,7 +3189,7 @@ export const EcranRoleETF = (_props: any) => {
         <div style={{fontSize:10,opacity:.7,marginTop:4}}>Abattage · Débardage · Broyage bocager</div>
       </div>
       <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:1,background:C.bd,flexShrink:0}}>
-        {([["🪓",ETF_CHANTIERS_DEMO.length,"Chantiers actifs"],["📦",totalM3+" m³","Produits (estim.)"],["👥","6","Équipe"],["🚜",ETF_MATERIEL_DEMO.length,"Machines"]] as [string,any,string][]).map(([ic,v,lb],i)=>(
+        {([["🪓",chantiers.length,"Chantiers actifs"],["📦",totalM3+" m³","Produits (estim.)"],["👥","6","Équipe"],["🚜",materiel.length,"Machines"]] as [string,any,string][]).map(([ic,v,lb],i)=>(
           <div key={i} style={{background:"#fff",padding:"10px 6px",textAlign:"center"}}>
             <div style={{fontSize:14,marginBottom:2}}>{ic}</div>
             <div style={{fontSize:14,fontWeight:800,color:"#78350F"}}>{v}</div>
@@ -3183,7 +3208,7 @@ export const EcranRoleETF = (_props: any) => {
         ))}
       </div>
       <div style={{flex:1,overflowY:"auto",padding:14,display:"flex",flexDirection:"column",gap:12}}>
-        {onglet==="chantiers"&&ETF_CHANTIERS_DEMO.map(ch=>(
+        {onglet==="chantiers"&&chantiers.map((ch: any)=>(
           <div key={ch.id} style={{background:"#fff",borderRadius:12,border:`1px solid ${C.bd}`,
             borderLeft:"4px solid #78350F",padding:14}}>
             <div style={{fontWeight:800,fontSize:13,marginBottom:4,color:C.tx}}>{ch.label}</div>
@@ -3202,11 +3227,11 @@ export const EcranRoleETF = (_props: any) => {
         {onglet==="planning"&&(
           <div style={{background:"#fff",borderRadius:12,border:`1px solid ${C.bd}`,padding:14}}>
             <div style={{fontSize:12,fontWeight:800,marginBottom:10,color:C.tx}}>📅 Semaine S36 — sept. 2026</div>
-            {ETF_CHANTIERS_DEMO.map(ch=>(
+            {chantiers.map((ch: any)=>(
               <div key={ch.id} style={{paddingBlock:8,borderBottom:`1px solid ${C.bd}`}}>
                 <div style={{fontWeight:700,fontSize:12,color:C.tx,marginBottom:2}}>{ch.label}</div>
                 <div style={{fontSize:10,color:C.tx2}}>📅 Fin prévue : {new Date(ch.dateFin).toLocaleDateString("fr-FR")} · {ch.avancement}% ✓</div>
-                <div style={{fontSize:10,color:C.tx3,marginTop:2}}>🚜 {ch.machines[0]}</div>
+                <div style={{fontSize:10,color:C.tx3,marginTop:2}}>🚜 {(ch.machines||[])[0]}</div>
               </div>
             ))}
             <div style={{paddingTop:10,fontSize:11,color:"#1E40AF",fontWeight:600}}>
@@ -3214,7 +3239,7 @@ export const EcranRoleETF = (_props: any) => {
             </div>
           </div>
         )}
-        {onglet==="materiel"&&ETF_MATERIEL_DEMO.map(m=>(
+        {onglet==="materiel"&&materiel.map((m: any)=>(
           <div key={m.id} style={{background:"#fff",borderRadius:12,border:`1px solid ${C.bd}`,
             borderLeft:`4px solid ${m.statut==="actif"?"#059669":"#6B7280"}`,padding:14}}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
@@ -3228,7 +3253,7 @@ export const EcranRoleETF = (_props: any) => {
                 {m.statut==="actif"?"⚙️ En chantier":"✅ Disponible"}
               </span>
             </div>
-            {m.chantier&&<div style={{fontSize:10,color:C.tx2,marginTop:6}}>Sur : {ETF_CHANTIERS_DEMO.find(c=>c.id===m.chantier)?.label||m.chantier}</div>}
+            {m.chantier&&<div style={{fontSize:10,color:C.tx2,marginTop:6}}>Sur : {(chantiers.find((c: any)=>c.id===m.chantier) as any)?.label||m.chantier}</div>}
           </div>
         ))}
       </div>
@@ -3248,16 +3273,20 @@ const ASSO_MEMBRES_DEMO = [
 
 export const EcranRoleAssociation = (_props: any) => {
   const [onglet, setOnglet] = useState<"membres"|"ressources"|"activite">("membres");
+  const [membres, setMembres] = useState<any[]>(ASSO_MEMBRES_DEMO);
+  useEffect(() => {
+    apiGet('/membres-asso').then((r: any) => { if (Array.isArray(r) && r.length>0) setMembres(r); }).catch(() => {});
+  }, []);
 
   return (
     <div style={{display:"flex",flexDirection:"column",height:"100%",background:C.bg}}>
       <div style={{background:"#0369A1",color:"#fff",padding:"16px 16px 12px"}}>
         <div style={{fontSize:11,opacity:.75,marginBottom:3}}>🤝 Interprofession filière bois-énergie</div>
         <div style={{fontSize:17,fontWeight:800}}>FIBOIS Auvergne — Délégation Allier</div>
-        <div style={{fontSize:10,opacity:.7,marginTop:4}}>{ASSO_MEMBRES_DEMO.length} membres · Allier (03) · AURA</div>
+        <div style={{fontSize:10,opacity:.7,marginTop:4}}>{membres.length} membres · Allier (03) · AURA</div>
       </div>
       <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:1,background:C.bd,flexShrink:0}}>
-        {([["🤝",ASSO_MEMBRES_DEMO.length,"Membres"],["🌲","28.4k t","Tonnage suivi"],["🗺️","186k ha","Forêt territoire"],["📅","6","Événements 2026"]] as [string,any,string][]).map(([ic,v,lb],i)=>(
+        {([["🤝",membres.length,"Membres"],["🌲","28.4k t","Tonnage suivi"],["🗺️","186k ha","Forêt territoire"],["📅","6","Événements 2026"]] as [string,any,string][]).map(([ic,v,lb],i)=>(
           <div key={i} style={{background:"#fff",padding:"10px 6px",textAlign:"center"}}>
             <div style={{fontSize:14,marginBottom:2}}>{ic}</div>
             <div style={{fontSize:14,fontWeight:800,color:"#0369A1"}}>{v}</div>
@@ -3276,7 +3305,7 @@ export const EcranRoleAssociation = (_props: any) => {
         ))}
       </div>
       <div style={{flex:1,overflowY:"auto",padding:14,display:"flex",flexDirection:"column",gap:10}}>
-        {onglet==="membres"&&ASSO_MEMBRES_DEMO.map(m=>(
+        {onglet==="membres"&&membres.map((m: any)=>(
           <div key={m.id} style={{background:"#fff",borderRadius:12,border:`1px solid ${C.bd}`,
             display:"flex",justifyContent:"space-between",alignItems:"center",padding:"12px 14px"}}>
             <div>
@@ -3361,7 +3390,11 @@ const STATUT_INSTIT_COLOR: Record<string,{bg:string,tx:string,lbl:string}> = {
 
 export const EcranRoleInstitutionnel = (_props: any) => {
   const [onglet, setOnglet] = useState<"dossiers"|"territoire"|"controles">("dossiers");
-  const enCours = INSTIT_DOSSIERS_DEMO.filter(d=>d.statut==="instruit"||d.statut==="en_instruction");
+  const [dossiers, setDossiers] = useState<any[]>(INSTIT_DOSSIERS_DEMO);
+  useEffect(() => {
+    apiGet('/dossiers-instit').then((r: any) => { if (Array.isArray(r) && r.length>0) setDossiers(r); }).catch(() => {});
+  }, []);
+  const enCours = dossiers.filter((d: any)=>d.statut==="instruit"||d.statut==="en_instruction");
 
   return (
     <div style={{display:"flex",flexDirection:"column",height:"100%",background:C.bg}}>
@@ -3371,7 +3404,7 @@ export const EcranRoleInstitutionnel = (_props: any) => {
         <div style={{fontSize:10,opacity:.7,marginTop:4}}>Allier (03) · Direction Départementale des Territoires</div>
       </div>
       <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:1,background:C.bd,flexShrink:0}}>
-        {([["📂",INSTIT_DOSSIERS_DEMO.length,"Dossiers"],["⏳",enCours.length,"En cours"],["🌲","186k ha","Forêt 03"],["🏘️","320","Communes"]] as [string,any,string][]).map(([ic,v,lb],i)=>(
+        {([["📂",dossiers.length,"Dossiers"],["⏳",enCours.length,"En cours"],["🌲","186k ha","Forêt 03"],["🏘️","320","Communes"]] as [string,any,string][]).map(([ic,v,lb],i)=>(
           <div key={i} style={{background:"#fff",padding:"10px 6px",textAlign:"center"}}>
             <div style={{fontSize:14,marginBottom:2}}>{ic}</div>
             <div style={{fontSize:14,fontWeight:800,color:"#1E3A5F"}}>{v}</div>
@@ -3390,7 +3423,7 @@ export const EcranRoleInstitutionnel = (_props: any) => {
         ))}
       </div>
       <div style={{flex:1,overflowY:"auto",padding:14,display:"flex",flexDirection:"column",gap:12}}>
-        {onglet==="dossiers"&&INSTIT_DOSSIERS_DEMO.map(d=>{
+        {onglet==="dossiers"&&dossiers.map((d: any)=>{
           const s = STATUT_INSTIT_COLOR[d.statut]||{bg:C.bg,tx:C.tx3,lbl:d.statut};
           return (
             <div key={d.id} style={{background:"#fff",borderRadius:12,border:`1px solid ${C.bd}`,padding:14}}>
@@ -3482,8 +3515,12 @@ const FINANCEUR_PROJETS_DEMO = [
 
 export const EcranRoleFinanceur = (_props: any) => {
   const [onglet, setOnglet] = useState<"projets"|"dossiers"|"indicateurs">("projets");
-  const enCours = FINANCEUR_PROJETS_DEMO.filter(p=>p.statut==="en_cours");
-  const totalEngagéK = FINANCEUR_PROJETS_DEMO.reduce((s,p)=>s+p.montantEngagéK,0);
+  const [projets, setProjets] = useState<any[]>(FINANCEUR_PROJETS_DEMO);
+  useEffect(() => {
+    apiGet('/projets-financeur').then((r: any) => { if (Array.isArray(r) && r.length>0) setProjets(r); }).catch(() => {});
+  }, []);
+  const enCours = projets.filter((p: any)=>p.statut==="en_cours");
+  const totalEngagéK = projets.reduce((s,p: any)=>s+(p.montantEngagéK||0),0);
 
   return (
     <div style={{display:"flex",flexDirection:"column",height:"100%",background:C.bg}}>
@@ -3493,7 +3530,7 @@ export const EcranRoleFinanceur = (_props: any) => {
         <div style={{fontSize:10,opacity:.7,marginTop:4}}>Délégation régionale · Fonds bois-énergie</div>
       </div>
       <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:1,background:C.bd,flexShrink:0}}>
-        {([["📁",FINANCEUR_PROJETS_DEMO.length,"Projets"],["⚙️",enCours.length,"En cours"],[
+        {([["📁",projets.length,"Projets"],["⚙️",enCours.length,"En cours"],[
           "💶",`${totalEngagéK}k€`,"Engagés"],["📊","43 %","Taux moyen"]] as [string,any,string][]).map(([ic,v,lb],i)=>(
           <div key={i} style={{background:"#fff",padding:"10px 6px",textAlign:"center"}}>
             <div style={{fontSize:14,marginBottom:2}}>{ic}</div>
@@ -3513,7 +3550,7 @@ export const EcranRoleFinanceur = (_props: any) => {
         ))}
       </div>
       <div style={{flex:1,overflowY:"auto",padding:14,display:"flex",flexDirection:"column",gap:12}}>
-        {onglet==="projets"&&FINANCEUR_PROJETS_DEMO.map(p=>{
+        {onglet==="projets"&&projets.map((p: any)=>{
           const pct = Math.round(p.montantEngagéK/p.montantTotalK*100);
           const scol = p.statut==="soldé"?"#6B7280":p.statut==="remboursement"?"#7C3AED":"#134E4A";
           return (

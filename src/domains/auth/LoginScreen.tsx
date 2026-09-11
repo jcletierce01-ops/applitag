@@ -387,7 +387,7 @@ export const LoginScreen = ({onLogin, onLoginOperateur, onLoginDemo}: any) => {
                   backdropFilter:"blur(8px)",
                   color:"#fff",fontFamily:"inherit",fontSize:15,fontWeight:600,cursor:"pointer",
                   WebkitTapHighlightColor:"transparent",
-                  display:"flex",alignItems:"center",gap:14,textAlign:"left",
+                  display:"flex",alignItems:"center",justifyContent:"center",gap:14,textAlign:"center",
                   transition:"background .15s"}}>
                 <div style={{width:44,height:44,borderRadius:12,background:"rgba(255,255,255,.15)",
                   display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,fontSize:22}}>
@@ -396,7 +396,7 @@ export const LoginScreen = ({onLogin, onLoginOperateur, onLoginDemo}: any) => {
                 <div>
                   <div style={{fontWeight:700}}>Me connecter</div>
                   <div style={{fontSize:12,color:"rgba(255,255,255,.6)",fontWeight:400,marginTop:2}}>
-                    Espace professionnel — accès administrateur
+                    Je dispose de mes identifiants
                   </div>
                 </div>
               </button>
@@ -408,7 +408,7 @@ export const LoginScreen = ({onLogin, onLoginOperateur, onLoginDemo}: any) => {
                   backdropFilter:"blur(8px)",
                   color:"#fff",fontFamily:"inherit",fontSize:15,fontWeight:600,cursor:"pointer",
                   WebkitTapHighlightColor:"transparent",
-                  display:"flex",alignItems:"center",gap:14,textAlign:"left"}}>
+                  display:"flex",alignItems:"center",justifyContent:"center",gap:14,textAlign:"center"}}>
                 <div style={{width:44,height:44,borderRadius:12,background:"rgba(45,180,90,.2)",
                   display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,fontSize:22}}>
                   📲
@@ -416,7 +416,7 @@ export const LoginScreen = ({onLogin, onLoginOperateur, onLoginDemo}: any) => {
                 <div>
                   <div style={{fontWeight:700}}>APPLITAG Connect</div>
                   <div style={{fontSize:12,color:"rgba(255,255,255,.6)",fontWeight:400,marginTop:2}}>
-                    Compte gratuit · Suivre un lot · Déposer une annonce
+                    Compte gratuit · Proposer une ressource · Proposer un service · Rejoindre APPLITAG
                   </div>
                 </div>
               </button>
@@ -857,6 +857,39 @@ export const LoginScreen = ({onLogin, onLoginOperateur, onLoginDemo}: any) => {
 
             {compteVue==="choix"&&(
               <div style={{display:"flex",flexDirection:"column",gap:10}}>
+                <button onClick={()=>{ resetAnnonce(); setAnnonceType("gisement"); setStep("annonce"); }} style={{
+                  width:"100%",padding:16,borderRadius:14,textAlign:"left",
+                  background:"rgba(34,197,94,.1)",border:"1px solid rgba(34,197,94,.3)",
+                  color:"#fff",fontFamily:"inherit",cursor:"pointer",
+                  display:"flex",alignItems:"center",gap:14,WebkitTapHighlightColor:"transparent"}}>
+                  <span style={{fontSize:24}}>🌲</span>
+                  <div>
+                    <div style={{fontSize:14,fontWeight:600}}>Proposer une ressource</div>
+                    <div style={{fontSize:11,opacity:.6,marginTop:2}}>Bois sur pied ou bord de route — sans compte requis</div>
+                  </div>
+                </button>
+                <button onClick={()=>{ resetAnnonce(); setAnnonceType("service"); setStep("annonce"); }} style={{
+                  width:"100%",padding:16,borderRadius:14,textAlign:"left",
+                  background:"rgba(34,197,94,.1)",border:"1px solid rgba(34,197,94,.3)",
+                  color:"#fff",fontFamily:"inherit",cursor:"pointer",
+                  display:"flex",alignItems:"center",gap:14,WebkitTapHighlightColor:"transparent"}}>
+                  <span style={{fontSize:24}}>🛠️</span>
+                  <div>
+                    <div style={{fontSize:14,fontWeight:600}}>Proposer un service</div>
+                    <div style={{fontSize:11,opacity:.6,marginTop:2}}>Abattage, débardage, déchiquetage, transport — sans compte requis</div>
+                  </div>
+                </button>
+                <button onClick={()=>{ resetCompteForm(); setCompteVue("inscription"); }} style={{
+                  width:"100%",padding:16,borderRadius:14,textAlign:"left",
+                  background:"rgba(76,175,80,.2)",border:"1px solid rgba(76,175,80,.5)",
+                  color:"#fff",fontFamily:"inherit",cursor:"pointer",
+                  display:"flex",alignItems:"center",gap:14,WebkitTapHighlightColor:"transparent"}}>
+                  <span style={{fontSize:24}}>🤝</span>
+                  <div>
+                    <div style={{fontSize:14,fontWeight:600}}>Rejoindre APPLITAG</div>
+                    <div style={{fontSize:11,opacity:.6,marginTop:2}}>Créer un compte gratuit — suivre vos propositions</div>
+                  </div>
+                </button>
                 <button onClick={()=>{ resetCompteForm(); setCompteVue("connexion"); }} style={{
                   width:"100%",padding:16,borderRadius:14,textAlign:"left",
                   background:"rgba(255,255,255,.08)",border:"1px solid rgba(255,255,255,.18)",
@@ -864,14 +897,6 @@ export const LoginScreen = ({onLogin, onLoginOperateur, onLoginDemo}: any) => {
                   display:"flex",alignItems:"center",gap:14,WebkitTapHighlightColor:"transparent"}}>
                   <span style={{fontSize:24}}>🔑</span>
                   <div style={{fontSize:14,fontWeight:600}}>Se connecter</div>
-                </button>
-                <button onClick={()=>{ resetCompteForm(); setCompteVue("inscription"); }} style={{
-                  width:"100%",padding:16,borderRadius:14,textAlign:"left",
-                  background:"rgba(76,175,80,.2)",border:"1px solid rgba(76,175,80,.5)",
-                  color:"#fff",fontFamily:"inherit",cursor:"pointer",
-                  display:"flex",alignItems:"center",gap:14,WebkitTapHighlightColor:"transparent"}}>
-                  <span style={{fontSize:24}}>➕</span>
-                  <div style={{fontSize:14,fontWeight:600}}>Créer un compte gratuit</div>
                 </button>
                 <button onClick={()=>setStep("bienvenue")}
                   style={{width:"100%",padding:14,borderRadius:12,marginTop:6,

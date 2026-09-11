@@ -27,20 +27,23 @@ export const FEATURE_FLAGS = {
   UTILISATEURS:     true,
   PARAMETRES:       true,
 
-  // ── Modules avancés — désactivés en production (activés en démo) ─
+  // ── Modules avancés — activés P2 (critères auth/tenant/RBAC/tests remplis) ─
+  CONFORMITE_RED:       true,   // P2 — calculs RED II/III côté client, données lot existantes
+  GES:                  true,   // P2 — bilan GES calculé depuis pesées et distances
+  PLAN_APPRO:           true,   // P2 — plan d'approvisionnement territorial
+  RAPPORTS:             true,   // P2 — génération PDF/export depuis données existantes
+  REGLEMENTATION:       true,   // P2 — référentiel réglementaire, lecture seule
+  ANALYSES:             true,   // P2 — analyses filière, données agrégées
+
+  // ── Modules avancés — encore en démo (API non prête ou décision produit en cours) ─
   SCIERIE:              IS_DEMO_BUILD,
   COPRODUITS:           IS_DEMO_BUILD,
   FINANCEMENTS:         IS_DEMO_BUILD,
   PROJET_FINANCE:       IS_DEMO_BUILD,
-  GES:                  IS_DEMO_BUILD,
   REGISTRE_IA:          IS_DEMO_BUILD,
   TERRITOIRE:           IS_DEMO_BUILD,
   FACTURE_ELEC:         IS_DEMO_BUILD,
-  CONFORMITE_RED:       IS_DEMO_BUILD,
   COUT_REGLEMENTAIRE:   IS_DEMO_BUILD,
-  REGLEMENTATION:       IS_DEMO_BUILD,
-  ANALYSES:             IS_DEMO_BUILD,
-  RAPPORTS:             IS_DEMO_BUILD,
   RESEAU:               IS_DEMO_BUILD,
   ABONNEMENTS:          IS_DEMO_BUILD,
   BOIS_CRISE:           IS_DEMO_BUILD,
@@ -48,5 +51,4 @@ export const FEATURE_FLAGS = {
   ANOMALIES_VOIRIES:    IS_DEMO_BUILD,
   DEMO_SCENAR:          IS_DEMO_BUILD,
   MODULES_FUTURS:       IS_DEMO_BUILD,
-  PLAN_APPRO:           IS_DEMO_BUILD,
 } satisfies Record<string, boolean>;
