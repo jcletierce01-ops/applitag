@@ -1402,8 +1402,17 @@ export const EcranOperateur = ({operateur, onLogout, toast, onUpdateOperateur}: 
       setModeModif(false);
       setReleveExistantId(null);
     } catch {
-      relevesSoumis.current.add(`${activeLot.lotId}|${typeOp}`);
-      toast("Relevé enregistré ✓");
+      // Offline : sauvegarde locale pour synchronisation ultérieure
+      try {
+        const pendingKey = `applitag_releve_pending_${activeLot.lotId}_${typeOp}`;
+        localStorage.setItem(pendingKey, JSON.stringify({
+          endpoint,
+          payload,
+          releveExistantId: modeModif ? releveExistantId : null,
+        }));
+      } catch { /* noop */ }
+      // Ne pas marquer comme soumis — retry possible à la reconnexion
+      toast("Relevé enregistré localement ✓ — sera synchronisé à la reconnexion");
       setScreen("lots");
       setActiveLot(null);
       setModeModif(false);
