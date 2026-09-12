@@ -690,6 +690,7 @@ export default function App() {
             onSaved={(c: any)=>{ setFiche0Prefill(null); setContacts(prev=>[c,...prev]); setScreen("lots"); }}
             onAddRdv={(evt: any)=>setNotifications(prev=>[evt,...prev])}
             toast={toast} _contactCount={contacts.length} entrepriseId={entrepriseId}
+            user={user}
             prefill={fiche0Prefill as any} comptes={comptesLocalGet() as any}/>
         )}
         {screen==="fiche-lot"&&activeContact&&(

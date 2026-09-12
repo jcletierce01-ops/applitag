@@ -50,7 +50,7 @@ export const QrCodeAdmin = ({entrepriseId, entrepriseNom, onClose}: any) => {
 };
 
 // ── FICHE 0 ───────────────────────────────────────────────────
-export const Fiche0 = ({onBack, onSaved, toast, entrepriseId, prefill=null, comptes=[], onAddRdv}: any) => {
+export const Fiche0 = ({onBack, onSaved, toast, entrepriseId, prefill=null, comptes=[], onAddRdv, user}: any) => {
   const [origine,       setOrigine]  = useState(prefill?"appel_applitag":"");
   const [nomApporteur,  setApporteur]= useState("");
   const [dateContact,   setDateC]    = useState(todayS());
@@ -74,7 +74,7 @@ export const Fiche0 = ({onBack, onSaved, toast, entrepriseId, prefill=null, comp
   const [priorite,      setPriorite] = useState("moyenne");
   const [statut,        setStatut]   = useState("nouveau");
   const [commentaire,   setComment]  = useState("");
-  const [redacteur,     setRedacteur]= useState("");
+  const [redacteur,     setRedacteur]= useState(()=>[user?.prenom,user?.nom].filter(Boolean).join(" "));
   const [conclusion,    setConclusion]=useState("");
   const [dateRdv,       setDateRdv]  = useState("");
   const [delaiRappel,   setDelaiRappel]= useState<number>(()=>{

@@ -1970,21 +1970,17 @@ export const EcranLivraison = ({lot, onBack, onSaved, toast, entrepriseId}: any)
     const energieMWh = Math.round(calculerEnergie(parseFloat(pesee)||0, pci) * 10) / 10;
     try {
       await apiPost(`/livraisons`, {
-          lotId:lot.id, lotNumero:lot.lotNumero, entrepriseId,
-          typeDest, numeroCMR, nomDestination, gpsLivraison,
-          pesee, humiditeReception, nomReceptionnaire, signatureRecep,
-          commentaire, numeroPlateforme,
-          dateHeureLivraison: new Date().toISOString(),
-          statut: statutFinal,
-          gpsAlerteDeclenche: gpsAlerte,
-          energieMWh,
-          pciMWhParT: Math.round(pci * 1000) / 1000,
+          lotId:lot.id, lotNumero:lot.lotNumero,
+          nomDestination,
+          poidsBrut: parseFloat(pesee)||undefined,
+          humiditeReception,
+          date: new Date().toISOString().slice(0,16),
+          statut: "declaree",
       });
       toast(typeDest==="chaufferie"?"Livraison chaufferie validée ✓":"Entrée stock plateforme ✓");
       onSaved(statutFinal);
     } catch {
-      toast("Livraison enregistrée localement ✓");
-      onSaved(statutFinal);
+      toast("Livraison non enregistrée — vérifiez votre connexion","warn");
     }
     setSaving(false);
   };
