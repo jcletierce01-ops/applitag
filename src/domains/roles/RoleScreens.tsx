@@ -1455,11 +1455,13 @@ export const EcranEntrepriseSollicitee = ({user, lots=[], toast}: any) => {
   const [operateurs, setOperateurs] = useState<any[]>(()=>{
     try{const s=localStorage.getItem(storageKey);return s?JSON.parse(s):[]}catch{return[]}
   });
-  const [showForm, setShowForm] = useState(false);
-  const [nom,      setNom]      = useState("");
-  const [prenom,   setPrenom]   = useState("");
-  const [fonction, setFonction] = useState("abattage");
-  const [lotId,    setLotId]    = useState("");
+  const [showForm,   setShowForm]   = useState(false);
+  const [ajoutSaving,setAjoutSaving]= useState(false);
+  const [pinModal,   setPinModal]   = useState<{nom:string;prenom:string;pin:string}|null>(null);
+  const [nom,        setNom]        = useState("");
+  const [prenom,     setPrenom]     = useState("");
+  const [fonction,   setFonction]   = useState("abattage");
+  const [lotId,      setLotId]      = useState("");
 
   useEffect(() => {
     apiGet('/operateurs-etf').then((r: any) => {
@@ -1480,22 +1482,39 @@ export const EcranEntrepriseSollicitee = ({user, lots=[], toast}: any) => {
     try{localStorage.setItem(storageKey,JSON.stringify(list))} catch { /* noop */ }
   };
 
-  const handleAjouter = () => {
+  const handleAjouter = async () => {
     if(!nom.trim()||!prenom.trim()||!lotId){
       toast("Renseignez nom, prénom et lot assigné","warn"); return;
     }
-    const nouvel = {
-      id: Date.now().toString(),
-      nom: nom.trim(), prenom: prenom.trim(),
-      fonction, lotId,
-      lotNumero: lots.find((l: any)=>l.id===lotId)?.lotNumero||lotId,
-      dateCreation: new Date().toLocaleDateString("fr-FR"),
-    };
-    save([...operateurs, nouvel]);
+    setAjoutSaving(true);
+    const lotNumero = lots.find((l: any)=>l.id===lotId)?.lotNumero||lotId;
+    try {
+      const result: any = await apiPost('/operateurs-etf', {
+        nom: nom.trim(), prenom: prenom.trim(),
+        etfNom: user.nomEntreprise||user.nom||"",
+        lotId,
+      });
+      const saved = {
+        ...result, fonction, lotId, lotNumero,
+        dateCreation: new Date().toLocaleDateString("fr-FR"),
+      };
+      save([...operateurs, saved]);
+      if (result.pinClair) setPinModal({ nom: result.nom, prenom: result.prenom, pin: result.pinClair });
+      else toast("Opérateur ajouté ✓");
+    } catch {
+      // Hors ligne : enregistrement local sans PIN ; le PIN sera généré à la reconnexion
+      const nouvel = {
+        id: Date.now().toString(),
+        nom: nom.trim(), prenom: prenom.trim(),
+        fonction, lotId, lotNumero,
+        dateCreation: new Date().toLocaleDateString("fr-FR"),
+      };
+      save([...operateurs, nouvel]);
+      toast("Opérateur ajouté localement — PIN généré à la reconnexion","warn");
+    }
     setNom(""); setPrenom(""); setFonction("abattage"); setLotId("");
     setShowForm(false);
-    toast("Opérateur ajouté ✓");
-    apiPost('/operateurs-etf', nouvel).catch(() => {});
+    setAjoutSaving(false);
   };
 
   const handleSupprimer = (id: any) => {
@@ -1587,12 +1606,41 @@ export const EcranEntrepriseSollicitee = ({user, lots=[], toast}: any) => {
               }
             </select>
           </div>
-          <button onClick={handleAjouter}
+          <button onClick={handleAjouter} disabled={ajoutSaving}
             style={{width:"100%",padding:13,borderRadius:12,border:"none",
-              background:C.purpleD,color:"#fff",fontSize:14,fontWeight:700,
-              cursor:"pointer",fontFamily:"inherit"}}>
-            ✅ Créer l'opérateur
+              background:ajoutSaving?"#9575CD":C.purpleD,color:"#fff",fontSize:14,fontWeight:700,
+              cursor:ajoutSaving?"not-allowed":"pointer",fontFamily:"inherit"}}>
+            {ajoutSaving?"⏳ Création…":"✅ Créer l'opérateur"}
           </button>
+        </div>
+      )}
+
+      {/* Modal PIN — affiché une seule fois après création */}
+      {pinModal&&(
+        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.65)",zIndex:3000,
+          display:"flex",alignItems:"center",justifyContent:"center",padding:24}}>
+          <div style={{background:"#fff",borderRadius:20,padding:24,maxWidth:320,width:"100%",
+            boxShadow:"0 8px 40px rgba(0,0,0,.3)"}}>
+            <div style={{textAlign:"center",marginBottom:16}}>
+              <div style={{fontSize:36,marginBottom:8}}>🔑</div>
+              <div style={{fontSize:16,fontWeight:800}}>PIN de {pinModal.prenom} {pinModal.nom}</div>
+              <div style={{fontSize:12,color:C.tx3,marginTop:6,lineHeight:1.5}}>
+                Communiquez ce code à l'opérateur.<br/>
+                <strong style={{color:"#B71C1C"}}>Il ne sera affiché qu'une seule fois.</strong>
+              </div>
+            </div>
+            <div style={{background:"#F3F0FF",borderRadius:14,padding:20,textAlign:"center",
+              border:"2px solid #B39DDB",marginBottom:20}}>
+              <div style={{fontFamily:"monospace",fontSize:44,fontWeight:900,
+                color:C.purpleD,letterSpacing:10}}>{pinModal.pin}</div>
+            </div>
+            <button onClick={()=>setPinModal(null)}
+              style={{width:"100%",padding:14,borderRadius:12,border:"none",
+                background:C.purpleD,color:"#fff",fontSize:14,fontWeight:700,
+                cursor:"pointer",fontFamily:"inherit"}}>
+              ✓ J'ai noté le PIN
+            </button>
+          </div>
         </div>
       )}
 
