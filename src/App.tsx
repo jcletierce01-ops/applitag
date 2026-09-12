@@ -688,6 +688,7 @@ export default function App() {
         {screen==="fiche0"&&(
           <Fiche0 onBack={()=>{ setFiche0Prefill(null); setScreen("accueil"); }}
             onSaved={(c: any)=>{ setFiche0Prefill(null); setContacts(prev=>[c,...prev]); setScreen("lots"); }}
+            onAddRdv={(evt: any)=>setNotifications(prev=>[evt,...prev])}
             toast={toast} _contactCount={contacts.length} entrepriseId={entrepriseId}
             prefill={fiche0Prefill as any} comptes={comptesLocalGet() as any}/>
         )}

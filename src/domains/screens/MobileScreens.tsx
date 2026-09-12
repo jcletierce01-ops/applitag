@@ -50,7 +50,7 @@ export const QrCodeAdmin = ({entrepriseId, entrepriseNom, onClose}: any) => {
 };
 
 // ── FICHE 0 ───────────────────────────────────────────────────
-export const Fiche0 = ({onBack, onSaved, toast, entrepriseId, prefill=null, comptes=[]}: any) => {
+export const Fiche0 = ({onBack, onSaved, toast, entrepriseId, prefill=null, comptes=[], onAddRdv}: any) => {
   const [origine,       setOrigine]  = useState(prefill?"appel_applitag":"");
   const [nomApporteur,  setApporteur]= useState("");
   const [dateContact,   setDateC]    = useState(todayS());
@@ -76,6 +76,10 @@ export const Fiche0 = ({onBack, onSaved, toast, entrepriseId, prefill=null, comp
   const [commentaire,   setComment]  = useState("");
   const [redacteur,     setRedacteur]= useState("");
   const [conclusion,    setConclusion]=useState("");
+  const [dateRdv,       setDateRdv]  = useState("");
+  const [delaiRappel,   setDelaiRappel]= useState<number>(()=>{
+    try { return parseInt(localStorage.getItem("applitag_rappel_delai")||"30",10)||30; } catch { return 30; }
+  });
   const [exploitationAutorisee, setExploitAuth] = useState("");
   const [saving,  setSaving]  = useState(false);
   const [errors,  setErrors]  = useState<Record<string,any>>({});
@@ -113,6 +117,18 @@ export const Fiche0 = ({onBack, onSaved, toast, entrepriseId, prefill=null, comp
       toast(`Fiche créée — ${lotNumero}`);
       const html = buildCompteRenduContactHTML(saved);
       generatePdfFromHtml(html, `CompteRenduContact_${lotNumero}.pdf`, toast);
+      const nomContact = `${nom} ${prenom}`.trim();
+      const LABELS_CONCL: Record<string,string> = {rendez_vous:"📅 RDV",visite_prevue:"🔭 Visite prévue",a_rappeler:"📞 Rappel"};
+      if (["rendez_vous","visite_prevue","a_rappeler"].includes(conclusion) && dateRdv) {
+        const label = LABELS_CONCL[conclusion];
+        onAddRdv?.({id:`local-${uid()}`,conclusion,date:dateRdv,contact:nomContact,
+          message:`${label} — ${nomContact} — ${dateRdv.split("-").reverse().join("/")}`,local:true});
+      } else if (conclusion==="en_reflexion") {
+        const d=new Date(); d.setDate(d.getDate()+delaiRappel);
+        const dateRappel=d.toISOString().slice(0,10);
+        onAddRdv?.({id:`local-${uid()}`,conclusion:"en_reflexion",date:dateRappel,contact:nomContact,
+          message:`🤔 Relance — ${nomContact} — dans ${delaiRappel}j (${dateRappel.split("-").reverse().join("/")})`,local:true});
+      }
       onSaved(saved);
     } catch {
       toast("Erreur API","warn");
@@ -292,7 +308,7 @@ export const Fiche0 = ({onBack, onSaved, toast, entrepriseId, prefill=null, comp
           placeholder="Notes libres…" big hint="optionnel"/>
 
         <SectionTitle icon="📝" label="Compte rendu"/>
-        <MInput label="Rédacteur du compte rendu" value={redacteur} onChange={setRedacteur}
+        <MInput label="Rédacteur de ce compte rendu" value={redacteur} onChange={setRedacteur}
           placeholder="Nom Prénom" hint="optionnel"/>
         <div style={{marginBottom:14}}>
           <div style={{fontSize:13,fontWeight:600,color:C.tx2,marginBottom:8}}>Conclusion de l'entretien</div>
@@ -302,8 +318,24 @@ export const Fiche0 = ({onBack, onSaved, toast, entrepriseId, prefill=null, comp
             ["a_rappeler","📞","À rappeler"],
             ["en_reflexion","🤔","En réflexion"],
             ["echec","❌","Sans suite"],
-          ]} value={conclusion} onChange={setConclusion} cols={3}/>
+          ]} value={conclusion} onChange={v=>{setConclusion(v);setDateRdv("");}} cols={3}/>
         </div>
+        {["rendez_vous","visite_prevue","a_rappeler"].includes(conclusion)&&(
+          <MInput
+            label={conclusion==="rendez_vous"?"📅 Date du rendez-vous":conclusion==="visite_prevue"?"🔭 Date de la visite prévue":"📞 Date de rappel"}
+            value={dateRdv} onChange={setDateRdv} type="date"/>
+        )}
+        {conclusion==="en_reflexion"&&(
+          <div style={{display:"flex",alignItems:"center",gap:8,padding:"10px 14px",
+            background:"#FFF8E1",borderRadius:10,border:"1px solid #FFD54F",marginBottom:14}}>
+            <span style={{fontSize:13,color:C.tx2}}>🔔 Rappel dans</span>
+            <input type="number" min={1} max={365} value={delaiRappel}
+              onChange={e=>{const v=parseInt(e.target.value,10)||30;setDelaiRappel(v);try{localStorage.setItem("applitag_rappel_delai",String(v));}catch{/*noop*/}}}
+              style={{width:60,height:34,borderRadius:8,border:`1.5px solid ${C.bd}`,fontFamily:"inherit",
+                fontSize:14,textAlign:"center",outline:"none",padding:"0 6px"}}/>
+            <span style={{fontSize:13,color:C.tx2}}>jours <span style={{fontSize:11,color:C.tx3}}>(réglage conservé)</span></span>
+          </div>
+        )}
         <div style={{marginBottom:14}}>
           <div style={{fontSize:13,fontWeight:600,color:C.tx2,marginBottom:8}}>Exploitation autorisée ?</div>
           <GridSelect options={[
