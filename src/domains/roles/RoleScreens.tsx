@@ -942,17 +942,18 @@ const FluxDechiquetageRole = ({lot, user, onFinChantier, onRetour, toast}: any) 
     try {
       await apiPost(`/dechiquetage`, payload);
       await apiPost(`/contacts/${lot.id}/transition`, {action:"terminerDechiquetage"});
-      await apiPostPublic(`/messages-admin`, { type:"fin_chantier_dechiquetage", lotId:lot.id, lotNumero:lot.lotNumero,
-        operateurDechiquetage:operateurNom, machine,
-        nbCamions:chargements.length,
-        tonnageTotal:payload.tonnageTotal.toFixed(1),
-        message:`Chantier de déchiquetage terminé sur le lot ${lot.lotNumero}. ${chargements.length} camion(s) chargé(s), ${payload.tonnageTotal.toFixed(1)} t au total. Réception à effectuer.`,
-        date:new Date().toISOString() });
     } catch(e) {
       toast&&toast(`Erreur enregistrement chantier — ${(e as any).message||"vérifiez la connexion"}`, "warn");
       setSaving(false);
       return;
     }
+    // Notification admin : fire-and-forget, ne bloque pas la clôture
+    apiPostPublic(`/messages-admin`, { type:"fin_chantier_dechiquetage", lotId:lot.id, lotNumero:lot.lotNumero,
+      operateurDechiquetage:operateurNom, machine,
+      nbCamions:chargements.length,
+      tonnageTotal:payload.tonnageTotal.toFixed(1),
+      message:`Chantier de déchiquetage terminé sur le lot ${lot.lotNumero}. ${chargements.length} camion(s) chargé(s), ${payload.tonnageTotal.toFixed(1)} t au total. Réception à effectuer.`,
+      date:new Date().toISOString() }).catch(()=>{});
     setSaving(false);
     setPhase("cloture");
     onFinChantier&&onFinChantier(lot.id);
