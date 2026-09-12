@@ -1246,19 +1246,20 @@ export const EcranOperateur = ({operateur, onLogout, toast, onUpdateOperateur}: 
 
   const handleChangerPin = async () => {
     setPinErreur("");
-    if (operateur.pin && pinActuel!==operateur.pin) { setPinErreur("PIN actuel incorrect"); return; }
+    if (!pinActuel) { setPinErreur("Le PIN actuel est requis"); return; }
     if (!/^\d{6}$/.test(pinNouveau)) { setPinErreur("Le nouveau PIN doit comporter 6 chiffres"); return; }
     if (pinNouveau!==pinNouveauConf) { setPinErreur("Les deux PIN ne correspondent pas"); return; }
     setPinSaving(true);
     try {
-      await apiPatch(`/operateurs/${operateur.id}`, {pin:pinNouveau});
+      await apiPatch(`/operateurs/${operateur.id}`, {pin:pinNouveau, pinActuel});
       const opMaj = {...operateur, pin:pinNouveau};
       onUpdateOperateur?.(opMaj);
       setPinActuel(""); setPinNouveau(""); setPinNouveauConf("");
       toast?.("PIN modifié ✓");
       setScreen("lots");
-    } catch {
-      setPinErreur("Impossible de modifier le PIN — réessayez quand vous êtes connecté");
+    } catch(e) {
+      const msg = (e as Error).message ?? "";
+      setPinErreur(msg.includes("PIN actuel incorrect") ? "PIN actuel incorrect" : "Impossible de modifier le PIN — réessayez quand vous êtes connecté");
     }
     setPinSaving(false);
   };
@@ -1516,10 +1517,8 @@ export const EcranOperateur = ({operateur, onLogout, toast, onUpdateOperateur}: 
               <div style={{fontSize:12,color:C.tx3,marginTop:4}}>{operateur.etfNom}</div>
             </div>
             <SectionTitle icon="🔑" label="Changer mon code PIN"/>
-            {operateur.pin&&(
-              <MInput label="PIN actuel" value={pinActuel} onChange={setPinActuel}
-                placeholder="6 chiffres" type="password"/>
-            )}
+            <MInput label="PIN actuel" value={pinActuel} onChange={setPinActuel}
+              placeholder="6 chiffres" type="password"/>
             <MInput label="Nouveau PIN" value={pinNouveau}
               onChange={v=>setPinNouveau(v.replace(/\D/g,"").slice(0,6))}
               placeholder="6 chiffres" type="password"/>
