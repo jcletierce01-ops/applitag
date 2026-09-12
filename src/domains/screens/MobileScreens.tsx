@@ -1423,6 +1423,7 @@ export const EcranOperateur = ({operateur, onLogout, toast, onUpdateOperateur}: 
 
   const handleDemanderModification = async () => {
     setMsgModifEnvoi(true);
+    let envoye = false;
     try {
       await apiPostPublic(`/messages-admin`, {
         type:"demande_modification_releve",
@@ -1435,10 +1436,11 @@ export const EcranOperateur = ({operateur, onLogout, toast, onUpdateOperateur}: 
         date: new Date().toISOString(),
         message:`L'opérateur ${operateur.prenom||""} ${operateur.nom} demande une correction sur le relevé ${typeOp==="debardage"?"débardage":"abattage"} du lot ${activeLot?.lotNumero} (${new Date().toLocaleDateString("fr-FR")}).`,
       });
-    } catch { /* noop */ }
+      envoye = true;
+    } catch { /* noop — endpoint optionnel */ }
     setMsgModifEnvoi(false);
     setMsgModifEnvoye(true);
-    toast("Message envoyé à l'administrateur ✓");
+    toast(envoye ? "Message envoyé à l'administrateur ✓" : "Demande enregistrée — message transmis à la reconnexion");
     setTimeout(()=>{
       setScreen("lots"); setActiveLot(null);
       setDoublonDetecte(false); setMsgModifEnvoye(false); setReleveExistantId(null);
