@@ -2830,7 +2830,7 @@ export const SectionConformiteRED = ({lots=[], visites=[], livraisons=[], _plate
       : i<=6  ? lot?.statut==="livraison"||lot?.statut==="livre"
       : i===7 ? (livsLot?.length||0)>0
       : i===8 ? (livsLot?.length||0)>0
-      : i===9 ? !!(livsLot?.some(l=>l.humiditeReception||l.pesee)) : false;
+      : i===9 ? !!(livsLot?.some(l=>l.humiditeReception||(l.poidsNet||l.poidsBrut))) : false;
     return {...e, done:!!done};
   });
 
@@ -2847,7 +2847,7 @@ export const SectionConformiteRED = ({lots=[], visites=[], livraisons=[], _plate
     {id:"fiche_lot",      label:"Fiche lot (visite terrain)",       ok:!!visiteSel},
     {id:"photos_gps",     label:"Photos GPS parcelle",              ok:(visiteSel?.photos?.length||0)>0},
     {id:"cmr",            label:"CMR (lettre de voiture)",          ok:!!(livraisons.find(l=>l.lotId===lotSelId)?.numeroCMR)},
-    {id:"pesee",          label:"Ticket de pesée réception",        ok:!!(livraisons.find(l=>l.lotId===lotSelId)?.pesee)},
+    {id:"pesee",          label:"Ticket de pesée réception",        ok:!!(livraisons.find(l=>l.lotId===lotSelId)?.numTicket)},
     {id:"humidite",       label:"Analyse humidité",                  ok:!!(visiteSel?.humiditeMesure||livraisons.find(l=>l.lotId===lotSelId)?.humiditeReception)},
     {id:"attestation",    label:"Attestation de durabilité RED",    ok:visiteSel?.statutRed==="conforme"},
     {id:"ges",            label:"Rapport de calcul GES",             ok:!!(visiteSel?.redCategorie)},
@@ -4543,12 +4543,12 @@ export const SectionGES = ({lots=[], visites=[], livraisons=[]}) => {
               lots.filter(l=>l.certification==="red").map(lot=>{
                 const v = visites.find(x=>x.lotId===lot.id);
                 const livs = livraisons.filter(x=>x.lotId===lot.id);
-                const tonnageTot = livs.reduce((s,x)=>s+(x.pesee||0),0);
+                const tonnageTot = livs.reduce((s,x)=>s+(x.poidsNet||x.poidsBrut||0),0);
                 const distAm = v?.redDistance||0;
                 const humMoy = livs.length ? livs.reduce((s,x)=>s+(x.humiditeReception||30),0)/livs.length : 30;
                 const pciL = calcPCI(humMoy);
                 const eMJ = tonnageTot * pciL * 3600;
-                const eTransAval = livs.reduce((s,x)=>s+(x.distanceLivraison||distAval)*x.pesee*FACTEUR_TRANSPORT,0);
+                const eTransAval = livs.reduce((s,x)=>s+(x.distanceLivraison||distAval)*(x.poidsNet||x.poidsBrut||0)*FACTEUR_TRANSPORT,0);
                 const eTransAmont = tonnageTot * distAm * FACTEUR_TRANSPORT;
                 const eec_v = GES_EEC_DEFAUT[v?.redCategorie]?.val || 3.5;
                 const total = eMJ>0 ? ((eTransAval+eTransAmont)*1000/eMJ) + eec_v : 0;
@@ -8512,7 +8512,7 @@ export const SectionFicheCombustible = () => {
       const dest = (l.nomDestination||"").toLowerCase();
       return dest.includes(nomChauff.split("—")[0].trim().toLowerCase()) ||
              nomChauff.includes(dest.split(" ")[0].toLowerCase());
-    }).sort((a,b)=>(b.dateHeureLivraison||"").localeCompare(a.dateHeureLivraison||""));
+    }).sort((a,b)=>(b.date||"").localeCompare(a.date||""));
   }, [fiche]);
 
   // Contrôle conformité livraison vs fiche
@@ -8590,7 +8590,7 @@ export const SectionFicheCombustible = () => {
               )}
               {livraisonsLiees.map(l=>{
                 const conf = conformiteLiv(l);
-                const dateStr = l.dateHeureLivraison?.slice(0,10)||"";
+                const dateStr = l.date?.slice(0,10)||"";
                 return (
                   <div key={l.id} style={{background:"#fff",border:`1.5px solid ${conf?.col||C.bd}33`,
                     borderRadius:12,padding:"12px 16px",marginBottom:10}}>
@@ -8612,7 +8612,7 @@ export const SectionFicheCombustible = () => {
                             </span>
                           )}
                           <span style={{fontSize:12,fontWeight:600,color:C.tx}}>
-                            ⚖️ {l.pesee||"—"} t
+                            ⚖️ {(l.poidsNet||l.poidsBrut||"—")} t
                           </span>
                         </div>
                       </div>
@@ -13345,7 +13345,7 @@ export const HubAlertes = ({contacts=[], livraisons=[], onGoTo}) => {
         id:"liv_"+l.id, gravite:2, source:"Conformité RED", sourceIcon:"🇪🇺",
         titre:"Humidité hors seuil RED — "+(l.numeroBL||"BL"),
         detail:`${l.humidite}% mesuré · Seuil RED : 25% · ${l.nomDestination||""}`,
-        date: (l.dateHeureLivraison||l.dateLivraison||l.createdAt||"").slice(0,10),
+        date: (l.date||l.createdAt||"").slice(0,10),
         action:"Voir conformité", goTo:"conformite_red",
       });
     });
@@ -13526,13 +13526,13 @@ const buildPlanningEvents = (contacts, visites, transports, livraisons) => {
     });
   });
   livraisons.forEach(l=>{
-    const dateStr = (l.dateHeureLivraison||l.dateLivraison||l.createdAt||"").slice(0,10);
+    const dateStr = (l.date||l.createdAt||"").slice(0,10);
     if (!dateStr) return;
-    const heure = l.dateHeureLivraison?.slice(11,16)||null;
+    const heure = l.date?.slice(11,16)||null;
     events.push({
       date:dateStr, type:"livraison", heure,
       titre:`Livraison — ${l.numeroBL||"BL"}`,
-      sous:`${l.pesee?l.pesee+" t · ":""}${l.nomDestination||""}`,
+      sous:`${(l.poidsNet||l.poidsBrut)?(l.poidsNet||l.poidsBrut)+" t · ":""}${l.nomDestination||""}`,
       lotNumero:l.lotNumero, lotId:l.lotId,
     });
   });

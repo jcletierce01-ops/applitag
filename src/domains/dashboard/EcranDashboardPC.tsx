@@ -27,8 +27,8 @@ export const EcranDashboardPC = ({user, contacts, visites, notifications, transp
 
   const lots = contacts.filter(c=>c.lotNumero);
   const moisCourant = new Date().toISOString().slice(0,7);
-  const livraisonsDuMois = livraisons.filter((l: any)=>(l.dateHeureLivraison||l.dateLivraison||l.createdAt||"").slice(0,7)===moisCourant);
-  const tonnesLivreesMois = livraisonsDuMois.reduce((s: number,l: any)=>s+(parseFloat(l.pesee)||0),0);
+  const livraisonsDuMois = livraisons.filter((l: any)=>(l.date||l.createdAt||"").slice(0,7)===moisCourant);
+  const tonnesLivreesMois = livraisonsDuMois.reduce((s: number,l: any)=>s+(l.poidsNet||l.poidsBrut||0),0);
   const humidites = livraisons.map((l: any)=>parseFloat(l.humiditeReception)).filter((n: number)=>!isNaN(n));
   const humiditeMoyenne = humidites.length ? humidites.reduce((s: number,n: number)=>s+n,0)/humidites.length : null;
 
@@ -37,10 +37,10 @@ export const EcranDashboardPC = ({user, contacts, visites, notifications, transp
   const tonnageParJour: number[] = Array.from({length:nbJoursMois},()=>0);
   const humiditeParJour: number[][] = Array.from({length:nbJoursMois},()=>[]);
   livraisonsDuMois.forEach((l: any)=>{
-    const dateStr = l.dateHeureLivraison||l.dateLivraison||l.createdAt||"";
+    const dateStr = l.date||l.createdAt||"";
     const jour = parseInt(dateStr.slice(8,10),10);
     if (jour>=1 && jour<=nbJoursMois) {
-      tonnageParJour[jour-1] += parseFloat(l.pesee)||0;
+      tonnageParJour[jour-1] += (l.poidsNet||l.poidsBrut||0);
       const h = parseFloat(l.humiditeReception);
       if (!isNaN(h)) humiditeParJour[jour-1].push(h);
     }
@@ -50,8 +50,7 @@ export const EcranDashboardPC = ({user, contacts, visites, notifications, transp
   const alertesActives = notifications.filter((n: any)=>!n.lu);
   const stockPlateformes = lots.filter((c: any)=>["BORD_ROUTE","A_DECHIQUETER","EN_STOCK_PLATEFORME"].includes(c.statutLot))
     .reduce((s: number,c: any)=>s+(parseFloat(c.tonnageCumul)||0),0);
-  const stockChaufferies = livraisons.filter((l: any)=>l.typeDest==="chaufferie")
-    .reduce((s: number,l: any)=>s+(parseFloat(l.pesee)||0),0);
+  const stockChaufferies = livraisons.reduce((s: number,l: any)=>s+(l.poidsNet||l.poidsBrut||0),0);
   const cmrTotal = dechiquetages.length;
   const cmrConformes = dechiquetages.filter((d: any)=>d.numeroCMR&&d.photoCMR).length;
   const tauxConformite = cmrTotal ? Math.round((cmrConformes/cmrTotal)*100) : null;

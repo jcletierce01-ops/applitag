@@ -2221,7 +2221,7 @@ export const EcranAutoDeclarationRED = ({lot, visites, transports=[], livraisons
         {[
           [!!visite?.gps,        "GPS parcelle capturé"],
           [!!visite?.essences?.length,"Essences renseignées"],
-          [!!(visite?.volumeEstimeT||livraison?.pesee),"Tonnage renseigné"],
+          [!!(visite?.volumeEstimeT||livraison?.poidsNet||livraison?.poidsBrut),"Tonnage renseigné"],
           [!!lot.commune,        "Commune renseignée"],
           [!!(visite?.redDistance||visite?.certification==="red"),"Données RED (certification visite)"],
           [!!livraison,          "Livraison enregistrée"],

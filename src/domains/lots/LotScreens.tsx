@@ -542,7 +542,7 @@ export const FicheLotCentrale = ({
               <>
                 {/* Récap poids total livré */}
                 {livraisons.length>0&&(()=>{
-                  const totalLivr = livraisons.reduce((s,l)=>s+(parseFloat(l.pesee)||0),0);
+                  const totalLivr = livraisons.reduce((s,l)=>s+(l.poidsNet||l.poidsBrut||0),0);
                   return (
                     <div style={{background:C.greenL,borderRadius:12,padding:14,marginBottom:14,
                       border:`1.5px solid ${C.green}`}}>
@@ -567,14 +567,14 @@ export const FicheLotCentrale = ({
                     marginBottom:12,border:`1px solid ${C.bd}`}}>
                     <div style={{display:"flex",justifyContent:"space-between",marginBottom:8}}>
                       <div style={{fontSize:14,fontWeight:600}}>
-                        {l.typeDest==="chaufferie"?"🔥":"🏗️"} {l.nomDestination||"—"}
+                        🔥 {l.nomDestination||"—"}
                       </div>
                       <div style={{fontSize:11,color:C.tx3}}>
-                        {l.dateHeureLivraison?.slice(0,10)||l.dateLivraison||""}
+                        {l.date?.slice(0,10)||""}
                       </div>
                     </div>
                     <div style={{fontSize:12,color:C.tx3,lineHeight:1.8}}>
-                      ⚖️ {l.pesee||"—"} t ·
+                      ⚖️ {(l.poidsNet||l.poidsBrut||"—")} t ·
                       💧 {l.humiditeReception||l.humiditeMesuree||"—"}%<br/>
                       👤 Réceptionnaire : {l.nomReceptionnaire||"—"}
                       {l.numeroCMR&&<><br/>📄 CMR : {l.numeroCMR}</>}
@@ -671,10 +671,10 @@ export const FicheLotCentrale = ({
                onAction:()=>generatePdfFromHtml(buildSimpleDocHTML(lot,"Bon de livraison",[
                  {icon:"📦",label:"Livraison",rows:[
                    ["N° BL",livraisons[0]?.numeroBL||`BL-2026-0018`],
-                   ["Date livraison",livraisons[0]?.dateLivraison||livraisons[0]?.dateHeureLivraison?.slice(0,10)||"2026-06-22"],
-                   ["Heure d'arrivée zone de déchargement",livraisons[0]?.heureArrivee||livraisons[0]?.dateHeureLivraison?.slice(11,16)||"—"],
+                   ["Date livraison",livraisons[0]?.date?.slice(0,10)||"2026-06-22"],
+                   ["Heure d'arrivée zone de déchargement",livraisons[0]?.heureArrivee||livraisons[0]?.date?.slice(11,16)||"—"],
                    ["Plateforme / Destination",livraisons[0]?.nomDestination||"Auxerre Énergie — 89000 Auxerre"],
-                   ["Tonnage livré",livraisons[0]?.pesee?livraisons[0].pesee+" t":livraisons[0]?.tonnage?livraisons[0].tonnage+" t":"23.8 t"],
+                   ["Tonnage livré",(livraisons[0]?.poidsNet||livraisons[0]?.poidsBrut)?(livraisons[0].poidsNet||livraisons[0].poidsBrut)+" t":livraisons[0]?.tonnage?livraisons[0].tonnage+" t":"23.8 t"],
                    ["Granulométrie",livraisons[0]?.granulometrie||"P45"],
                    ["Humidité réception",livraisons[0]?.humiditeReception?livraisons[0].humiditeReception+"%":"—"],
                    ["Réceptionnaire",livraisons[0]?.nomReceptionnaire||"—"],

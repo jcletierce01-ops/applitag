@@ -56,9 +56,10 @@ interface TransportDoc {
 }
 
 interface LivraisonDoc {
-  heureArrivee?: string; dateHeureLivraison?: string;
+  heureArrivee?: string; date?: string;
   nomDestination?: string; adresseDestination?: string; nomReceptionnaire?: string;
-  pesee?: string | number; granulometrie?: string; humiditeReception?: string | number | null;
+  poidsNet?: number | null; poidsBrut?: number | null;
+  granulometrie?: string; humiditeReception?: string | number | null;
 }
 
 interface UserDoc { nom?: string; prenom?: string; }
@@ -283,7 +284,7 @@ ${contact.conclusion || contact.exploitationAutorisee ? `
 export const buildCMRHTML = (lot: LotDoc, transport: TransportDoc | null | undefined, livraison: LivraisonDoc | null | undefined): string => {
   const date = new Date().toLocaleDateString("fr-FR", { day: "2-digit", month: "long", year: "numeric" });
   const heureDepart = transport?.heureDebut || "—";
-  const heureArrivee = livraison?.heureArrivee || livraison?.dateHeureLivraison?.slice(11, 16) || "—";
+  const heureArrivee = livraison?.heureArrivee || livraison?.date?.slice(11, 16) || "—";
   return `<!DOCTYPE html><html lang="fr">
 <head>
 <meta charset="UTF-8">
@@ -388,7 +389,7 @@ td{padding:6px 8px;border-bottom:1px solid #ECEAE6;font-size:9.5px}
     <tr>
       <td>Plaquettes forestières / Bois énergie</td>
       <td>1 chargement complet</td>
-      <td>${transport?.tonnageNet || transport?.tonnageCharge || livraison?.pesee || "—"}</td>
+      <td>${transport?.tonnageNet || transport?.tonnageCharge || livraison?.poidsNet || livraison?.poidsBrut || "—"}</td>
       <td>${transport?.cubage || "—"}</td>
       <td>${livraison?.granulometrie || "P45"}</td>
     </tr>
@@ -1357,7 +1358,7 @@ td{padding:7px 10px;border-bottom:1px solid #ECEAE6;font-size:10.5px}
 
 export const buildRedHTML = (lot: LotDoc, visite: VisiteDoc | null | undefined, transport: TransportDoc | null | undefined, livraison: LivraisonDoc | null | undefined, typeDecl: string): string => {
   const date = new Date().toLocaleDateString("fr-FR", { day: "2-digit", month: "long", year: "numeric" });
-  const tonnage = livraison?.pesee || visite?.volumeEstimeT || "—";
+  const tonnage = livraison?.poidsNet || livraison?.poidsBrut || visite?.volumeEstimeT || "—";
   const gpsParc = visite?.gps ? `${visite.gps.lat.toFixed(5)}°N, ${visite.gps.lng.toFixed(5)}°E` : "—";
   const dist = visite?.redDistance || "—";
   const categorie = visite?.redCategorie || "bois_forestier";
@@ -1457,7 +1458,7 @@ td:first-child{font-weight:600;width:45%}
     <tr><td>Destination</td><td>${livraison?.nomDestination || "—"}</td></tr>
     <tr><td>Distance parcelle → chaufferie</td><td>${dist} km</td></tr>
     <tr><td>N° CMR</td><td>${transport?.numeroCMR || "—"}</td></tr>
-    <tr><td>Date livraison</td><td>${livraison?.dateHeureLivraison?.slice(0, 10) || "—"}</td></tr>
+    <tr><td>Date livraison</td><td>${livraison?.date?.slice(0, 10) || "—"}</td></tr>
     <tr><td>Certification applicable</td><td>${certif}</td></tr>
   </table>
 </div>
