@@ -111,6 +111,7 @@ export const Fiche0 = ({onBack, onSaved, toast, entrepriseId, prefill=null, comp
       codePostal,
       entrepriseId, redacteur, conclusion, exploitationAutorisee,
       delaiExecution: delaiExecutionFiche || undefined,
+      dateRdv: (["rendez_vous","visite_prevue","a_rappeler"].includes(conclusion) && dateRdv) ? dateRdv : undefined,
       // lotNumero omis volontairement : généré côté serveur (P0.5)
     };
     try {
@@ -556,7 +557,12 @@ export const EcranReleves = ({entrepriseId, _user, toast, notifications=[], setN
     return (
       <Fiche0
         onBack={()=>setAnnonceContacter(null)}
-        onSaved={async ()=>{ await handleTraiterAnnonce(annonceContacter, "a_qualifier"); setAnnonceContacter(null); }}
+        onSaved={async (saved: any)=>{
+          await handleTraiterAnnonce(annonceContacter, "a_qualifier");
+          setContacts((prev: any[])=>[saved,...prev]);
+          setAnnonceContacter(null);
+          setSousOnglet("agenda");
+        }}
         toast={toast}
         entrepriseId={entrepriseId}
         prefill={{nom: annonceContacter.nom||"", prenom: annonceContacter.prenom||"", telephone: annonceContacter.telephone||"", email: annonceContacter.email||""}}
@@ -571,7 +577,8 @@ export const EcranReleves = ({entrepriseId, _user, toast, notifications=[], setN
       <div style={{display:"flex",gap:0,padding:"8px 16px 0",background:"#fff",
         borderBottom:`1px solid ${C.bd}`,flexShrink:0}}>
         {[["operateurs","👷 Opérateurs"],["acces","🔑 Accès lot"],
-          ["annonces",`📢 APPLITAG Connect${annoncesNouvelles.length>0?` (${annoncesNouvelles.length})`:""}`],
+          ["annonces",`📢 Connect${annoncesNouvelles.length>0?` (${annoncesNouvelles.length})`:""}`],
+          ["agenda","📅 Agenda"],
           ["notifs","🔔 Alertes"]].map(([id,label])=>(
           <button key={id} onClick={()=>{ setSousOnglet(id); setShowNew(false); setShowNewAcces(false); setSelOp(null); }} style={{
             flex:1,height:36,background:"transparent",border:"none",
@@ -1022,6 +1029,84 @@ export const EcranReleves = ({entrepriseId, _user, toast, notifications=[], setN
             })}
           </div>
         )}
+        {sousOnglet==="agenda"&&(()=>{
+          const CONCL_LABEL: Record<string,{icon:string,label:string,color:string,bg:string}> = {
+            rendez_vous:  {icon:"📅",label:"Rendez-vous",  color:C.purple, bg:"#F3E5F5"},
+            visite_prevue:{icon:"🔭",label:"Visite prévue",color:C.blue,   bg:C.blueL},
+            a_rappeler:   {icon:"📞",label:"À rappeler",   color:C.amber,  bg:C.amberL},
+            en_reflexion: {icon:"🤔",label:"En réflexion", color:C.tx3,    bg:C.bg2},
+          };
+          const rdvContacts = contacts
+            .filter((c: any)=>c.conclusion&&CONCL_LABEL[c.conclusion])
+            .sort((a: any,b: any)=>{
+              const da=a.dateRdv||a.dateContact||"", db=b.dateRdv||b.dateContact||"";
+              return da<db?-1:da>db?1:0;
+            });
+          const today=new Date().toISOString().slice(0,10);
+          const passes = rdvContacts.filter((c: any)=>(c.dateRdv||c.dateContact||"")<today);
+          const avenir = rdvContacts.filter((c: any)=>(c.dateRdv||c.dateContact||"")>=today);
+          const RDVCard = (c: any)=>{
+            const meta=CONCL_LABEL[c.conclusion]||{icon:"📋",label:c.conclusion,color:C.tx3,bg:C.bg2};
+            const dateAff=c.dateRdv?new Date(c.dateRdv).toLocaleDateString("fr-FR",{weekday:"short",day:"numeric",month:"short"}):"—";
+            return (
+              <div key={c.id} style={{background:"#fff",border:`1px solid ${C.bd}`,borderLeft:`4px solid ${meta.color}`,
+                borderRadius:14,padding:14,marginBottom:10}}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
+                  <span style={{fontSize:11,padding:"3px 8px",borderRadius:6,fontWeight:600,
+                    background:meta.bg,color:meta.color}}>{meta.icon} {meta.label}</span>
+                  <span style={{fontSize:13,fontWeight:700,color:meta.color}}>{dateAff}</span>
+                </div>
+                <div style={{fontSize:15,fontWeight:700,color:C.tx,marginBottom:2}}>
+                  {c.prenom?`${c.prenom} ${c.nom}`:c.nom}
+                </div>
+                <div style={{fontSize:12,color:C.tx3,lineHeight:1.8}}>
+                  {c.telephone&&<div>📞 <a href={`tel:${c.telephone}`} style={{color:C.blue,textDecoration:"none"}}>{c.telephone}</a></div>}
+                  {c.commune&&<div>📍 {c.commune}{c.codePostal?` (${c.codePostal})`:""}</div>}
+                  {c.potentiel&&<div>🌲 {c.potentiel}</div>}
+                  {c.delaiExecution&&<div>🗓️ {c.delaiExecution}</div>}
+                  {c.commentaire&&<div style={{marginTop:4,fontStyle:"italic"}}>💬 {c.commentaire.slice(0,120)}{c.commentaire.length>120?"…":""}</div>}
+                </div>
+                {c.lotNumero&&(
+                  <div style={{marginTop:8,fontFamily:"monospace",fontSize:11,fontWeight:600,
+                    color:C.greenD,background:C.greenL,padding:"2px 8px",borderRadius:6,display:"inline-block"}}>
+                    🏷️ {c.lotNumero}
+                  </div>
+                )}
+              </div>
+            );
+          };
+          return (
+            <div>
+              <div style={{fontSize:16,fontWeight:700,color:C.tx,marginBottom:4,fontFamily:FONT_TITLE}}>
+                📅 Agenda — Rendez-vous & suivis
+              </div>
+              <div style={{fontSize:12,color:C.tx3,marginBottom:16}}>Contacts avec une suite planifiée</div>
+              {rdvContacts.length===0&&(
+                <div style={{textAlign:"center",padding:"48px 0",color:C.tx3}}>
+                  <div style={{fontSize:40,marginBottom:12}}>📅</div>
+                  <div style={{fontSize:16,fontWeight:500}}>Aucun rendez-vous</div>
+                  <div style={{fontSize:13,marginTop:4}}>Les fiches avec RDV, visite ou rappel apparaîtront ici</div>
+                </div>
+              )}
+              {avenir.length>0&&(
+                <div>
+                  <div style={{fontSize:12,fontWeight:700,color:C.tx3,marginBottom:8,textTransform:"uppercase",letterSpacing:1}}>
+                    À venir ({avenir.length})
+                  </div>
+                  {avenir.map(RDVCard)}
+                </div>
+              )}
+              {passes.length>0&&(
+                <div style={{marginTop:16}}>
+                  <div style={{fontSize:12,fontWeight:700,color:C.tx3,marginBottom:8,textTransform:"uppercase",letterSpacing:1}}>
+                    Passés ({passes.length})
+                  </div>
+                  {passes.map(RDVCard)}
+                </div>
+              )}
+            </div>
+          );
+        })()}
       </div>
 
       {sousOnglet==="operateurs"&&!showNew&&!selOp&&(
