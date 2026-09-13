@@ -57,6 +57,7 @@ export default function App() {
   const entrepriseId = getEntrepriseId();
 
   // Bascule vers le tableau de bord desktop (admin) sur grand écran
+  const [forcePCView, setForcePCView] = useState(()=>{ try{return localStorage.getItem("applitag_force_pc")==="1";}catch{return false;} });
   const [isWideScreen, setIsWideScreen] = useState(()=>window.innerWidth>=1024);
   useEffect(()=>{
     const onResize = () => setIsWideScreen(window.innerWidth>=1024);
@@ -545,7 +546,7 @@ export default function App() {
     alertes:"Alertes", profil:"Profil",
   };
 
-  if (roleEffectif==="admin" && isWideScreen) return (
+  if (roleEffectif==="admin" && (isWideScreen||forcePCView)) return (
     <EcranDashboardPC user={user} contacts={contacts} visites={visites}
       notifications={notifications} transports={transports} livraisons={livraisons}
       dechiquetages={dechiquetages} pendingSyncCount={pendingSyncCount}
@@ -674,6 +675,23 @@ export default function App() {
                   {DEMO_LOTS.length} lots · {DEMO_VISITES.length} visites ·
                   {DEMO_REPORTINGS.length} reportings · {DEMO_TRANSPORTS.length} transports
                 </div>
+              </div>
+            )}
+            {(roleEffectif==="admin"||roleEffectif==="manager")&&(
+              <div style={{marginBottom:12}}>
+                <button onClick={()=>{
+                  const next=!forcePCView;
+                  setForcePCView(next);
+                  try{localStorage.setItem("applitag_force_pc",next?"1":"0");}catch{}
+                }} style={{width:"100%",height:48,borderRadius:12,
+                  background:forcePCView?"#1a237e":"#fff",
+                  color:forcePCView?"#fff":C.tx,
+                  border:`1.5px solid ${forcePCView?"#1a237e":C.bd}`,
+                  fontFamily:"inherit",fontSize:14,fontWeight:600,
+                  cursor:"pointer",display:"flex",alignItems:"center",
+                  justifyContent:"center",gap:8,WebkitTapHighlightColor:"transparent"}}>
+                  🖥️ {forcePCView?"Quitter le mode PC":"Basculer vers l'écran PC admin"}
+                </button>
               </div>
             )}
             <BigBtn onClick={handleLogout} bg={C.red} icon="⎋">Se déconnecter</BigBtn>
