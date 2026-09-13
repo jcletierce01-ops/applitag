@@ -77,6 +77,7 @@ export const Fiche0 = ({onBack, onSaved, toast, entrepriseId, prefill=null, comp
   const [redacteur,     setRedacteur]= useState(()=>[user?.prenom,user?.nom].filter(Boolean).join(" "));
   const [conclusion,    setConclusion]=useState("");
   const [dateRdv,       setDateRdv]  = useState("");
+  const [delaiExecutionFiche, setDelaiExecutionFiche] = useState("");
   const [delaiRappel,   setDelaiRappel]= useState<number>(()=>{
     try { return parseInt(localStorage.getItem("applitag_rappel_delai")||"30",10)||30; } catch { return 30; }
   });
@@ -109,6 +110,7 @@ export const Fiche0 = ({onBack, onSaved, toast, entrepriseId, prefill=null, comp
         : typeRessource, commentaire,
       codePostal,
       entrepriseId, redacteur, conclusion, exploitationAutorisee,
+      delaiExecution: delaiExecutionFiche || undefined,
       // lotNumero omis volontairement : généré côté serveur (P0.5)
     };
     try {
@@ -325,6 +327,12 @@ export const Fiche0 = ({onBack, onSaved, toast, entrepriseId, prefill=null, comp
             label={conclusion==="rendez_vous"?"📅 Date du rendez-vous":conclusion==="visite_prevue"?"🔭 Date de la visite prévue":"📞 Date de rappel"}
             value={dateRdv} onChange={setDateRdv} type="date"/>
         )}
+        {conclusion==="rendez_vous"&&(
+          <MInput
+            label="📋 Délai d'exécution des travaux contractualisé"
+            value={delaiExecutionFiche} onChange={setDelaiExecutionFiche}
+            type="date" hint="Date butoir convenue avec le propriétaire"/>
+        )}
         {conclusion==="en_reflexion"&&(
           <div style={{display:"flex",alignItems:"center",gap:8,padding:"10px 14px",
             background:"#FFF8E1",borderRadius:10,border:"1px solid #FFD54F",marginBottom:14}}>
@@ -372,13 +380,14 @@ export const Fiche0 = ({onBack, onSaved, toast, entrepriseId, prefill=null, comp
 // ── VISITE TERRAIN ────────────────────────────────────────────
 // MSlider importé depuis ./shared/ui.jsx
 
-export const EcranReleves = ({entrepriseId, toast, notifications=[], setNotifications, onGoDelegations}: any) => {
+export const EcranReleves = ({entrepriseId, _user, toast, notifications=[], setNotifications, onGoDelegations}: any) => {
   const [sousOnglet, setSousOnglet] = useState("notifs");
   const [operateurs, setOperateurs] = useState<any[]>([]);
   const [acces, setAcces] = useState<any[]>([]);
   const [contacts, setContacts] = useState<any[]>([]);
   const [entreprises, setEntreprises] = useState<any[]>([]);
   const [annonces, setAnnonces] = useState<any[]>([]);
+  const [annonceContacter, setAnnonceContacter] = useState<any>(null);
   const [showNew, setShowNew] = useState(false);
   const [showNewAcces, setShowNewAcces] = useState(false);
   const [opNom, setOpNom] = useState("");
@@ -398,6 +407,7 @@ export const EcranReleves = ({entrepriseId, toast, notifications=[], setNotifica
   const [etfContact, setEtfContact] = useState("");
   const [typeOperation, setTypeOperation] = useState("abattage");
   const [accesSaving, setAccesSaving] = useState(false);
+  const [regenLoading, setRegenLoading] = useState<Record<string,boolean>>({});
 
   // Lots déjà assignés à un opérateur (tous opérateurs confondus) — à exclure du menu d'assignation
   const lotsDejaAssignes = new Set(
@@ -505,6 +515,33 @@ export const EcranReleves = ({entrepriseId, toast, notifications=[], setNotifica
     } catch { toast("Erreur","warn"); }
   };
 
+  const handleRenvoyer = (a: any) => {
+    const tel = a.etfContact?.replace(/\s/g,"");
+    const expiry = new Date(a.expiresAt).toLocaleDateString("fr-FR");
+    const body = `Votre code d'accès APPLITAG : ${a.code} — Lot ${a.lotNumero}. Valide jusqu'au ${expiry}.`;
+    if (/^0[67]\d{8}$/.test(tel||"")) {
+      window.open(`sms:${tel}?body=${encodeURIComponent(body)}`);
+    } else if (navigator.share) {
+      navigator.share({title:"Code accès APPLITAG",text:body}).catch(()=>{});
+    } else {
+      toast(`Code : ${a.code} (copiez et envoyez manuellement)`,"warn");
+    }
+  };
+
+  const handleNouveauCode = async (a: any) => {
+    setRegenLoading(prev=>({...prev,[a.id]:true}));
+    try {
+      await apiPatch(`/acces-lot/${a.id}/desactiver`);
+      const nouveau: any = await apiPost(`/acces-lot`,{
+        lotId:a.lotId, lotNumero:a.lotNumero, entrepriseId:a.entrepriseId,
+        etfNom:a.etfNom, etfContact:a.etfContact, typeOperation:a.typeOperation,
+      });
+      setAcces(prev=>prev.map((x: any)=>x.id===a.id?{...x,actif:false}:x).concat([nouveau]));
+      toast(`Nouveau code : ${nouveau.code}`);
+    } catch { toast("Erreur lors du renouvellement","warn"); }
+    setRegenLoading(prev=>({...prev,[a.id]:false}));
+  };
+
   const typeLabel = (t: any)=>({"mandataire":"🔭 Visite terrain","abattage":"🪓 Abattage","debardage":"🚜 Débardage","dechiquetage":"🌀 Déchiquetage"} as Record<string,any>)[t]||t;
   const PROFILS_OPERATEUR = {
     terrain:        {label:"Opérateur terrain",  icon:"👷", desc:"Saisie abattage et débardage uniquement", roles:["abattage","debardage"]},
@@ -514,6 +551,20 @@ export const EcranReleves = ({entrepriseId, toast, notifications=[], setNotifica
   const choisirProfilOp = (p: any) => { setOpProfil(p); setOpRoles((PROFILS_OPERATEUR as Record<string,any>)[p].roles); if(p!=="charge_mission"){ setOpMandate(false); setOpEntrepriseMandanteId(""); } };
   const [opMandate, setOpMandate] = useState(false); // chargé de mission nommé par une entreprise tierce
   const [opEntrepriseMandanteId, setOpEntrepriseMandanteId] = useState("");
+
+  if (annonceContacter) {
+    return (
+      <Fiche0
+        onBack={()=>setAnnonceContacter(null)}
+        onSaved={async ()=>{ await handleTraiterAnnonce(annonceContacter, "a_qualifier"); setAnnonceContacter(null); }}
+        toast={toast}
+        entrepriseId={entrepriseId}
+        prefill={{nom: annonceContacter.nom||"", prenom: annonceContacter.prenom||"", telephone: annonceContacter.telephone||"", email: annonceContacter.email||""}}
+        comptes={[]}
+        user={_user}
+      />
+    );
+  }
 
   return (
     <div style={{display:"flex",flexDirection:"column",height:"100%"}}>
@@ -865,6 +916,22 @@ export const EcranReleves = ({entrepriseId, toast, notifications=[], setNotifica
                           WebkitTapHighlightColor:"transparent"}}>Désactiver</button>
                       )}
                     </div>
+                    {a.actif&&(
+                      <div style={{display:"flex",gap:8,marginTop:8}}>
+                        <button onClick={()=>handleRenvoyer(a)} style={{flex:1,padding:"8px 10px",
+                          borderRadius:8,background:C.bg2,color:C.tx2,border:`1px solid ${C.bd}`,
+                          fontFamily:"inherit",fontSize:12,cursor:"pointer",fontWeight:500,
+                          WebkitTapHighlightColor:"transparent"}}>📨 Renvoyer par SMS</button>
+                        <button onClick={()=>handleNouveauCode(a)} disabled={!!regenLoading[a.id]}
+                          style={{flex:1,padding:"8px 10px",borderRadius:8,
+                          background:regenLoading[a.id]?C.bg2:C.amberL,
+                          color:C.amberD,border:`1px solid ${C.amberD}`,
+                          fontFamily:"inherit",fontSize:12,cursor:"pointer",fontWeight:600,
+                          WebkitTapHighlightColor:"transparent"}}>
+                          {regenLoading[a.id]?"⏳ Génération…":"🔄 Nouveau code"}
+                        </button>
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
@@ -931,6 +998,12 @@ export const EcranReleves = ({entrepriseId, toast, notifications=[], setNotifica
                         <option key={s} value={s}>{STATUTS_ANNONCE[s].label}</option>
                       ))}
                     </select>
+                    {a.type==="gisement"&&(
+                      <button onClick={()=>{ setSousOnglet("annonces"); setAnnonceContacter(a); }} style={{height:36,padding:"0 12px",
+                        borderRadius:8,background:C.purple,color:"#fff",border:"none",
+                        fontFamily:"inherit",fontSize:12,fontWeight:600,cursor:"pointer",
+                        WebkitTapHighlightColor:"transparent",whiteSpace:"nowrap"}}>📋 Appeler</button>
+                    )}
                     {a.type==="gisement"&&a.statut!=="valide"&&a.statut!=="lot_cree"&&(
                       <button onClick={()=>handleCreerLotDepuisAnnonce(a)} style={{height:36,padding:"0 12px",
                         borderRadius:8,background:C.green,color:"#fff",border:"none",
@@ -2392,14 +2465,19 @@ export const EcranDelegations = ({entrepriseId, toast, onBack}: any) => {
       telephone, email, contactNom, contactPrenom, contactTel, contactFonction,
       typesProposes, entrepriseId,
     };
+    let nouvelleEntId: string | undefined;
     try {
       const saved: any = await apiPost(`/entreprises`, entreprise);
+      nouvelleEntId = saved.id;
       setEntreprises(prev=>{ const next=[saved,...prev]; try{localStorage.setItem(`applitag_entreprises_${entrepriseId}`,JSON.stringify(next));} catch { /* noop */ } return next; });
       toast(`Entreprise ${nom} créée ✓`);
     } catch {
-      setEntreprises(prev=>{ const next=[{...entreprise,id:uid()},...prev]; try{localStorage.setItem(`applitag_entreprises_${entrepriseId}`,JSON.stringify(next));} catch { /* noop */ } return next; });
+      const localId = uid();
+      nouvelleEntId = localId;
+      setEntreprises(prev=>{ const next=[{...entreprise,id:localId},...prev]; try{localStorage.setItem(`applitag_entreprises_${entrepriseId}`,JSON.stringify(next));} catch { /* noop */ } return next; });
       toast("Entreprise enregistrée localement ✓");
     }
+    if (nouvelleEntId) setSelEntId(nouvelleEntId);
     setNom(""); setSiret(""); setAdresse(""); setComplementAdresse(""); setCommune(""); setCP("");
     setTel(""); setEmail(""); setContactNom(""); setContactPrenom(""); setContactTel("");
     setContactFonction(""); setTypesProp([]);
@@ -2414,6 +2492,19 @@ export const EcranDelegations = ({entrepriseId, toast, onBack}: any) => {
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   },[selEntId, missionLotId]);
+
+  // Pré-remplit le délai d'exécution depuis la fiche du lot sélectionné
+  useEffect(()=>{
+    if (!missionLotId) return;
+    const lot = contacts.find(c=>c.id===missionLotId) as any;
+    if (lot?.delaiExecution) {
+      setDelaiExecution(lot.delaiExecution);
+    } else {
+      const d=new Date(); d.setDate(d.getDate()+14);
+      setDelaiExecution(d.toISOString().slice(0,10));
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  },[missionLotId]);
 
   const handleMissionner = async () => {
     const ent = entreprises.find(e=>e.id===selEntId);
