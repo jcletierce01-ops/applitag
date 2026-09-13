@@ -547,6 +547,7 @@ export const EcranReleves = ({entrepriseId, _user, toast, notifications=[], setN
   const PROFILS_OPERATEUR = {
     terrain:        {label:"Opérateur terrain",  icon:"👷", desc:"Saisie abattage et débardage uniquement", roles:["abattage","debardage"]},
     charge_mission: {label:"Chargé de mission",  icon:"🔭", desc:"Visite terrain uniquement",               roles:["mandataire"]},
+    dechiquetage:   {label:"Déchiqueteur",        icon:"🌀", desc:"Saisie déchiquetage uniquement",          roles:["dechiquetage"]},
   };
   const [opProfil, setOpProfil] = useState("terrain");
   const choisirProfilOp = (p: any) => { setOpProfil(p); setOpRoles((PROFILS_OPERATEUR as Record<string,any>)[p].roles); if(p!=="charge_mission"){ setOpMandate(false); setOpEntrepriseMandanteId(""); } };
