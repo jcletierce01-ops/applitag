@@ -8,7 +8,7 @@ import { formatPhone } from "../../shared/validators.js";
 import { STATUTS_ANNONCE } from "../connect/constants.js";
 import { DEFAULT_ENTREPRISE_ID, COMPTE_SESSION_KEY, annoncesLocalGet, annoncesLocalSave, comptesLocalGet, comptesLocalSave } from "../connect/local-storage.js";
 import { ordresExplLocalGet, ordresExplLocalSave } from "../exploitation/local-storage.js";
-import { apiGet, apiPostPublic, apiPatch } from "../../services/api.service.js";
+import { apiGet, apiPostPublic, apiPatch, ApiError } from "../../services/api.service.js";
 
 export const LoginScreen = ({onLogin, onLoginOperateur, onLoginDemo}: any) => {
   const [step, setStep] = useState("bienvenue"); // bienvenue | home | scan | pin | operateur | demo | ordre
@@ -393,8 +393,14 @@ export const LoginScreen = ({onLogin, onLoginOperateur, onLoginDemo}: any) => {
       const data = await apiPostPublic(`/auth/login`, { entrepriseId, pin });
       setAuth((data as any).access_token, (data as any).utilisateur, entrepriseId);
       onLogin((data as any).utilisateur);
-    } catch {
-      setError("PIN incorrect — réessayez");
+    } catch (e: unknown) {
+      if (e instanceof ApiError) {
+        setError(e.status === 401 || e.status === 400
+          ? "PIN incorrect — réessayez"
+          : `Erreur serveur (${e.status}) — réessayez`);
+      } else {
+        setError("Serveur inaccessible — vérifiez votre connexion");
+      }
       setPin("");
     }
     setLoading(false);
@@ -1705,34 +1711,32 @@ export const LoginScreen = ({onLogin, onLoginOperateur, onLoginDemo}: any) => {
                 }}/>
               ))}
             </div>
-            <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8,margin:"0 auto",maxWidth:252,width:"100%"}}>
-              {[1,2,3,4,5,6,7,8,9].map(d=>(
-                <button key={d} onClick={()=>handlePin(String(d))}
-                  style={{aspectRatio:"1",borderRadius:12,
-                    background:"rgba(255,255,255,.1)",
-                    border:"1px solid rgba(255,255,255,.15)",
-                    color:"#fff",fontSize:22,fontWeight:500,
-                    cursor:"pointer",fontFamily:"inherit",
-                    WebkitTapHighlightColor:"transparent"}}>
-                  {d}
-                </button>
-              ))}
-              <button onClick={()=>handlePin("0")}
-                style={{gridColumn:"span 2",borderRadius:12,
-                  background:"rgba(255,255,255,.1)",
-                  border:"1px solid rgba(255,255,255,.15)",
-                  color:"#fff",fontSize:22,fontWeight:500,
-                  cursor:"pointer",fontFamily:"inherit",
-                  padding:"16px 0",
-                  WebkitTapHighlightColor:"transparent"}}>0</button>
-              <button onClick={handleDel}
-                style={{aspectRatio:"1",borderRadius:12,
-                  background:"rgba(255,255,255,.08)",
-                  border:"1px solid rgba(255,255,255,.1)",
-                  color:"#fff",fontSize:20,
-                  cursor:"pointer",fontFamily:"inherit",
-                  WebkitTapHighlightColor:"transparent"}}>⌫</button>
-            </div>
+            {(()=>{
+              const btnBase: React.CSSProperties = {
+                aspectRatio:"1",borderRadius:12,
+                background:"rgba(255,255,255,.1)",
+                border:"1px solid rgba(255,255,255,.15)",
+                color:"#fff",fontSize:22,fontWeight:500,
+                cursor:"pointer",fontFamily:"inherit",
+                WebkitTapHighlightColor:"transparent" as any,
+                display:"flex",alignItems:"center",justifyContent:"center",
+              };
+              return (
+                <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",
+                  gap:8,margin:"0 auto",
+                  width:"min(280px, 76vw)" as any}}>
+                  {[1,2,3,4,5,6,7,8,9].map(d=>(
+                    <button key={d} onClick={()=>handlePin(String(d))} style={btnBase}>{d}</button>
+                  ))}
+                  <div/>
+                  <button onClick={()=>handlePin("0")} style={btnBase}>0</button>
+                  <button onClick={handleDel} style={{...btnBase,
+                    background:"rgba(255,255,255,.08)",
+                    border:"1px solid rgba(255,255,255,.1)",
+                    fontSize:20}}>⌫</button>
+                </div>
+              );
+            })()}
             {error&&(
               <div style={{color:C.amber,fontSize:13,textAlign:"center",marginTop:16}}>
                 ⚠ {error}
