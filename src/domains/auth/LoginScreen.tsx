@@ -492,7 +492,7 @@ export const LoginScreen = ({onLogin, onLoginOperateur, onLoginDemo}: any) => {
                 </div>
               </button>
               {/* Se connecter */}
-              <button onClick={()=>{ setError(""); setStep("scan"); }}
+              <button onClick={()=>{ setError(""); setStep("home"); }}
                 style={{width:"100%",padding:"16px 20px",borderRadius:18,
                   background:"rgba(255,255,255,.13)",border:"1.5px solid rgba(255,255,255,.28)",
                   backdropFilter:"blur(8px)",
@@ -1705,31 +1705,31 @@ export const LoginScreen = ({onLogin, onLoginOperateur, onLoginDemo}: any) => {
                 }}/>
               ))}
             </div>
-            <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:10,margin:"0 auto",maxWidth:320}}>
+            <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8,margin:"0 auto",maxWidth:252,width:"100%"}}>
               {[1,2,3,4,5,6,7,8,9].map(d=>(
                 <button key={d} onClick={()=>handlePin(String(d))}
-                  style={{height:68,borderRadius:14,
+                  style={{aspectRatio:"1",borderRadius:12,
                     background:"rgba(255,255,255,.1)",
                     border:"1px solid rgba(255,255,255,.15)",
-                    color:"#fff",fontSize:26,fontWeight:500,
+                    color:"#fff",fontSize:22,fontWeight:500,
                     cursor:"pointer",fontFamily:"inherit",
                     WebkitTapHighlightColor:"transparent"}}>
                   {d}
                 </button>
               ))}
-              <div/>
               <button onClick={()=>handlePin("0")}
-                style={{height:68,borderRadius:14,
+                style={{gridColumn:"span 2",borderRadius:12,
                   background:"rgba(255,255,255,.1)",
                   border:"1px solid rgba(255,255,255,.15)",
-                  color:"#fff",fontSize:26,fontWeight:500,
+                  color:"#fff",fontSize:22,fontWeight:500,
                   cursor:"pointer",fontFamily:"inherit",
+                  padding:"16px 0",
                   WebkitTapHighlightColor:"transparent"}}>0</button>
               <button onClick={handleDel}
-                style={{height:68,borderRadius:14,
+                style={{aspectRatio:"1",borderRadius:12,
                   background:"rgba(255,255,255,.08)",
                   border:"1px solid rgba(255,255,255,.1)",
-                  color:"#fff",fontSize:22,
+                  color:"#fff",fontSize:20,
                   cursor:"pointer",fontFamily:"inherit",
                   WebkitTapHighlightColor:"transparent"}}>⌫</button>
             </div>

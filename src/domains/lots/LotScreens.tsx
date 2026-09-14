@@ -1932,7 +1932,7 @@ export const EcranTransporteur = ({lot, onBack, onSaved, toast, entrepriseId}: a
 };
 
 // ── ÉCRAN LIVRAISON ───────────────────────────────────────────
-export const EcranLivraison = ({lot, onBack, onSaved, toast, entrepriseId}: any) => {
+export const EcranLivraison = ({lot, onBack, onSaved, toast}: any) => {
   const [typeDest,       setTypeDest]    = useState("chaufferie"); // chaufferie | plateforme
   const [numeroCMR,      setNumeroCMR]   = useState("");
   const [nomDestination, setNomDest]     = useState("");
@@ -1966,8 +1966,6 @@ export const EcranLivraison = ({lot, onBack, onSaved, toast, entrepriseId}: any)
     if (!canValidate) { toast("Destination, pesée, réceptionnaire et GPS obligatoires","warn"); return; }
     setSaving(true);
     const statutFinal = typeDest==="chaufferie" ? "LIVRE_CHAUFFERIE" : "EN_STOCK_PLATEFORME";
-    const pci = calculerPci(humiditeReception);
-    const energieMWh = Math.round(calculerEnergie(parseFloat(pesee)||0, pci) * 10) / 10;
     try {
       await apiPost(`/livraisons`, {
           lotId:lot.id, lotNumero:lot.lotNumero,
