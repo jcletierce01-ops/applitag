@@ -3,7 +3,7 @@ import { STATUT_LOT } from "./MobileScreens.constants.js";
 import { C, BTN_H, INPUT_H, FONT_INPUT, FONT_TITLE, PADDING } from "../../design-system/tokens.js";
 import { todayS, nowISO, uid, genCode } from "../../shared/utils.js";
 import { apiGet, apiPost, apiPatch, apiPostPublic, ApiError } from "../../services/api.service.js";
-import { genPin4 } from "../../services/auth.service.js";
+import { genPin4, getToken } from "../../services/auth.service.js";
 import { API_BASE_URL } from "@/config/env.js";
 import { annoncesLocalGet, annoncesLocalSave, comptesLocalGet, comptesLocalSave } from "../../domains/connect/local-storage.js";
 import { ordresExplLocalGet, ordresExplLocalSave } from "../../domains/exploitation/local-storage.js";
@@ -1438,7 +1438,9 @@ export const EcranOperateur = ({operateur, onLogout, toast, onUpdateOperateur}: 
 
   // Rafraîchit le statut réel des lots assignés, pour ne jamais bloquer
   // l'accès à la saisie tant que la clôture n'a pas eu lieu (et le couper après).
+  // Guard : sans JWT admin, ces endpoints retourneraient 401 → reload en boucle.
   useEffect(()=>{
+    if (!getToken()) return;
     apiGet(`/contacts`)
       .then(d=>{
         if (!Array.isArray(d)) return;
