@@ -2,7 +2,7 @@
 import { STATUT_LOT } from "./MobileScreens.constants.js";
 import { C, BTN_H, INPUT_H, FONT_INPUT, FONT_TITLE, PADDING } from "../../design-system/tokens.js";
 import { todayS, nowISO, uid, genCode } from "../../shared/utils.js";
-import { apiGet, apiPost, apiPatch, apiPostPublic } from "../../services/api.service.js";
+import { apiGet, apiPost, apiPatch, apiPostPublic, ApiError } from "../../services/api.service.js";
 import { genPin4 } from "../../services/auth.service.js";
 import { API_BASE_URL } from "@/config/env.js";
 import { annoncesLocalGet, annoncesLocalSave, comptesLocalGet, comptesLocalSave } from "../../domains/connect/local-storage.js";
@@ -419,7 +419,8 @@ export const EcranReleves = ({entrepriseId, _user, toast, notifications=[], setN
     apiGet(`/operateurs/entreprise/${entrepriseId}`).then(d=>{ if(Array.isArray(d)) setOperateurs(d); }).catch(()=>{});
     apiGet(`/acces-lot/entreprise/${entrepriseId}`).then(d=>{ if(Array.isArray(d)) setAcces(d); }).catch(()=>{});
     apiGet(`/contacts`).then(d=>{ if(Array.isArray(d)) setContacts(d); }).catch(()=>{});
-    apiGet(`/entreprises/entreprise/${entrepriseId}`).then(d=>{ if(Array.isArray(d)) setEntreprises(d); }).catch(()=>{});
+    try { const s=localStorage.getItem(`applitag_entreprises_${entrepriseId}`); if(s){const p=JSON.parse(s); if(Array.isArray(p)) setEntreprises(p);} } catch { /* noop */ }
+    apiGet(`/entreprises/entreprise/${entrepriseId}`).then(d=>{ if(Array.isArray(d)){ setEntreprises(d); try{localStorage.setItem(`applitag_entreprises_${entrepriseId}`,JSON.stringify(d));}catch{/*noop*/} } }).catch(()=>{});
     (async () => {
       let fromApi = [];
       try {
@@ -477,7 +478,12 @@ export const EcranReleves = ({entrepriseId, _user, toast, notifications=[], setN
       setOpNom(""); setOpPrenom(""); setOpEtfId(""); setOpPin(""); setOpRoles(["abattage","debardage"]); setOpProfil("terrain");
       setOpMandate(false); setOpEntrepriseMandanteId("");
       toast(`Opérateur ${saved.nom} créé ✓`);
-    } catch { toast("Erreur API","warn"); }
+    } catch(e: unknown) {
+      const msg = e instanceof ApiError
+        ? (e.status === 400 ? "Données invalides — vérifiez le formulaire" : `Erreur serveur (${e.status})`)
+        : "Serveur inaccessible — vérifiez votre connexion";
+      toast(msg,"warn");
+    }
     setOpSaving(false);
   };
 
