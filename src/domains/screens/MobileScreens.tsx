@@ -381,7 +381,7 @@ export const Fiche0 = ({onBack, onSaved, toast, entrepriseId, prefill=null, comp
 // ── VISITE TERRAIN ────────────────────────────────────────────
 // MSlider importé depuis ./shared/ui.jsx
 
-export const EcranReleves = ({entrepriseId, _user, toast, notifications=[], setNotifications, onGoDelegations}: any) => {
+export const EcranReleves = ({entrepriseId, _user, toast, notifications=[], setNotifications}: any) => {
   const [sousOnglet, setSousOnglet] = useState("notifs");
   const [operateurs, setOperateurs] = useState<any[]>([]);
   const [acces, setAcces] = useState<any[]>([]);
