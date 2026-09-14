@@ -468,8 +468,7 @@ export const EcranReleves = ({entrepriseId, _user, toast, notifications=[], setN
     setOpSaving(true);
     const entrepriseMandante = opMandate ? entreprises.find(e=>e.id===opEntrepriseMandanteId) : null;
     try {
-      const saved: any = await apiPost(`/operateurs`, {nom:opNom,prenom:opPrenom,pin:opPin,roles:opRoles,profil:opProfil,
-          entrepriseMandanteId:entrepriseMandante?.id||null,entrepriseMandanteNom:entrepriseMandante?.nom||null});
+      const saved: any = await apiPost(`/operateurs`, {nom:opNom,prenom:opPrenom,pin:opPin});
       setOperateurs(prev=>[{...saved,roles:opRoles,profil:opProfil,
         entrepriseMandanteId:entrepriseMandante?.id||null,entrepriseMandanteNom:entrepriseMandante?.nom||null,assignations:[]},...prev]);
       setShowNew(false);
