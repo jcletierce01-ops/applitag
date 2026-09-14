@@ -393,7 +393,6 @@ export const EcranReleves = ({entrepriseId, _user, toast, notifications=[], setN
   const [showNewAcces, setShowNewAcces] = useState(false);
   const [opNom, setOpNom] = useState("");
   const [opPrenom, setOpPrenom] = useState("");
-  const [opEtfId, setOpEtfId] = useState("");
   const [opPin, setOpPin] = useState("");
   const [opRoles, setOpRoles] = useState(["abattage","debardage"]);
   const [opSaving, setOpSaving] = useState(false);
@@ -461,23 +460,22 @@ export const EcranReleves = ({entrepriseId, _user, toast, notifications=[], setN
     toast(`Fiche contact créée pour ${annonce.nom} ✓`);
   };
 
-  const entrepriseSel = entreprises.find(e=>e.id===opEtfId)||null;
   const annoncesNouvelles = annonces.filter(a=>a.statut==="recu"||a.statut==="nouvelle"||!a.statut);
 
   const handleCreateOp = async () => {
-    if (!opNom||!entrepriseSel||!opPin) { toast("Remplir nom, entreprise et PIN","warn"); return; }
+    if (!opNom||!opPin) { toast("Remplir le nom et le PIN","warn"); return; }
     if (opProfil==="charge_mission"&&opMandate&&!opEntrepriseMandanteId) { toast("Sélectionnez l'entreprise mandante","warn"); return; }
     setOpSaving(true);
     const entrepriseMandante = opMandate ? entreprises.find(e=>e.id===opEntrepriseMandanteId) : null;
     try {
-      const saved: any = await apiPost(`/operateurs`, {nom:opNom,prenom:opPrenom,etfNom:entrepriseSel.nom,etfId:entrepriseSel.id,pin:opPin,roles:opRoles,profil:opProfil,
-          entrepriseMandanteId:entrepriseMandante?.id||null,entrepriseMandanteNom:entrepriseMandante?.nom||null,entrepriseId});
-      setOperateurs(prev=>[{...saved,etfNom:entrepriseSel.nom,etfId:entrepriseSel.id,roles:opRoles,profil:opProfil,
+      const saved: any = await apiPost(`/operateurs`, {nom:opNom,prenom:opPrenom,pin:opPin,roles:opRoles,profil:opProfil,
+          entrepriseMandanteId:entrepriseMandante?.id||null,entrepriseMandanteNom:entrepriseMandante?.nom||null});
+      setOperateurs(prev=>[{...saved,roles:opRoles,profil:opProfil,
         entrepriseMandanteId:entrepriseMandante?.id||null,entrepriseMandanteNom:entrepriseMandante?.nom||null,assignations:[]},...prev]);
       setShowNew(false);
-      setOpNom(""); setOpPrenom(""); setOpEtfId(""); setOpPin(""); setOpRoles(["abattage","debardage"]); setOpProfil("terrain");
+      setOpNom(""); setOpPrenom(""); setOpPin(""); setOpRoles(["abattage","debardage"]); setOpProfil("terrain");
       setOpMandate(false); setOpEntrepriseMandanteId("");
-      toast(`Opérateur ${saved.nom} créé ✓`);
+      toast(`Opérateur ${saved.nom} créé — PIN : ${opPin}`);
     } catch(e: unknown) {
       const msg = e instanceof ApiError
         ? (e.status === 400 ? "Données invalides — vérifiez le formulaire" : `Erreur serveur (${e.status})`)
@@ -664,31 +662,6 @@ export const EcranReleves = ({entrepriseId, _user, toast, notifications=[], setN
                 <MInput label="Nom" value={opNom} onChange={setOpNom} placeholder="Nom" required/>
                 <MInput label="Prénom" value={opPrenom} onChange={setOpPrenom} placeholder="Prénom" hint="optionnel"/>
                 <div style={{marginBottom:14}}>
-                  <div style={{fontSize:13,fontWeight:600,color:C.tx2,marginBottom:8}}>Entreprise ETF *</div>
-                  {entreprises.length>0 ? (
-                    <select value={opEtfId} onChange={e=>setOpEtfId(e.target.value)}
-                      style={{width:"100%",height:INPUT_H,padding:"0 14px",borderRadius:12,
-                        border:`1.5px solid ${C.bd}`,fontSize:FONT_INPUT,fontFamily:"inherit",
-                        background:"#fff",color:C.tx,outline:"none"}}>
-                      <option value="">— Sélectionner dans le répertoire —</option>
-                      {entreprises.map(e=>(
-                        <option key={e.id} value={e.id}>
-                          {e.nom}{e.typesProposes?.length?` · ${e.typesProposes.map((t: any)=>TYPES_TRAVAUX_DELEGATION.find(([v])=>v===t)?.[2]||t).join(", ")}`:""}
-                        </option>
-                      ))}
-                    </select>
-                  ) : (
-                    <div style={{background:C.amberL,borderRadius:12,padding:12,
-                      border:`1px solid ${C.amber}`,fontSize:12,color:C.amberD}}>
-                      ⚠ Aucune entreprise référencée.
-                    </div>
-                  )}
-                  <div onClick={onGoDelegations} style={{marginTop:8,fontSize:12,color:C.green,
-                    fontWeight:600,cursor:"pointer",WebkitTapHighlightColor:"transparent"}}>
-                    + Créer une nouvelle fiche entreprise
-                  </div>
-                </div>
-                <div style={{marginBottom:14}}>
                   <div style={{fontSize:13,fontWeight:600,color:C.tx2,marginBottom:8}}>
                     Code PIN <span style={{fontWeight:400,color:C.tx3}}>(généré automatiquement)</span>
                   </div>
@@ -758,7 +731,7 @@ export const EcranReleves = ({entrepriseId, _user, toast, notifications=[], setN
                           </div>
                         )}
                         <div style={{fontSize:11,color:C.tx3,marginTop:6}}>
-                          Entreprise pour le compte de laquelle ce chargé de mission intervient sur ce lot — distincte de son employeur ({entrepriseSel?.nom||"—"}).
+                          Entreprise pour le compte de laquelle ce chargé de mission intervient — distincte de son propre employeur.
                         </div>
                       </div>
                     )}
