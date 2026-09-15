@@ -8360,6 +8360,13 @@ export const SectionBoisCrise = () => {
 
   const STATUTS={constat:{l:"Constat",bg:"#FEF3C7",c:"#92400E"},en_transit:{l:"En transit",bg:"#DBEAFE",c:"#1E3A5F"},livre:{l:"Livré",bg:"#D1FAE5",c:"#065F46"},archive:{l:"Archivé",bg:C.bg,c:C.tx3}};
 
+  const [alertesUrgentes, setAlertesUrgentes] = useState<any[]>([]);
+  useEffect(() => {
+    (apiGet("/lots-sanitaires/urgents?scoreMin=3") as Promise<any[]>)
+      .then(data => { if (Array.isArray(data)) setAlertesUrgentes(data); })
+      .catch(() => {});
+  }, []);
+
   return (
     <div style={{padding:PADDING,maxWidth:660,margin:"0 auto"}}>
       <div style={{background:"linear-gradient(135deg,#7F1D1D 0%,#92400E 100%)",borderRadius:14,padding:"20px 20px 16px",marginBottom:16,color:"#fff"}}>
@@ -8376,6 +8383,34 @@ export const SectionBoisCrise = () => {
       <div style={{background:"#FFF7ED",border:"1px solid #FB923C",borderRadius:10,padding:"12px 14px",marginBottom:16,fontSize:13,lineHeight:1.5,color:"#7C2D12"}}>
         <strong>⚠️ Principe éthique fondamental :</strong> Ne pas prospecter directement auprès des propriétaires sinistrés. Passer par les interprofessions, coopératives, experts forestiers et assureurs. Tout mouvement de bois exige un <strong>mandat incontestable</strong>.
       </div>
+
+      {alertesUrgentes.length > 0 && (
+        <div style={{background:"#FFF1F2",border:"1.5px solid #FDA4AF",borderRadius:10,padding:"12px 14px",marginBottom:14}}>
+          <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:8}}>
+            <span style={{fontSize:14,fontWeight:700,color:"#881337"}}>🚨 Alertes sanitaires urgentes</span>
+            <span style={{padding:"2px 7px",borderRadius:99,fontSize:11,fontWeight:700,background:"#881337",color:"#fff"}}>{alertesUrgentes.length}</span>
+          </div>
+          {alertesUrgentes.map(a => {
+            const typIco = a.typeSinistre==="POST_INCENDIE"?"🔥":a.typeSinistre==="CHABLIS"?"🌪":a.typeSinistre==="SCOLYTES"?"🐛":a.typeSinistre==="PATHOGENE"?"🦠":"⚠️";
+            const scoreCol = a.scoreUrgence>=5?"#7F1D1D":a.scoreUrgence>=4?"#92400E":"#78350F";
+            const scoreBg  = a.scoreUrgence>=5?"#FEE2E2":a.scoreUrgence>=4?"#FEF3C7":"#FEF9C3";
+            return (
+              <div key={a.id} style={{display:"flex",alignItems:"center",justifyContent:"space-between",
+                padding:"7px 10px",borderRadius:8,background:"#fff",border:"1px solid #FCA5A5",marginBottom:5}}>
+                <div style={{fontSize:12}}>
+                  <span style={{marginRight:6}}>{typIco}</span>
+                  <strong>{a.contact?.nom ?? a.id.slice(0,8)}</strong>
+                  {a.contact?.commune && <span style={{color:C.tx3}}> · {a.contact.commune}</span>}
+                  {a.surfaceAffecteeHa && <span style={{color:C.tx3}}> · {a.surfaceAffecteeHa} ha</span>}
+                </div>
+                <span style={{padding:"2px 8px",borderRadius:99,fontSize:11,fontWeight:700,background:scoreBg,color:scoreCol,flexShrink:0}}>
+                  Score {a.scoreUrgence}/5
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      )}
 
       <div style={{display:"flex",gap:8,marginBottom:16}}>
         {[["liste","📋 Lots"],["nouveau","➕ Nouveau lot"]].map(([id,l])=>(
