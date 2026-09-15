@@ -941,7 +941,7 @@ export default function App() {
                   display:"flex",alignItems:"center",justifyContent:"center",
                   WebkitTapHighlightColor:"transparent"}}>×</button>
             </div>
-            {/* Raccourci Accueil */}
+            {/* Raccourcis rapides */}
             <button onClick={()=>{ setMenuOpen(false); setScreen("accueil"); }}
               style={{display:"flex",alignItems:"center",gap:10,padding:"10px 16px",
                 background:screen==="accueil"?C.greenL:"transparent",
@@ -952,6 +952,28 @@ export default function App() {
                 WebkitTapHighlightColor:"transparent"}}>
               <span style={{fontSize:18}}>🏠</span> Accueil
             </button>
+            {(roleEffectif==="admin"||roleEffectif==="manager")&&(<>
+              <button onClick={()=>{ setMenuOpen(false); setScreen("fiche0"); }}
+                style={{display:"flex",alignItems:"center",gap:10,padding:"10px 16px",
+                  background:screen==="fiche0"?C.greenL:"transparent",
+                  border:"none",borderBottom:`1px solid ${C.bd}`,
+                  color:screen==="fiche0"?C.greenD:C.tx,fontFamily:"inherit",
+                  fontSize:14,fontWeight:screen==="fiche0"?600:400,
+                  cursor:"pointer",width:"100%",textAlign:"left",
+                  WebkitTapHighlightColor:"transparent"}}>
+                <span style={{fontSize:18}}>➕</span> Nouveau lot
+              </button>
+              <button onClick={()=>{ setMenuOpen(false); setScreen("saisies"); }}
+                style={{display:"flex",alignItems:"center",gap:10,padding:"10px 16px",
+                  background:screen==="saisies"?C.greenL:"transparent",
+                  border:"none",borderBottom:`1px solid ${C.bd}`,
+                  color:screen==="saisies"?C.greenD:C.tx,fontFamily:"inherit",
+                  fontSize:14,fontWeight:screen==="saisies"?600:400,
+                  cursor:"pointer",width:"100%",textAlign:"left",
+                  WebkitTapHighlightColor:"transparent"}}>
+                <span style={{fontSize:18}}>📊</span> Saisies admin
+              </button>
+            </>)}
             {/* Groupes de modules */}
             <div style={{overflowY:"auto",padding:"10px 12px 40px",flex:1}}>
               {GROUPES_MODULES.map((groupe)=>(
@@ -972,6 +994,9 @@ export default function App() {
                             else if (mod.nav==="transports") { setFiltreLotsInitial("EN_LIVRAISON"); setScreen("lots"); }
                             else if (mod.nav==="livraisons") { setFiltreLotsInitial("LIVRE_CHAUFFERIE"); setScreen("lots"); }
                             else if (mod.nav==="alertes")    { setScreen("alertes"); }
+                            else if (mod.nav==="saisies")    { setScreen("saisies"); }
+                            else if (mod.nav==="profil")     { setScreen("profil"); }
+                            else if (mod.nav==="carte")      { setScreen("carte"); }
                             else { toast("Module disponible sur le tableau de bord PC","info"); }
                           }}
                           style={{borderRadius:10,padding:"8px 4px",textAlign:"center",
