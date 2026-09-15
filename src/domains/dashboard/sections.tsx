@@ -5,7 +5,7 @@ import { VSS_RECONNUS, STATUT_REGL, TEXTES_REGL } from "./sections.constants.js"
 import { DEMO_LIVRAISONS } from "../../demo/demoData.js";
 import { todayS, nowISO, uid } from "../../shared/utils.js";
 import { MInput } from "../../shared/ui.jsx";
-import { apiGet } from "../../services/api.service.js";
+import { apiGet, apiPost, apiPatch } from "../../services/api.service.js";
 const ROLES_DEF = [
   {id:"super_editeur",  label:"Éditeur souverain — APPLITAG", icon:"🏢", color:"#111827"},
   {id:"admin",          label:"Administrateur",        icon:"⚙️",  color:"#1E5B3A"},
@@ -11174,6 +11174,9 @@ export const SectionPlanApprovisionnement = () => {
   const [planEntonnoir, setPlanEntonnoir] = useState(PLAN_DATA[0].id); // resetté par useEffect après fetch
   const [conformite, setConformite] = useState<any>(null);
   const [loadingConf, setLoadingConf] = useState(false);
+  const [showForm, setShowForm] = useState<"create"|"edit"|null>(null);
+  const [formData, setFormData] = useState<any>({});
+  const [savingForm, setSavingForm] = useState(false);
 
   useEffect(() => {
     (apiGet("/plans-approvisionnement") as Promise<any[]>)
@@ -11222,11 +11225,91 @@ export const SectionPlanApprovisionnement = () => {
   ];
   const maxAbs = Math.max(...entonnoir.map(e=>Math.abs(e.val??0)));
 
+  const reloadPlans = () => {
+    (apiGet("/plans-approvisionnement") as Promise<any[]>)
+      .then(data => {
+        if (Array.isArray(data) && data.length > 0) setPlans(data.map(normaliserPlan));
+      })
+      .catch(()=>{});
+  };
+
+  const openCreate = () => {
+    setFormData({ annee: new Date().getFullYear(), nom:"", tonnageCibleT:"", rayonMaxKm:"",
+      humiditeMaxPct:"", regimeRED:"NON_CONCERNE", declarationStatut:"NON_REQUISE",
+      certificationActuelle:"AUCUNE", installationAvant2023:false });
+    setSelected(null);
+    setShowForm("create");
+  };
+
+  const openEdit = () => {
+    if (!plan) return;
+    setFormData({ annee: plan.annee ?? new Date().getFullYear(), nom: plan.nom ?? "",
+      tonnageCibleT: plan.objectifT ?? "", rayonMaxKm: plan.rayonMaxKm ?? "",
+      humiditeMaxPct: plan.humiditeMaxPct ?? "",
+      ressourceTheoriqueT: plan.ressourceTheoriqueT ?? "",
+      ressourceAccessibleT: plan.ressourceAccessibleT ?? "",
+      ressourceConcurrentsT: plan.ressourceConcurrentsT ?? "",
+      ressourceSecuriseeT: plan.ressourceSecuriseeT ?? "",
+      niveauRisqueVolumeT: plan.niveauRisqueVolumeT ?? "",
+      regimeRED: plan.regimeRED ?? "NON_CONCERNE",
+      declarationStatut: plan.declarationStatut ?? "NON_REQUISE",
+      certificationActuelle: plan.certif ?? "AUCUNE",
+      installationAvant2023: plan.installationAvant2023 ?? false,
+      dateExpirationCertif: plan.dateExpirationCertif ?? "",
+      dateDeclarationAnnuelle: plan.dateDeclarationAnnuelle ?? "" });
+    setShowForm("edit");
+  };
+
+  const submitForm = async () => {
+    setSavingForm(true);
+    try {
+      const num = (k: string) => formData[k] !== "" ? parseFloat(formData[k]) : undefined;
+      if (showForm === "create") {
+        await apiPost("/plans-approvisionnement", {
+          annee: parseInt(formData.annee) || new Date().getFullYear(),
+          nom: formData.nom || undefined,
+          tonnageCibleT: parseFloat(formData.tonnageCibleT) || 0,
+          rayonMaxKm: num("rayonMaxKm"),
+          humiditeMaxPct: num("humiditeMaxPct"),
+        });
+      } else if (showForm === "edit" && selected) {
+        await apiPatch(`/plans-approvisionnement/${selected}`, {
+          nom: formData.nom || undefined,
+          tonnageCibleT: num("tonnageCibleT"),
+          rayonMaxKm: num("rayonMaxKm"),
+          humiditeMaxPct: num("humiditeMaxPct"),
+          ressourceTheoriqueT: num("ressourceTheoriqueT"),
+          ressourceAccessibleT: num("ressourceAccessibleT"),
+          ressourceConcurrentsT: num("ressourceConcurrentsT"),
+          ressourceSecuriseeT: num("ressourceSecuriseeT"),
+          niveauRisqueVolumeT: num("niveauRisqueVolumeT"),
+          regimeRED: formData.regimeRED || undefined,
+          certificationActuelle: formData.certificationActuelle || undefined,
+          declarationStatut: formData.declarationStatut || undefined,
+          installationAvant2023: formData.installationAvant2023,
+          dateExpirationCertif: formData.dateExpirationCertif || undefined,
+          dateDeclarationAnnuelle: formData.dateDeclarationAnnuelle || undefined,
+        });
+      }
+      setShowForm(null);
+      reloadPlans();
+    } finally { setSavingForm(false); }
+  };
+
+  const Fd = (k: string, v?: any) => setFormData((f: any) => ({...f, [k]: v ?? f[k]}));
+
   return (
     <div style={{maxWidth:1000,margin:"0 auto"}}>
-      <div style={{marginBottom:14}}>
-        <div style={{fontSize:20,fontWeight:800,color:C.tx}}>📐 Plan d'approvisionnement V2</div>
-        <div style={{fontSize:13,color:C.tx2}}>Entonnoir ressource · Conformité RED II/III · Traçabilité GES</div>
+      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:14}}>
+        <div>
+          <div style={{fontSize:20,fontWeight:800,color:C.tx}}>📐 Plan d'approvisionnement V2</div>
+          <div style={{fontSize:13,color:C.tx2}}>Entonnoir ressource · Conformité RED II/III · Traçabilité GES</div>
+        </div>
+        <button onClick={openCreate}
+          style={{padding:"8px 16px",borderRadius:10,background:"#1E5B3A",color:"#fff",
+            border:"none",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>
+          ➕ Nouveau plan
+        </button>
       </div>
 
       {/* Onglets */}
@@ -11572,9 +11655,10 @@ export const SectionPlanApprovisionnement = () => {
                       cursor:"pointer",fontFamily:"inherit",background:"#1E5B3A",border:"none",color:"#fff"}}>
                     🔄 Actualiser
                   </button>
-                  <button style={{flex:1,padding:"7px",borderRadius:8,fontSize:11,fontWeight:700,
-                    cursor:"pointer",fontFamily:"inherit",background:"transparent",
-                    border:`1px solid ${C.bd}`,color:C.tx2}}>
+                  <button onClick={openEdit}
+                    style={{flex:1,padding:"7px",borderRadius:8,fontSize:11,fontWeight:700,
+                      cursor:"pointer",fontFamily:"inherit",background:"transparent",
+                      border:`1px solid ${C.bd}`,color:C.tx2}}>
                     ✏️ Modifier
                   </button>
                 </div>
@@ -11625,6 +11709,147 @@ export const SectionPlanApprovisionnement = () => {
                 </div>
               );
             })}
+          </div>
+        </div>
+      )}
+
+      {/* ── Formulaire création / édition ──────────────────────────────── */}
+      {showForm && (
+        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.45)",
+          zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center",padding:16}}>
+          <div style={{background:"#fff",borderRadius:16,padding:24,width:"100%",
+            maxWidth:520,maxHeight:"90vh",overflowY:"auto",
+            boxShadow:"0 20px 60px rgba(0,0,0,0.25)"}}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:18}}>
+              <div style={{fontSize:15,fontWeight:800,color:C.tx}}>
+                {showForm==="create"?"➕ Nouveau plan":"✏️ Modifier le plan"}
+              </div>
+              <button onClick={()=>setShowForm(null)}
+                style={{background:"transparent",border:"none",cursor:"pointer",fontSize:20,color:C.tx3}}>✕</button>
+            </div>
+
+            {/* Champs de base */}
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:12}}>
+              <div>
+                <div style={{fontSize:11,color:C.tx3,marginBottom:4,fontWeight:600}}>Année *</div>
+                <input type="number" value={formData.annee||""} min={2020} max={2100}
+                  onChange={e=>Fd("annee",e.target.value)}
+                  style={{width:"100%",height:40,padding:"0 10px",borderRadius:8,
+                    border:`1.5px solid ${C.bd}`,fontFamily:"inherit",fontSize:13,boxSizing:"border-box"}}/>
+              </div>
+              <div>
+                <div style={{fontSize:11,color:C.tx3,marginBottom:4,fontWeight:600}}>Objectif (t) *</div>
+                <input type="number" value={formData.tonnageCibleT||""} min={0}
+                  onChange={e=>Fd("tonnageCibleT",e.target.value)}
+                  style={{width:"100%",height:40,padding:"0 10px",borderRadius:8,
+                    border:`1.5px solid ${C.bd}`,fontFamily:"inherit",fontSize:13,boxSizing:"border-box"}}/>
+              </div>
+            </div>
+            <div style={{marginBottom:10}}>
+              <div style={{fontSize:11,color:C.tx3,marginBottom:4,fontWeight:600}}>Nom du plan</div>
+              <input value={formData.nom||""} onChange={e=>Fd("nom",e.target.value)}
+                placeholder="ex : Plan Allier Nord 2027"
+                style={{width:"100%",height:40,padding:"0 10px",borderRadius:8,
+                  border:`1.5px solid ${C.bd}`,fontFamily:"inherit",fontSize:13,boxSizing:"border-box"}}/>
+            </div>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:10}}>
+              <div>
+                <div style={{fontSize:11,color:C.tx3,marginBottom:4,fontWeight:600}}>Rayon max (km)</div>
+                <input type="number" value={formData.rayonMaxKm||""} min={0}
+                  onChange={e=>Fd("rayonMaxKm",e.target.value)}
+                  style={{width:"100%",height:40,padding:"0 10px",borderRadius:8,
+                    border:`1.5px solid ${C.bd}`,fontFamily:"inherit",fontSize:13,boxSizing:"border-box"}}/>
+              </div>
+              <div>
+                <div style={{fontSize:11,color:C.tx3,marginBottom:4,fontWeight:600}}>Humidité max (%)</div>
+                <input type="number" value={formData.humiditeMaxPct||""} min={0} max={100}
+                  onChange={e=>Fd("humiditeMaxPct",e.target.value)}
+                  style={{width:"100%",height:40,padding:"0 10px",borderRadius:8,
+                    border:`1.5px solid ${C.bd}`,fontFamily:"inherit",fontSize:13,boxSizing:"border-box"}}/>
+              </div>
+            </div>
+
+            {/* Entonnoir V2 — uniquement en édition */}
+            {showForm==="edit"&&(<>
+              <div style={{fontSize:11,fontWeight:700,color:"#1E40AF",marginBottom:8,marginTop:4}}>
+                📊 Entonnoir V2
+              </div>
+              {[
+                ["ressourceTheoriqueT","Ressource théorique (t)"],
+                ["ressourceAccessibleT","Ressource accessible (t)"],
+                ["ressourceConcurrentsT","Concurrents (t)"],
+                ["ressourceSecuriseeT","Sécurisée nette (t)"],
+                ["niveauRisqueVolumeT","Risque volumique (t)"],
+              ].map(([k,l])=>(
+                <div key={k} style={{marginBottom:8}}>
+                  <div style={{fontSize:11,color:C.tx3,marginBottom:3,fontWeight:600}}>{l}</div>
+                  <input type="number" value={formData[k]||""} min={0}
+                    onChange={e=>Fd(k,e.target.value)}
+                    style={{width:"100%",height:36,padding:"0 10px",borderRadius:8,
+                      border:`1.5px solid ${C.bd}`,fontFamily:"inherit",fontSize:13,boxSizing:"border-box"}}/>
+                </div>
+              ))}
+
+              <div style={{fontSize:11,fontWeight:700,color:"#1E40AF",marginBottom:8,marginTop:8}}>
+                🇪🇺 Conformité RED
+              </div>
+              <div style={{marginBottom:8}}>
+                <div style={{fontSize:11,color:C.tx3,marginBottom:4,fontWeight:600}}>Régime RED</div>
+                <select value={formData.regimeRED||"NON_CONCERNE"}
+                  onChange={e=>Fd("regimeRED",e.target.value)}
+                  style={{width:"100%",height:40,padding:"0 10px",borderRadius:8,
+                    border:`1.5px solid ${C.bd}`,fontFamily:"inherit",fontSize:13}}>
+                  <option value="RED_II_GRAND_PERE">🏛️ RED II — clause grand-père</option>
+                  <option value="RED_III">🇪🇺 RED III</option>
+                  <option value="NON_CONCERNE">➖ Non concerné</option>
+                </select>
+              </div>
+              <div style={{marginBottom:8}}>
+                <div style={{fontSize:11,color:C.tx3,marginBottom:4,fontWeight:600}}>Certification</div>
+                <select value={formData.certificationActuelle||"AUCUNE"}
+                  onChange={e=>Fd("certificationActuelle",e.target.value)}
+                  style={{width:"100%",height:40,padding:"0 10px",borderRadius:8,
+                    border:`1.5px solid ${C.bd}`,fontFamily:"inherit",fontSize:13}}>
+                  {["PEFC","FSC","SBP","SURE","ISCC_PLUS","AUCUNE"].map(v=>(
+                    <option key={v} value={v}>{v}</option>
+                  ))}
+                </select>
+              </div>
+              <div style={{marginBottom:8}}>
+                <div style={{fontSize:11,color:C.tx3,marginBottom:4,fontWeight:600}}>Statut déclaration</div>
+                <select value={formData.declarationStatut||"NON_REQUISE"}
+                  onChange={e=>Fd("declarationStatut",e.target.value)}
+                  style={{width:"100%",height:40,padding:"0 10px",borderRadius:8,
+                    border:`1.5px solid ${C.bd}`,fontFamily:"inherit",fontSize:13}}>
+                  <option value="SOUMISE">✅ Déclaration soumise</option>
+                  <option value="EN_COURS">📝 En cours</option>
+                  <option value="NON_REQUISE">➖ Non requise</option>
+                </select>
+              </div>
+              <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:8}}>
+                <div onClick={()=>Fd("installationAvant2023",!formData.installationAvant2023)}
+                  style={{width:20,height:20,borderRadius:5,border:`2px solid #1E5B3A`,
+                    background:formData.installationAvant2023?"#1E5B3A":"#fff",cursor:"pointer",
+                    display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                  {formData.installationAvant2023&&<span style={{color:"#fff",fontSize:13}}>✓</span>}
+                </div>
+                <span style={{fontSize:12,color:C.tx}}>Installation mise en service avant le 20 nov. 2023</span>
+              </div>
+            </>)}
+
+            <div style={{display:"flex",gap:10,marginTop:16}}>
+              <button onClick={submitForm} disabled={savingForm}
+                style={{flex:1,height:44,borderRadius:10,background:"#1E5B3A",color:"#fff",
+                  border:"none",fontSize:13,fontWeight:700,cursor:savingForm?"not-allowed":"pointer",
+                  fontFamily:"inherit",opacity:savingForm?0.7:1}}>
+                {savingForm?"Enregistrement…":(showForm==="create"?"Créer le plan":"Enregistrer")}
+              </button>
+              <button onClick={()=>setShowForm(null)}
+                style={{flex:1,height:44,borderRadius:10,background:"transparent",
+                  border:`1.5px solid ${C.bd}`,color:C.tx,fontSize:13,cursor:"pointer",fontFamily:"inherit"}}>
+                Annuler
+              </button>
+            </div>
           </div>
         </div>
       )}
