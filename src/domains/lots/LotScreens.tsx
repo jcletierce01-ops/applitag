@@ -11,6 +11,7 @@ import { TYPE_RESSOURCE_OPTS } from "../../domains/contacts/constants.js";
 import { STATUT_LOT } from "../../domains/screens/MobileScreens.constants.js";
 import { calculerPci, calculerEnergie } from "../../metier/formules.js";
 import { PIPELINE } from "../../domains/roles/RoleScreens.constants.js";
+import { GeoContextBadge } from "../../shared/GeoContextBadge.jsx";
 
 // ── EffisBadge ────────────────────────────────────────────────────────────────
 // Affiche le risque incendie EFFIS/Open-Meteo pour un lot avec coordonnées GPS.
@@ -686,6 +687,11 @@ export const FicheLotCentrale = ({
                 </div>
               ))}
             </div>
+
+            {/* Contexte territorial IGN — si le lot a des coordonnées GPS */}
+            {lot.gpsLat&&lot.gpsLng&&(
+              <GeoContextBadge lat={lot.gpsLat} lng={lot.gpsLng}/>
+            )}
 
             {/* Risque incendie EFFIS — si le lot a des coordonnées GPS */}
             {lot.gpsLat&&lot.gpsLng&&(
