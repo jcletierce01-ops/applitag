@@ -5,6 +5,7 @@ import { VSS_RECONNUS, STATUT_REGL, TEXTES_REGL } from "./sections.constants.js"
 import { DEMO_LIVRAISONS } from "../../demo/demoData.js";
 import { todayS, nowISO, uid } from "../../shared/utils.js";
 import { MInput } from "../../shared/ui.jsx";
+import { apiGet } from "../../services/api.service.js";
 const ROLES_DEF = [
   {id:"super_editeur",  label:"Éditeur souverain — APPLITAG", icon:"🏢", color:"#111827"},
   {id:"admin",          label:"Administrateur",        icon:"⚙️",  color:"#1E5B3A"},
@@ -11141,17 +11142,55 @@ const DECL_STYLE: Record<string,{col:string,bg:string,label:string}> = {
   NON_REQUISE:  {col:"#6B7280",bg:"#F3F4F6",label:"➖ Non requise"},
 };
 
+const normaliserPlan = (p: any) => ({
+  ...p,
+  nom:          p.nom ?? `Plan ${p.annee}`,
+  objectifT:    p.tonnageCibleT ?? p.objectifT ?? 0,
+  realiseT:     p.realiseT ?? 0,
+  lots:         p.lots ?? [],
+  statut:       p.statut === "actif" ? "en_cours" : p.statut === "archive" ? "terminé" : (p.statut ?? "brouillon"),
+  conformiteRED: p.conformiteRED ?? "en_cours",
+  certif:       p.certif ?? p.certificationActuelle ?? "—",
+  sourceForet:  p.sourceForet ?? "—",
+  ghgEconomie:  p.ghgEconomie ?? 0,
+  note:         p.note ?? "",
+  operateur:    p.operateur ?? "",
+  chaufferie:   p.chaufferie ?? "",
+  periodeDebut: p.periodeDebut ?? `${p.annee}-01-01`,
+  periodeFin:   p.periodeFin ?? `${p.annee}-12-31`,
+  ressourceTheoriqueT:   p.ressourceTheoriqueT ?? null,
+  ressourceAccessibleT:  p.ressourceAccessibleT ?? null,
+  ressourceConcurrentsT: p.ressourceConcurrentsT ?? null,
+  ressourceSecuriseeT:   p.ressourceSecuriseeT ?? null,
+  niveauRisqueVolumeT:   p.niveauRisqueVolumeT ?? null,
+  regimeRED:             p.regimeRED ?? "NON_CONCERNE",
+  declarationStatut:     p.declarationStatut ?? "NON_REQUISE",
+});
+
 export const SectionPlanApprovisionnement = () => {
+  const [plans, setPlans] = useState(PLAN_DATA);
   const [selected, setSelected] = useState<string|null>(null);
   const [onglet, setOnglet] = useState<"liste"|"entonnoir"|"red_iii"|"synthese">("liste");
-  const [planEntonnoir, setPlanEntonnoir] = useState(PLAN_DATA[0].id);
+  const [planEntonnoir, setPlanEntonnoir] = useState(PLAN_DATA[0].id); // resetté par useEffect après fetch
 
-  const plan = selected ? PLAN_DATA.find(p=>p.id===selected) : null;
-  const pe   = PLAN_DATA.find(p=>p.id===planEntonnoir) ?? PLAN_DATA[0];
+  useEffect(() => {
+    (apiGet("/plans-approvisionnement") as Promise<any[]>)
+      .then(data => {
+        if (Array.isArray(data) && data.length > 0) {
+          const normalized = data.map(normaliserPlan);
+          setPlans(normalized);
+          setPlanEntonnoir(normalized[0].id);
+        }
+      })
+      .catch(() => { /* PLAN_DATA reste en fallback */ });
+  }, []);
 
-  const totalObj  = PLAN_DATA.reduce((s,p)=>s+p.objectifT,0);
-  const totalReal = PLAN_DATA.reduce((s,p)=>s+p.realiseT,0);
-  const tauxGlobal = Math.round(totalReal/totalObj*100);
+  const plan = selected ? plans.find(p=>p.id===selected) : null;
+  const pe   = plans.find(p=>p.id===planEntonnoir) ?? plans[0];
+
+  const totalObj  = plans.reduce((s,p)=>s+p.objectifT,0);
+  const totalReal = plans.reduce((s,p)=>s+p.realiseT,0);
+  const tauxGlobal = totalObj > 0 ? Math.round(totalReal/totalObj*100) : 0;
 
   // Entonnoir : calcule le volume contractualisé (= réalisé pour la démo)
   const contractualiseeT = pe.realiseT;
@@ -11196,7 +11235,7 @@ export const SectionPlanApprovisionnement = () => {
         <div>
           {/* Sélecteur plan */}
           <div style={{display:"flex",gap:6,marginBottom:14,flexWrap:"wrap"}}>
-            {PLAN_DATA.map(p=>(
+            {plans.map(p=>(
               <button key={p.id} onClick={()=>setPlanEntonnoir(p.id)}
                 style={{padding:"5px 12px",borderRadius:8,fontSize:11,fontWeight:700,
                   cursor:"pointer",border:"none",fontFamily:"inherit",
@@ -11293,7 +11332,7 @@ export const SectionPlanApprovisionnement = () => {
           </div>
 
           <div style={{display:"flex",flexDirection:"column",gap:10}}>
-            {PLAN_DATA.map(p=>{
+            {plans.map(p=>{
               const regime = REGIME_RED_STYLE[p.regimeRED]??REGIME_RED_STYLE.NON_CONCERNE;
               const decl   = DECL_STYLE[p.declarationStatut]??DECL_STYLE.NON_REQUISE;
               const certifExpire = p.dateExpirationCertif
@@ -11365,7 +11404,7 @@ export const SectionPlanApprovisionnement = () => {
         {/* KPIs */}
         <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:10,marginBottom:16}}>
           {[
-            {ico:"📐",label:"Plans actifs",val:PLAN_DATA.filter(p=>p.statut==="en_cours").length,col:"#1E40AF",bg:"#DBEAFE"},
+            {ico:"📐",label:"Plans actifs",val:plans.filter(p=>p.statut==="en_cours").length,col:"#1E40AF",bg:"#DBEAFE"},
             {ico:"⚖️",label:"Objectif total",val:totalObj.toLocaleString("fr-FR")+" t",col:"#1E5B3A",bg:"#D1FAE5"},
             {ico:"📦",label:"Réalisé total",val:totalReal.toLocaleString("fr-FR")+" t",col:"#B45309",bg:"#FEF3C7"},
             {ico:"🎯",label:"Taux global",val:tauxGlobal+" %",col:tauxGlobal>=80?"#065F46":"#B45309",bg:tauxGlobal>=80?"#D1FAE5":"#FEF3C7"},
@@ -11381,7 +11420,7 @@ export const SectionPlanApprovisionnement = () => {
         <div style={{display:"grid",gridTemplateColumns:plan?"1fr 360px":"1fr",gap:12,alignItems:"start"}}>
           {/* Liste plans */}
           <div style={{display:"flex",flexDirection:"column",gap:8}}>
-            {PLAN_DATA.map(p=>{
+            {plans.map(p=>{
               const st = STATUT_PLAN[p.statut as keyof typeof STATUT_PLAN]||STATUT_PLAN.brouillon;
               const conf = CONF_STYLE[p.conformiteRED]||CONF_STYLE.en_cours;
               const taux = Math.round(p.realiseT/p.objectifT*100);
@@ -11501,9 +11540,9 @@ export const SectionPlanApprovisionnement = () => {
           </div>
           <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:10,marginBottom:16}}>
             {[
-              {label:"Conformes RED",val:PLAN_DATA.filter(p=>p.conformiteRED==="conforme").length,col:"#065F46",bg:"#D1FAE5"},
-              {label:"En vérification",val:PLAN_DATA.filter(p=>p.conformiteRED==="en_cours").length,col:"#1E40AF",bg:"#DBEAFE"},
-              {label:"GES moyen",val:(PLAN_DATA.reduce((s,p)=>s+p.ghgEconomie,0)/PLAN_DATA.length).toFixed(1)+"%",col:"#7C3AED",bg:"#EDE9FE"},
+              {label:"Conformes RED",val:plans.filter(p=>p.conformiteRED==="conforme").length,col:"#065F46",bg:"#D1FAE5"},
+              {label:"En vérification",val:plans.filter(p=>p.conformiteRED==="en_cours").length,col:"#1E40AF",bg:"#DBEAFE"},
+              {label:"GES moyen",val:plans.length>0?(plans.reduce((s,p)=>s+(p.ghgEconomie??0),0)/plans.length).toFixed(1)+"%":"—",col:"#7C3AED",bg:"#EDE9FE"},
             ].map(k=>(
               <div key={k.label} style={{background:k.bg,borderRadius:10,padding:"14px",textAlign:"center"}}>
                 <div style={{fontSize:22,fontWeight:900,color:k.col}}>{k.val}</div>
@@ -11512,7 +11551,7 @@ export const SectionPlanApprovisionnement = () => {
             ))}
           </div>
           <div style={{display:"flex",flexDirection:"column",gap:8}}>
-            {PLAN_DATA.map(p=>{
+            {plans.map(p=>{
               const conf = CONF_STYLE[p.conformiteRED]||CONF_STYLE.en_cours;
               return (
                 <div key={p.id} style={{background:"#fff",borderRadius:10,border:`1px solid ${C.bd}`,
