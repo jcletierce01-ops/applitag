@@ -2363,12 +2363,14 @@ export const EcranCarte = ({contacts, visites, onOpenLot}: any) => {
   const [couches,      setCouches]    = useState({lots:true,chaufferies:true,chantiers:true,tas:true,effis:false});
   const [effisCouche,  setEffisCouche] = useState<"fires"|"danger"|"perimeters">("fires");
   const [fondCarte,    setFondCarte]  = useState<"plan"|"satellite">("plan");
+  const [tilesErreur,  setTilesErreur] = useState(false);
 
-  const FONDS: Record<string,{url:string,attr:string,maxZoom:number}> = {
+  const FONDS: Record<string,{url:string,attr:string,maxZoom:number,subdomains?:string,tileSize?:number,zoomOffset?:number}> = {
     plan: {
-      url: "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png",
-      attr: '© <a href="https://www.openstreetmap.org/">OpenStreetMap</a> © <a href="https://carto.com/">CARTO</a>',
+      url: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+      attr: '© <a href="https://www.openstreetmap.org/">OpenStreetMap</a> contributeurs',
       maxZoom: 19,
+      subdomains: "abc",
     },
     satellite: {
       url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
@@ -2392,10 +2394,15 @@ export const EcranCarte = ({contacts, visites, onOpenLot}: any) => {
       zoomControl:true,
     });
     const fond = FONDS.plan;
-    tileLayerRef.current = L.tileLayer(fond.url,{
+    const tl = L.tileLayer(fond.url,{
       attribution: fond.attr,
       maxZoom: fond.maxZoom,
-    }).addTo(map);
+      subdomains: fond.subdomains ?? "abc",
+    });
+    tl.on("tileerror", ()=>setTilesErreur(true));
+    tl.on("tileload",  ()=>setTilesErreur(false));
+    tileLayerRef.current = tl;
+    tl.addTo(map);
     mapInst.current = map;
     return ()=>{ map.remove(); mapInst.current=null; tileLayerRef.current=null; };
   },[]);
@@ -2406,10 +2413,16 @@ export const EcranCarte = ({contacts, visites, onOpenLot}: any) => {
     const map = mapInst.current;
     if (tileLayerRef.current) map.removeLayer(tileLayerRef.current);
     const fond = FONDS[fondCarte];
-    tileLayerRef.current = L.tileLayer(fond.url,{
+    setTilesErreur(false);
+    const tl = L.tileLayer(fond.url,{
       attribution: fond.attr,
       maxZoom: fond.maxZoom,
-    }).addTo(map);
+      subdomains: fond.subdomains ?? "abc",
+    });
+    tl.on("tileerror", ()=>setTilesErreur(true));
+    tl.on("tileload",  ()=>setTilesErreur(false));
+    tileLayerRef.current = tl;
+    tl.addTo(map);
   },[fondCarte]);
 
   // ── Callback popup → fiche lot ──
@@ -2721,6 +2734,14 @@ export const EcranCarte = ({contacts, visites, onOpenLot}: any) => {
           color:C.tx,border:`1px solid ${C.bd}`}}>
           {nbLots} lot{nbLots!==1?"s":""} {filtre!=="TOUS"?"filtré"+(nbLots>1?"s":""):""}
         </div>
+        {/* Alerte fond de carte inaccessible */}
+        {tilesErreur&&(
+          <div style={{position:"absolute",bottom:10,left:"50%",transform:"translateX(-50%)",
+            zIndex:1000,background:"rgba(0,0,0,.7)",borderRadius:12,padding:"6px 14px",
+            fontSize:11,color:"#fff",whiteSpace:"nowrap",pointerEvents:"none"}}>
+            ⚠️ Fond de carte inaccessible (réseau)
+          </div>
+        )}
         {/* Badge EFFIS actif */}
         {couches.effis&&(
           <div style={{position:"absolute",top:10,left:10,zIndex:1000,
