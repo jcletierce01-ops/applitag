@@ -9291,19 +9291,47 @@ const STATUT_LIV = {
 const pciKWhT = (h) => Math.round(5200 - 58.8 * h);
 const livMWh  = (kg, h) => Math.round(kg / 1000 * pciKWhT(h) / 100) / 10;
 
+const normaliserLivraison = (l: any) => ({
+  ...l,
+  lot:       l.lot      ?? l.lotNumero ?? l.lotId ?? "—",
+  chaufferie:l.chaufferie ?? l.nomDestination ?? "—",
+  // API stocke en tonnes, l'UI historique travaille en kg
+  poidsNet:  l.poidsNet  != null ? (l.poidsNet  < 500 ? l.poidsNet  * 1000 : l.poidsNet)  : null,
+  poidsBrut: l.poidsBrut != null ? (l.poidsBrut < 500 ? l.poidsBrut * 1000 : l.poidsBrut) : null,
+  tare:      l.tare      != null ? (l.tare      < 500 ? l.tare      * 1000 : l.tare)      : null,
+  humidite:  l.humidite  ?? l.humiditeReception ?? null,
+  conformite: l.conformite ?? (l.statut === "verifiee" || l.peseeVerifiee === true),
+  refus:     l.refus ?? (l.statut === "litigieuse"),
+  statut:    l.statut === "verifiee"   ? "validé"
+           : l.statut === "litigieuse" ? "refusé"
+           : l.statut === "declaree"   ? "déclarée"
+           : (l.statut ?? "déclarée"),
+});
+
 export const SectionLivraisons = () => {
+  const [allLivraisons, setAllLivraisons] = useState(LIVRAISONS_DATA);
   const [filtreStatut, setFiltreStatut] = useState("tous");
   const [selected, setSelected] = useState(null);
 
-  const livraisons = filtreStatut==="tous" ? LIVRAISONS_DATA
-    : LIVRAISONS_DATA.filter(l=>l.statut===filtreStatut);
-  const lv = selected ? LIVRAISONS_DATA.find(l=>l.id===selected) : null;
+  useEffect(() => {
+    (apiGet("/livraisons") as Promise<any[]>)
+      .then(data => {
+        if (Array.isArray(data) && data.length > 0)
+          setAllLivraisons(data.map(normaliserLivraison));
+      })
+      .catch(() => {});
+  }, []);
 
-  const totalTonnes = LIVRAISONS_DATA.filter(l=>l.poidsNet).reduce((s,l)=>s+l.poidsNet,0);
-  const nbRefus     = LIVRAISONS_DATA.filter(l=>l.refus).length;
-  const txConformite= Math.round(LIVRAISONS_DATA.filter(l=>l.conformite).length/LIVRAISONS_DATA.length*100);
-  const humMoy      = Math.round(LIVRAISONS_DATA.filter(l=>l.humidite).reduce((s,l)=>s+l.humidite,0)/LIVRAISONS_DATA.filter(l=>l.humidite).length);
-  const totalMWh    = Math.round(LIVRAISONS_DATA.filter(l=>l.poidsNet&&l.humidite).reduce((s,l)=>s+livMWh(l.poidsNet,l.humidite),0));
+  const livraisons = filtreStatut==="tous" ? allLivraisons
+    : allLivraisons.filter(l=>l.statut===filtreStatut);
+  const lv = selected ? allLivraisons.find(l=>l.id===selected) : null;
+
+  const totalTonnes = allLivraisons.filter(l=>l.poidsNet).reduce((s,l)=>s+l.poidsNet,0);
+  const nbRefus     = allLivraisons.filter(l=>l.refus).length;
+  const txConformite= allLivraisons.length>0 ? Math.round(allLivraisons.filter(l=>l.conformite).length/allLivraisons.length*100) : 0;
+  const humFilt     = allLivraisons.filter(l=>l.humidite);
+  const humMoy      = humFilt.length>0 ? Math.round(humFilt.reduce((s,l)=>s+l.humidite,0)/humFilt.length) : 0;
+  const totalMWh    = Math.round(allLivraisons.filter(l=>l.poidsNet&&l.humidite).reduce((s,l)=>s+livMWh(l.poidsNet,l.humidite),0));
 
   return (
     <div style={{maxWidth:1000,margin:"0 auto"}}>
@@ -9329,7 +9357,7 @@ export const SectionLivraisons = () => {
       </div>
 
       <div style={{display:"flex",gap:6,marginBottom:12,flexWrap:"wrap"}}>
-        {[["tous","Toutes"],["validé","Validées"],["refusé","Refusées"]].map(([v,l])=>(
+        {[["tous","Toutes"],["validé","Validées"],["déclarée","Déclarées"],["refusé","Refusées"]].map(([v,l])=>(
           <button key={v} onClick={()=>{setFiltreStatut(v);setSelected(null);}}
             style={{padding:"5px 12px",borderRadius:7,fontSize:11,fontWeight:600,cursor:"pointer",
               fontFamily:"inherit",border:`1px solid ${filtreStatut===v?"#1E5B3A":C.bd}`,
