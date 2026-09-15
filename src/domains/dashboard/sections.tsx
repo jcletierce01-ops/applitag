@@ -11149,7 +11149,8 @@ const PLAN_DATA = [
    ressourceTheoriqueT:2100, ressourceAccessibleT:1580,
    ressourceConcurrentsT:380, ressourceSecuriseeT:920, niveauRisqueVolumeT:73,
    // RED
-   installationAvant2023:true, regimeRED:"RED_II_GRAND_PERE",
+   installationAvant2023:true, dateMiseEnService:"2019-06-15",
+   regimeRED:"RED_II_GRAND_PERE",
    certificationActuelle:"SBP", dateExpirationCertif:"2027-03-31",
    declarationStatut:"SOUMISE", dateDeclarationAnnuelle:"2026-04-30"},
   {id:"PA-2026-002",nom:"Plan Creuse Pilote",
@@ -11162,7 +11163,8 @@ const PLAN_DATA = [
    ghgEconomie:91.2,note:"Plan pilote finalisé — rapport RED envoyé",
    ressourceTheoriqueT:650, ressourceAccessibleT:520,
    ressourceConcurrentsT:80, ressourceSecuriseeT:430, niveauRisqueVolumeT:10,
-   installationAvant2023:false, regimeRED:"RED_III",
+   installationAvant2023:false, dateMiseEnService:"2024-03-01",
+   regimeRED:"RED_III",
    certificationActuelle:"SURE", dateExpirationCertif:"2027-09-30",
    declarationStatut:"SOUMISE", dateDeclarationAnnuelle:"2026-04-15"},
   {id:"PA-2026-003",nom:"Plan Ternant Douglas",
@@ -11175,7 +11177,8 @@ const PLAN_DATA = [
    ghgEconomie:88.9,note:"Éclaircie Douglas en cours — pesée finale juillet",
    ressourceTheoriqueT:850, ressourceAccessibleT:710,
    ressourceConcurrentsT:130, ressourceSecuriseeT:480, niveauRisqueVolumeT:55,
-   installationAvant2023:true, regimeRED:"RED_II_GRAND_PERE",
+   installationAvant2023:true, dateMiseEnService:"2021-09-01",
+   regimeRED:"RED_II_GRAND_PERE",
    certificationActuelle:"SBP", dateExpirationCertif:"2027-06-15",
    declarationStatut:"EN_COURS", dateDeclarationAnnuelle:null},
 ];
@@ -11228,6 +11231,12 @@ const normaliserPlan = (p: any) => ({
   niveauRisqueVolumeT:   p.niveauRisqueVolumeT ?? null,
   regimeRED:             p.regimeRED ?? "NON_CONCERNE",
   declarationStatut:     p.declarationStatut ?? "NON_REQUISE",
+  dateMiseEnService:     p.dateMiseEnService ?? null,
+  installationAvant2023: p.installationAvant2023 ??
+    (p.dateMiseEnService ? new Date(p.dateMiseEnService) < new Date("2023-11-20") : false),
+  certificationActuelle: p.certificationActuelle ?? p.certif ?? null,
+  dateExpirationCertif:  p.dateExpirationCertif ?? null,
+  dateDeclarationAnnuelle: p.dateDeclarationAnnuelle ?? null,
 });
 
 export const SectionPlanApprovisionnement = () => {
@@ -11299,7 +11308,8 @@ export const SectionPlanApprovisionnement = () => {
   const openCreate = () => {
     setFormData({ annee: new Date().getFullYear(), nom:"", tonnageCibleT:"", rayonMaxKm:"",
       humiditeMaxPct:"", regimeRED:"NON_CONCERNE", declarationStatut:"NON_REQUISE",
-      certificationActuelle:"AUCUNE", installationAvant2023:false });
+      certificationActuelle:"AUCUNE", installationAvant2023:false,
+      dateMiseEnService:"", dateExpirationCertif:"", dateDeclarationAnnuelle:"" });
     setSelected(null);
     setShowForm("create");
   };
@@ -11316,8 +11326,9 @@ export const SectionPlanApprovisionnement = () => {
       niveauRisqueVolumeT: plan.niveauRisqueVolumeT ?? "",
       regimeRED: plan.regimeRED ?? "NON_CONCERNE",
       declarationStatut: plan.declarationStatut ?? "NON_REQUISE",
-      certificationActuelle: plan.certif ?? "AUCUNE",
+      certificationActuelle: plan.certificationActuelle ?? plan.certif ?? "AUCUNE",
       installationAvant2023: plan.installationAvant2023 ?? false,
+      dateMiseEnService: plan.dateMiseEnService ?? "",
       dateExpirationCertif: plan.dateExpirationCertif ?? "",
       dateDeclarationAnnuelle: plan.dateDeclarationAnnuelle ?? "" });
     setShowForm("edit");
@@ -11349,7 +11360,10 @@ export const SectionPlanApprovisionnement = () => {
           regimeRED: formData.regimeRED || undefined,
           certificationActuelle: formData.certificationActuelle || undefined,
           declarationStatut: formData.declarationStatut || undefined,
-          installationAvant2023: formData.installationAvant2023,
+          dateMiseEnService: formData.dateMiseEnService || undefined,
+          installationAvant2023: formData.dateMiseEnService
+            ? new Date(formData.dateMiseEnService) < new Date("2023-11-20")
+            : formData.installationAvant2023,
           dateExpirationCertif: formData.dateExpirationCertif || undefined,
           dateDeclarationAnnuelle: formData.dateDeclarationAnnuelle || undefined,
         });
@@ -11515,8 +11529,10 @@ export const SectionPlanApprovisionnement = () => {
 
                   <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8,marginBottom:6}}>
                     {[
-                      ["🏛️","Installation avant 2023",
-                        p.installationAvant2023?"Oui — éligible grand-père":"Non — régime RED III"],
+                      ["🏭","Mise en service",
+                        p.dateMiseEnService
+                          ? new Date(p.dateMiseEnService).toLocaleDateString("fr-FR")
+                          : (p.installationAvant2023?"Avant 20/11/2023":"Après 20/11/2023")],
                       ["🏅","Certification actuelle",
                         p.certificationActuelle??"—"],
                       ["📅","Expiration certification",
@@ -11857,6 +11873,31 @@ export const SectionPlanApprovisionnement = () => {
                 🇪🇺 Conformité RED
               </div>
               <div style={{marginBottom:8}}>
+                <div style={{fontSize:11,color:C.tx3,marginBottom:4,fontWeight:600}}>Date mise en service chaufferie</div>
+                <input type="date" value={formData.dateMiseEnService||""}
+                  onChange={e=>{
+                    const d = e.target.value;
+                    const avant2023 = d ? new Date(d) < new Date("2023-11-20") : false;
+                    setFormData((f:any)=>({...f,
+                      dateMiseEnService: d,
+                      installationAvant2023: avant2023,
+                      regimeRED: d
+                        ? (avant2023 ? "RED_II_GRAND_PERE" : "RED_III")
+                        : f.regimeRED,
+                    }));
+                  }}
+                  style={{width:"100%",height:36,padding:"0 10px",borderRadius:8,
+                    border:`1.5px solid ${C.bd}`,fontFamily:"inherit",fontSize:13,boxSizing:"border-box"}}/>
+                {formData.dateMiseEnService&&(
+                  <div style={{fontSize:10,marginTop:3,
+                    color: formData.installationAvant2023?"#065F46":"#1E40AF",fontWeight:600}}>
+                    {formData.installationAvant2023
+                      ? "✅ Avant le 20/11/2023 — éligible clause grand-père RED II"
+                      : "🇪🇺 Après le 20/11/2023 — régime RED III"}
+                  </div>
+                )}
+              </div>
+              <div style={{marginBottom:8}}>
                 <div style={{fontSize:11,color:C.tx3,marginBottom:4,fontWeight:600}}>Régime RED</div>
                 <select value={formData.regimeRED||"NON_CONCERNE"}
                   onChange={e=>Fd("regimeRED",e.target.value)}
@@ -11879,6 +11920,13 @@ export const SectionPlanApprovisionnement = () => {
                 </select>
               </div>
               <div style={{marginBottom:8}}>
+                <div style={{fontSize:11,color:C.tx3,marginBottom:4,fontWeight:600}}>Expiration certification</div>
+                <input type="date" value={formData.dateExpirationCertif||""}
+                  onChange={e=>Fd("dateExpirationCertif",e.target.value)}
+                  style={{width:"100%",height:36,padding:"0 10px",borderRadius:8,
+                    border:`1.5px solid ${C.bd}`,fontFamily:"inherit",fontSize:13,boxSizing:"border-box"}}/>
+              </div>
+              <div style={{marginBottom:8}}>
                 <div style={{fontSize:11,color:C.tx3,marginBottom:4,fontWeight:600}}>Statut déclaration</div>
                 <select value={formData.declarationStatut||"NON_REQUISE"}
                   onChange={e=>Fd("declarationStatut",e.target.value)}
@@ -11889,14 +11937,12 @@ export const SectionPlanApprovisionnement = () => {
                   <option value="NON_REQUISE">➖ Non requise</option>
                 </select>
               </div>
-              <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:8}}>
-                <div onClick={()=>Fd("installationAvant2023",!formData.installationAvant2023)}
-                  style={{width:20,height:20,borderRadius:5,border:`2px solid #1E5B3A`,
-                    background:formData.installationAvant2023?"#1E5B3A":"#fff",cursor:"pointer",
-                    display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
-                  {formData.installationAvant2023&&<span style={{color:"#fff",fontSize:13}}>✓</span>}
-                </div>
-                <span style={{fontSize:12,color:C.tx}}>Installation mise en service avant le 20 nov. 2023</span>
+              <div style={{marginBottom:8}}>
+                <div style={{fontSize:11,color:C.tx3,marginBottom:4,fontWeight:600}}>Date déclaration annuelle</div>
+                <input type="date" value={formData.dateDeclarationAnnuelle||""}
+                  onChange={e=>Fd("dateDeclarationAnnuelle",e.target.value)}
+                  style={{width:"100%",height:36,padding:"0 10px",borderRadius:8,
+                    border:`1.5px solid ${C.bd}`,fontFamily:"inherit",fontSize:13,boxSizing:"border-box"}}/>
               </div>
             </>)}
 

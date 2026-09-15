@@ -2392,6 +2392,7 @@ export const EcranCarte = ({contacts, visites, onOpenLot}: any) => {
       center:[46.8,2.5], zoom:6,
       zoomControl:true,
     });
+    map.attributionControl.setPrefix('');
     const fond = FONDS.plan;
     const tl = L.tileLayer(fond.url,{
       attribution: fond.attr,
