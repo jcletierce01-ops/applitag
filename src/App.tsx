@@ -636,8 +636,9 @@ export default function App() {
       <div ref={el=>{ if(el) el.scrollTop=0; }}
         style={{flex:1,display:"flex",flexDirection:"column",overflow:"hidden"}}>
         {screen==="accueil"&&(
-          <EcranAccueil contacts={contacts} _visites={visites as any}
+          <EcranAccueil contacts={contacts}
             notifications={notifications} user={user}
+            livraisons={livraisons} transports={transports} dechiquetages={dechiquetages}
             onNewLot={()=>setScreen("fiche0")}
             onGoLots={(f: any)=>{ setFiltreLotsInitial(f); setScreen("lots"); }}
             onGoAlertes={()=>setScreen("alertes")}

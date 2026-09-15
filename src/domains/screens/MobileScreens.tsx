@@ -7,7 +7,8 @@ import { genPin4, getToken } from "../../services/auth.service.js";
 import { API_BASE_URL } from "@/config/env.js";
 import { annoncesLocalGet, annoncesLocalSave, comptesLocalGet, comptesLocalSave } from "../../domains/connect/local-storage.js";
 import { ordresExplLocalGet, ordresExplLocalSave } from "../../domains/exploitation/local-storage.js";
-import { BigBtn, MInput, GridSelect, SectionTitle } from "../../shared/ui.jsx";
+import { BigBtn, MInput, GridSelect, SectionTitle, MiniBarChart } from "../../shared/ui.jsx";
+import { fmtNum } from "../../shared/format.js";
 import { validatePhone, formatPhone } from "../../shared/validators.js";
 import { generatePdfFromHtml, buildCompteRenduContactHTML, buildOrdreExploitationHTML } from "../../domains/documents/pdf-templates.js";
 import { FormulaireVisite } from "../../domains/visites/FormulaireVisite.jsx";
@@ -2240,11 +2241,27 @@ export const EcranOperateur = ({operateur, onLogout, toast, onUpdateOperateur}: 
 // ── COULEURS STATUT LOT ───────────────────────────────────────
 
 // ── ÉCRAN ACCUEIL ─────────────────────────────────────────────
-export const EcranAccueil = ({contacts, notifications, user, onNewLot, onGoLots, onGoAlertes, onGoDelegations, onAppelerContact, onOpenMenu}: any) => {
+export const EcranAccueil = ({contacts, notifications, user, livraisons=[], transports=[], dechiquetages=[], onNewLot, onGoLots, onGoAlertes, onGoDelegations, onAppelerContact, onOpenMenu}: any) => {
   const STATUTS_EXPLOITATION = ["VALIDE_EXPLOITATION","EN_COURS_EXPLOITATION","BORD_ROUTE","A_DECHIQUETER","EN_COURS_DECHIQUETAGE","EN_LIVRAISON","LIVRE_CHAUFFERIE","EN_STOCK_PLATEFORME","LIVRE"];
   const lotsAVisiter = contacts.filter((c: any)=>c.lotNumero&&(c.statutLot==="VISITE_PREVUE"||c.statutLot==="NOUVEAU"||!c.statutLot)&&!STATUTS_EXPLOITATION.includes(c.statutLot));
   const chantiersJour = contacts.filter((c: any)=>["EN_COURS_EXPLOITATION","VALIDE_EXPLOITATION"].includes(c.statutLot));
   const alertes = notifications.filter((n: any)=>!n.lu);
+
+  // ── KPIs tonnage (identiques au tableau de bord PC) ──────────
+  const moisCourant = new Date().toISOString().slice(0,7);
+  const livraisonsDuMois = livraisons.filter((l: any)=>(l.date||l.createdAt||"").slice(0,7)===moisCourant);
+  const tonnesLivreesMois = livraisonsDuMois.reduce((s: number,l: any)=>s+(l.poidsNet||l.poidsBrut||0),0);
+  const nbJoursMois = new Date(new Date().getFullYear(),new Date().getMonth()+1,0).getDate();
+  const tonnageParJour: number[] = Array.from({length:nbJoursMois},()=>0);
+  livraisonsDuMois.forEach((l: any)=>{ const j=parseInt((l.date||l.createdAt||"").slice(8,10),10); if(j>=1&&j<=nbJoursMois) tonnageParJour[j-1]+=(l.poidsNet||l.poidsBrut||0); });
+  const humidites = livraisons.map((l: any)=>parseFloat(l.humiditeReception)).filter((n: number)=>!isNaN(n));
+  const humiditeMoyenne = humidites.length ? humidites.reduce((s: number,n: number)=>s+n,0)/humidites.length : null;
+  const stockPlateformes = contacts.filter((c: any)=>["BORD_ROUTE","A_DECHIQUETER","EN_COURS_DECHIQUETAGE","EN_STOCK_PLATEFORME"].includes(c.statutLot)).reduce((s: number,c: any)=>s+(parseFloat(c.tonnageCumul)||0),0);
+  const stockChaufferies = livraisons.reduce((s: number,l: any)=>s+(l.poidsNet||l.poidsBrut||0),0);
+  const cmrTotal = dechiquetages.length;
+  const cmrConformes = dechiquetages.filter((d: any)=>d.numeroCMR&&d.photoCMR).length;
+  const tauxConformite = cmrTotal ? Math.round((cmrConformes/cmrTotal)*100) : null;
+  const transportsEnCours = transports.filter((t: any)=>!["LIVRE","LIVRE_CHAUFFERIE"].includes(t.statut));
 
   const [comptes, setComptes] = useState<any[]>(()=>comptesLocalGet() as any[]);
   const [showInscrits, setShowInscrits] = useState(false);
@@ -2491,6 +2508,101 @@ export const EcranAccueil = ({contacts, notifications, user, onNewLot, onGoLots,
           </div>
         ))}
       </div>
+      {/* ── Tonnages du mois ── */}
+      <div style={{fontSize:13,fontWeight:700,color:C.tx2,marginBottom:8,fontFamily:FONT_TITLE}}>
+        Tonnages du mois
+      </div>
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:16}}>
+        <div style={{background:"#fff",borderRadius:14,padding:14,border:`1px solid ${C.bd}`}}>
+          <div style={{fontSize:18,marginBottom:4}}>⚖️</div>
+          <div style={{fontSize:22,fontWeight:700,color:C.brown,fontFamily:FONT_TITLE}}>{fmtNum(tonnesLivreesMois)} t</div>
+          <div style={{fontSize:11,color:C.tx3,marginTop:2,marginBottom:6}}>Livré ce mois</div>
+          <MiniBarChart data={tonnageParJour} color={C.brown} height={30}/>
+        </div>
+        <div style={{background:"#fff",borderRadius:14,padding:14,border:`1px solid ${C.bd}`}}>
+          <div style={{fontSize:18,marginBottom:4}}>💧</div>
+          <div style={{fontSize:22,fontWeight:700,color:C.blueD,fontFamily:FONT_TITLE}}>
+            {humiditeMoyenne!=null?fmtNum(humiditeMoyenne,1)+" %":"—"}
+          </div>
+          <div style={{fontSize:11,color:C.tx3,marginTop:2}}>Humidité moyenne</div>
+        </div>
+      </div>
+
+      {/* ── Stocks & Conformité ── */}
+      <div style={{fontSize:13,fontWeight:700,color:C.tx2,marginBottom:8,fontFamily:FONT_TITLE}}>
+        Stocks &amp; Conformité
+      </div>
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:10,marginBottom:16}}>
+        <div style={{background:"#fff",borderRadius:14,padding:"12px 10px",border:`1px solid ${C.bd}`}}>
+          <div style={{fontSize:16,marginBottom:4}}>📥</div>
+          <div style={{fontSize:18,fontWeight:700,color:C.greenD,fontFamily:FONT_TITLE}}>{fmtNum(stockPlateformes)} t</div>
+          <div style={{fontSize:10,color:C.tx3,marginTop:2}}>Stock plateformes</div>
+        </div>
+        <div style={{background:"#fff",borderRadius:14,padding:"12px 10px",border:`1px solid ${C.bd}`}}>
+          <div style={{fontSize:16,marginBottom:4}}>🔥</div>
+          <div style={{fontSize:18,fontWeight:700,color:C.brown,fontFamily:FONT_TITLE}}>{fmtNum(stockChaufferies)} t</div>
+          <div style={{fontSize:10,color:C.tx3,marginTop:2}}>Stock chaufferies</div>
+        </div>
+        <div style={{background:"#fff",borderRadius:14,padding:"12px 10px",border:`1px solid ${C.bd}`}}>
+          <div style={{fontSize:16,marginBottom:4}}>✅</div>
+          <div style={{fontSize:18,fontWeight:700,color:C.green,fontFamily:FONT_TITLE}}>
+            {tauxConformite!=null?tauxConformite+" %":"—"}
+          </div>
+          <div style={{fontSize:10,color:C.tx3,marginTop:2}}>Conformité CMR</div>
+        </div>
+      </div>
+
+      {/* ── Transports en cours ── */}
+      {transportsEnCours.length>0&&(
+        <>
+          <div style={{fontSize:13,fontWeight:700,color:C.tx2,marginBottom:8,fontFamily:FONT_TITLE}}>
+            🚛 Transports en cours
+          </div>
+          <div style={{background:"#fff",borderRadius:14,border:`1px solid ${C.bd}`,padding:"0 14px",marginBottom:16}}>
+            {transportsEnCours.slice(0,3).map((t: any,i: number)=>(
+              <div key={t.id||i} style={{display:"flex",alignItems:"center",gap:10,
+                padding:"12px 0",borderBottom:i<Math.min(transportsEnCours.length,3)-1?`1px solid ${C.bd}`:"none"}}>
+                <span style={{fontSize:16}}>🚛</span>
+                <div style={{flex:1}}>
+                  <div style={{fontSize:12,fontWeight:700,color:C.tx,fontFamily:"monospace"}}>{t.lotNumero||"—"}</div>
+                  <div style={{fontSize:11,color:C.tx3}}>{t.societeTransp||t.immatTracteur||"Transporteur"}</div>
+                </div>
+                <span style={{fontSize:10,color:C.green,fontWeight:600}}>● En route</span>
+              </div>
+            ))}
+            {transportsEnCours.length>3&&(
+              <div style={{fontSize:11,color:C.tx3,padding:"8px 0",borderTop:`1px solid ${C.bd}`}}>
+                + {transportsEnCours.length-3} autres transports
+              </div>
+            )}
+          </div>
+        </>
+      )}
+
+      {/* ── Alertes récentes ── */}
+      {notifications.slice(0,3).length>0&&(
+        <>
+          <div style={{fontSize:13,fontWeight:700,color:C.tx2,marginBottom:8,fontFamily:FONT_TITLE}}>
+            🔔 Alertes récentes
+          </div>
+          <div style={{background:"#fff",borderRadius:14,border:`1px solid ${C.bd}`,padding:"0 14px",marginBottom:16}}>
+            {notifications.slice(0,3).map((n: any,i: number)=>(
+              <div key={n.id||i} onClick={onGoAlertes} style={{display:"flex",gap:10,
+                padding:"12px 0",cursor:"pointer",WebkitTapHighlightColor:"transparent",
+                borderBottom:i<Math.min(notifications.length,3)-1?`1px solid ${C.bd}`:"none"}}>
+                <span style={{fontSize:16,flexShrink:0}}>{n.lu?"✅":"⚠️"}</span>
+                <div style={{flex:1}}>
+                  <div style={{fontSize:12,color:C.tx,lineHeight:1.4}}>{n.message||n.titre||"—"}</div>
+                  <div style={{fontSize:10,color:C.tx3,marginTop:2}}>
+                    {n.date?new Date(n.date).toLocaleString("fr-FR"):""}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+
       <div style={{fontSize:13,fontWeight:700,color:C.tx2,marginBottom:10,fontFamily:FONT_TITLE}}>
         Chantiers du jour
       </div>
