@@ -11,6 +11,121 @@ import { TYPE_RESSOURCE_OPTS } from "../../domains/contacts/constants.js";
 import { STATUT_LOT } from "../../domains/screens/MobileScreens.constants.js";
 import { calculerPci, calculerEnergie } from "../../metier/formules.js";
 import { PIPELINE } from "../../domains/roles/RoleScreens.constants.js";
+
+// ── EffisBadge ────────────────────────────────────────────────────────────────
+// Affiche le risque incendie EFFIS/Open-Meteo pour un lot avec coordonnées GPS.
+// Données temps réel, non stockées en base (RisqueRessource = évaluations persistantes).
+const FWI_COLORS: Record<string,string> = {
+  TRES_FAIBLE:"#4CAF50",FAIBLE:"#8BC34A",MODERE:"#FFC107",
+  ELEVE:"#FF9800",TRES_ELEVE:"#F44336",EXTREME:"#7B1FA2",
+};
+const FWI_BG: Record<string,string> = {
+  TRES_FAIBLE:"#E8F5E9",FAIBLE:"#F1F8E9",MODERE:"#FFFDE7",
+  ELEVE:"#FFF3E0",TRES_ELEVE:"#FFEBEE",EXTREME:"#F3E5F5",
+};
+
+function EffisBadge({ lat, lng }: { lat: number; lng: number }) {
+  const [data, setData]     = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    setLoading(true);
+    // Appel direct sans JWT — route @Public()
+    fetch(`${import.meta.env.VITE_API_URL ?? ""}/effis/risk?lat=${lat}&lng=${lng}`, {
+      headers: { Accept: "application/json" },
+    })
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { setData(d); setLoading(false); })
+      .catch(() => { setData(null); setLoading(false); });
+  }, [lat, lng]);
+
+  if (loading) {
+    return (
+      <div style={{borderRadius:12,padding:"10px 14px",marginBottom:16,
+        background:"#F3F4F6",border:"1px solid #E5E7EB",
+        fontSize:11,color:"#6B7280",display:"flex",alignItems:"center",gap:6}}>
+        <span style={{animation:"spin 1s linear infinite",display:"inline-block"}}>🔄</span>
+        Chargement risque incendie…
+        <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
+      </div>
+    );
+  }
+
+  if (!data || !data.disponible) {
+    return (
+      <div style={{borderRadius:12,padding:"10px 14px",marginBottom:16,
+        background:"#F3F4F6",border:"1px solid #E5E7EB",
+        fontSize:11,color:"#9CA3AF",display:"flex",alignItems:"center",gap:6}}>
+        🔥 Risque incendie non disponible
+      </div>
+    );
+  }
+
+  const col = FWI_COLORS[data.niveauRisque ?? ""] ?? "#9CA3AF";
+  const bg  = FWI_BG[data.niveauRisque ?? ""]    ?? "#F3F4F6";
+
+  return (
+    <div style={{borderRadius:14,padding:14,marginBottom:16,
+      background:bg, border:`1.5px solid ${col}`}}>
+      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:8}}>
+        <div style={{fontSize:11,fontWeight:700,color:col,letterSpacing:"0.06em",
+          textTransform:"uppercase"}}>
+          🔥 Risque incendie EFFIS · J0
+        </div>
+        <span style={{fontSize:9,color:col,opacity:0.7}}>
+          {new Date(data.dateActualisation).toLocaleDateString("fr-FR")}
+        </span>
+      </div>
+
+      {/* Badge principal */}
+      <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:8}}>
+        <div style={{width:12,height:12,borderRadius:"50%",background:col,flexShrink:0}}/>
+        <span style={{fontSize:18,fontWeight:700,color:col}}>{data.labelRisque}</span>
+        {data.fwi !== null && (
+          <span style={{fontSize:12,color:col,opacity:0.8}}>FWI {data.fwi}</span>
+        )}
+      </div>
+
+      {/* Prévisions J+1 J+2 */}
+      {(data.fwiJ1 !== null || data.fwiJ2 !== null) && (
+        <div style={{display:"flex",gap:8,marginBottom:8}}>
+          {[
+            {label:"Demain", niv:data.niveauJ1, val:data.fwiJ1, lab:data.labelJ1},
+            {label:"J+2",    niv:data.niveauJ2, val:data.fwiJ2, lab:data.labelJ2},
+          ].map((f,i) => f.niv && (
+            <div key={i} style={{flex:1,borderRadius:8,padding:"6px 8px",
+              background:"rgba(255,255,255,0.5)",border:`1px solid ${FWI_COLORS[f.niv]??col}`,
+              textAlign:"center"}}>
+              <div style={{fontSize:9,color:"#6B7280",marginBottom:2}}>{f.label}</div>
+              <div style={{width:8,height:8,borderRadius:"50%",
+                background:FWI_COLORS[f.niv]??"#9CA3AF",margin:"0 auto 2px"}}/>
+              <div style={{fontSize:10,fontWeight:700,color:FWI_COLORS[f.niv]??col}}>{f.lab}</div>
+              {f.val !== null && <div style={{fontSize:9,color:"#6B7280"}}>FWI {f.val}</div>}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Feux proches */}
+      {data.feuxActifsProches && (
+        <div style={{fontSize:11,color:"#991B1B",fontWeight:600,
+          background:"#FEE2E2",borderRadius:8,padding:"6px 10px",marginBottom:4}}>
+          ⚠️ Périmètre brûlé récent à {data.distanceDernierFeuKm} km
+        </div>
+      )}
+      {!data.feuxActifsProches && data.distanceDernierFeuKm !== null && (
+        <div style={{fontSize:10,color:"#6B7280"}}>
+          Dernier feu EFFIS à {data.distanceDernierFeuKm} km
+        </div>
+      )}
+      <div style={{fontSize:9,color:"#9CA3AF",marginTop:4}}>
+        Source : {data.source} · Résolution ~10 km
+      </div>
+    </div>
+  );
+}
+// ─────────────────────────────────────────────────────────────────────────────
+
 export const FicheLotCentrale = ({
   lot, visites=[], operateurs=[], onBack, onEdit, onBonCommande,
   onLaunchVisite, onLaunchValidation, onLaunchCloture,
@@ -281,6 +396,11 @@ export const FicheLotCentrale = ({
                 </div>
               ))}
             </div>
+
+            {/* Risque incendie EFFIS — si le lot a des coordonnées GPS */}
+            {lot.gpsLat&&lot.gpsLng&&(
+              <EffisBadge lat={lot.gpsLat} lng={lot.gpsLng}/>
+            )}
 
             {/* Mandataire désigné — tant que la visite n'a pas été réalisée */}
             {!derniereVisite&&mandataireAssigne&&(
