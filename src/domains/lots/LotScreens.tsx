@@ -2696,6 +2696,13 @@ export const EcranLivraison = ({lot, onBack, onSaved, toast}: any) => {
   const [commentaire,    setComment]     = useState("");
   // Plateforme uniquement
   const [numeroPlateforme,setNumPlat]    = useState("");
+  // Décomposition coût transport
+  const [distanceKm,     setDistanceKm]  = useState("");
+  const [prixMatiere,    setPrixMatiere] = useState("");
+  const [prixBroyage,    setPrixBroyage] = useState("");
+  const [prixChargement, setPrixCharge]  = useState("");
+  const [prixTransport,  setPrixTransp]  = useState("");
+  const [prixSurcharge,  setPrixSurch]   = useState("");
   const [saving,         setSaving]      = useState(false);
 
   // Alerte GPS : si GPS capturé mais loin de la destination prévue
@@ -2718,6 +2725,7 @@ export const EcranLivraison = ({lot, onBack, onSaved, toast}: any) => {
     setSaving(true);
     const statutFinal = typeDest==="chaufferie" ? "LIVRE_CHAUFFERIE" : "EN_STOCK_PLATEFORME";
     try {
+      const p = (v:string) => v ? parseFloat(v)||undefined : undefined;
       await apiPost(`/livraisons`, {
           lotId:lot.id, lotNumero:lot.lotNumero,
           nomDestination,
@@ -2725,6 +2733,12 @@ export const EcranLivraison = ({lot, onBack, onSaved, toast}: any) => {
           humiditeReception,
           date: new Date().toISOString().slice(0,16),
           statut: "declaree",
+          distanceKm:            p(distanceKm),
+          prixMatiereT:          p(prixMatiere),
+          prixBroyageT:          p(prixBroyage),
+          prixChargementT:       p(prixChargement),
+          prixTransportT:        p(prixTransport),
+          prixSurchargeCarburantT: p(prixSurcharge),
       });
       toast(typeDest==="chaufferie"?"Livraison chaufferie validée ✓":"Entrée stock plateforme ✓");
       onSaved(statutFinal);
@@ -2852,6 +2866,50 @@ export const EcranLivraison = ({lot, onBack, onSaved, toast}: any) => {
             </div>
           </div>
         )}
+
+        <SectionTitle icon="💶" label="Décomposition du coût (€/tonne)"/>
+        <MInput label="Distance de transport" value={distanceKm}
+          onChange={setDistanceKm} type="number" placeholder="ex: 48" hint="km — pour calcul GES"/>
+        {(
+          [
+            ["🪵","Matière première",   prixMatiere,  setPrixMatiere],
+            ["🌀","Broyage / déchiquet.",prixBroyage, setPrixBroyage],
+            ["🏗️","Chargement",         prixChargement,setPrixCharge],
+            ["🚛","Transport",          prixTransport, setPrixTransp],
+            ["⛽","Surcharge carburant", prixSurcharge, setPrixSurch],
+          ] as [string,string,string,(v:string)=>void][]
+        ).map(([icon,label,val,setter],i)=>(
+          <MInput key={i} label={`${icon} ${label}`} value={val}
+            onChange={setter} type="number"
+            placeholder="ex: 12.50" hint="€/t · optionnel"/>
+        ))}
+        {(prixMatiere||prixBroyage||prixChargement||prixTransport||prixSurcharge)&&(()=>{
+          const total = [prixMatiere,prixBroyage,prixChargement,prixTransport,prixSurcharge]
+            .reduce((s,v)=>s+(parseFloat(v as string)||0),0);
+          const poids = parseFloat(pesee)||0;
+          return total>0?(
+            <div style={{background:"#F0FDF4",borderRadius:12,padding:"12px 16px",
+              marginBottom:14,border:"1px solid #86EFAC"}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",
+                marginBottom:poids>0?8:0}}>
+                <div style={{fontSize:12,fontWeight:700,color:"#065F46"}}>
+                  💶 Coût total transport
+                </div>
+                <div style={{fontSize:18,fontWeight:900,color:"#065F46",
+                  fontVariantNumeric:"tabular-nums"}}>
+                  {total.toFixed(2)} €/t
+                </div>
+              </div>
+              {poids>0&&(
+                <div style={{display:"flex",justifyContent:"space-between",
+                  fontSize:12,color:"#16A34A"}}>
+                  <span>Montant livraison ({poids} t)</span>
+                  <span style={{fontWeight:700}}>{(total*poids).toFixed(0)} €</span>
+                </div>
+              )}
+            </div>
+          ):null;
+        })()}
 
         <SectionTitle icon="✍️" label="Réception"/>
         <MInput label="Nom du réceptionnaire" value={nomReceptionnaire}
