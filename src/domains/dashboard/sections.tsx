@@ -11172,6 +11172,8 @@ export const SectionPlanApprovisionnement = () => {
   const [selected, setSelected] = useState<string|null>(null);
   const [onglet, setOnglet] = useState<"liste"|"entonnoir"|"red_iii"|"synthese">("liste");
   const [planEntonnoir, setPlanEntonnoir] = useState(PLAN_DATA[0].id); // resetté par useEffect après fetch
+  const [conformite, setConformite] = useState<any>(null);
+  const [loadingConf, setLoadingConf] = useState(false);
 
   useEffect(() => {
     (apiGet("/plans-approvisionnement") as Promise<any[]>)
@@ -11184,6 +11186,16 @@ export const SectionPlanApprovisionnement = () => {
       })
       .catch(() => { /* PLAN_DATA reste en fallback */ });
   }, []);
+
+  useEffect(() => {
+    if (!selected) { setConformite(null); return; }
+    setConformite(null);
+    setLoadingConf(true);
+    (apiGet(`/plans-approvisionnement/${selected}/conformite`) as Promise<any>)
+      .then(setConformite)
+      .catch(() => setConformite(null))
+      .finally(() => setLoadingConf(false));
+  }, [selected]);
 
   const plan = selected ? plans.find(p=>p.id===selected) : null;
   const pe   = plans.find(p=>p.id===planEntonnoir) ?? plans[0];
@@ -11505,19 +11517,60 @@ export const SectionPlanApprovisionnement = () => {
                   ))}
                 </div>
 
-                <div style={{background:conf.bg,borderRadius:8,padding:"8px 10px",
-                  fontSize:11,fontWeight:700,color:conf.col,marginBottom:8}}>
-                  Conformité RED : {conf.label}
-                </div>
+                {conformite ? (
+                  <div style={{background:"#F0FDF4",borderRadius:8,padding:"10px 12px",
+                    marginBottom:8,border:"1.5px solid #BBF7D0"}}>
+                    <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:8}}>
+                      <span style={{fontSize:11,fontWeight:700,color:"#065F46"}}>📊 Score de conformité</span>
+                      <span style={{fontSize:20,fontWeight:900,color:
+                        conformite.statut==="CONFORME"?"#065F46":
+                        conformite.statut==="SURVEILLANCE"?"#92400E":"#991B1B"}}>
+                        {conformite.scoreGlobal} %
+                      </span>
+                    </div>
+                    {conformite.indicateurs.map((ind: any) => {
+                      const col = ind.statut==="CONFORME"?"#065F46":
+                        ind.statut==="SURVEILLANCE"?"#B45309":
+                        ind.statut==="SANS_CIBLE"?"#6B7280":"#991B1B";
+                      const ico = ind.statut==="CONFORME"?"✅":
+                        ind.statut==="SURVEILLANCE"?"⚠️":
+                        ind.statut==="SANS_CIBLE"?"➖":"❌";
+                      return (
+                        <div key={ind.critere} style={{display:"flex",justifyContent:"space-between",
+                          alignItems:"center",fontSize:10,borderBottom:`1px solid ${C.bd}`,
+                          paddingBottom:4,marginBottom:4}}>
+                          <span style={{color:C.tx3}}>{ico} {ind.critere}</span>
+                          <span style={{fontWeight:700,color:col,fontVariantNumeric:"tabular-nums"}}>
+                            {ind.realise!=null
+                              ? `${ind.realise} ${ind.unite}${ind.ecartPct!=null&&ind.ecartPct>0?` (+${ind.ecartPct}%)`:""}`
+                              : ind.statut==="SANS_CIBLE"?"—":"N/D"}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : loadingConf ? (
+                  <div style={{fontSize:10,color:C.tx3,padding:"8px 0",textAlign:"center"}}>
+                    ⏳ Calcul conformité…
+                  </div>
+                ) : (
+                  <div style={{background:conf.bg,borderRadius:8,padding:"8px 10px",
+                    fontSize:11,fontWeight:700,color:conf.col,marginBottom:8}}>
+                    {conf.label}
+                  </div>
+                )}
 
-                {plan.note&&<div style={{fontSize:11,color:C.tx2,fontStyle:"italic",lineHeight:1.5}}>
+                {plan.note&&<div style={{fontSize:11,color:C.tx2,fontStyle:"italic",lineHeight:1.5,marginBottom:8}}>
                   📝 {plan.note}
                 </div>}
 
                 <div style={{display:"flex",gap:6,marginTop:12}}>
-                  <button style={{flex:1,padding:"7px",borderRadius:8,fontSize:11,fontWeight:700,
-                    cursor:"pointer",fontFamily:"inherit",background:"#1E5B3A",border:"none",color:"#fff"}}>
-                    📄 Rapport RED
+                  <button onClick={()=>{setConformite(null);setLoadingConf(true);
+                    (apiGet(`/plans-approvisionnement/${plan.id}/conformite`) as Promise<any>)
+                      .then(setConformite).catch(()=>setConformite(null)).finally(()=>setLoadingConf(false));}}
+                    style={{flex:1,padding:"7px",borderRadius:8,fontSize:11,fontWeight:700,
+                      cursor:"pointer",fontFamily:"inherit",background:"#1E5B3A",border:"none",color:"#fff"}}>
+                    🔄 Actualiser
                   </button>
                   <button style={{flex:1,padding:"7px",borderRadius:8,fontSize:11,fontWeight:700,
                     cursor:"pointer",fontFamily:"inherit",background:"transparent",
