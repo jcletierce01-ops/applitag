@@ -2592,19 +2592,23 @@ export const EcranCarte = ({contacts, visites, onOpenLot}: any) => {
       effisLayerRef.current = null;
     }
     if (!couches.effis) return;
-    const EFFIS_URL = "https://ies-ows.jrc.ec.europa.eu/effis";
-    const EFFIS_LAYERS: Record<string,string> = {
-      fires:      "activefires.viirs.fire",
-      danger:     "FireDanger.FireDangerForecasted",
-      perimeters: "fireperimeters.recent",
+    // URLs Copernicus GWIS (remplace l'ancien endpoint JRC ies-ows.jrc.ec.europa.eu)
+    const EFFIS_ENDPOINTS: Record<string,{url:string,layer:string}> = {
+      fires:      { url:"https://maps.effis.emergency.copernicus.eu/gwis",
+                    layer:"activefires.viirs.fire" },
+      danger:     { url:"https://maps.effis.emergency.copernicus.eu/gwis",
+                    layer:"ecmwf.fwi" },
+      perimeters: { url:"https://maps.effis.emergency.copernicus.eu/effis",
+                    layer:"fireperimeters.recent" },
     };
-    const wms = L.tileLayer.wms(EFFIS_URL, {
-      layers:      EFFIS_LAYERS[effisCouche],
+    const ep = EFFIS_ENDPOINTS[effisCouche];
+    const wms = L.tileLayer.wms(ep.url, {
+      layers:      ep.layer,
       format:      "image/png",
       transparent: true,
       opacity:     0.70,
       version:     "1.3.0",
-      attribution: "© <a href='https://effis.jrc.ec.europa.eu/'>EFFIS / EU JRC</a>",
+      attribution: "© <a href='https://effis.emergency.copernicus.eu/'>EFFIS / Copernicus</a>",
     });
     wms.addTo(map);
     effisLayerRef.current = wms;
