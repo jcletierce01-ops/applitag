@@ -127,6 +127,292 @@ function EffisBadge({ lat, lng }: { lat: number; lng: number }) {
 }
 // ─────────────────────────────────────────────────────────────────────────────
 
+// ── LotSanitaireBadge ─────────────────────────────────────────────────────────
+// Affiche le workflow post-incendie/sanitaire et permet de créer ou mettre à jour
+// le dossier (upsert). Visible en onglet Général si le lot a ce type de dossier.
+const TYPE_SINISTRE_LABELS: Record<string,string> = {
+  POST_INCENDIE:"🔥 Incendie",
+  CHABLIS:"🌪️ Chablis",
+  SCOLYTES:"🐛 Scolytes",
+  PATHOGENE:"🦠 Pathogène",
+  AUTRE:"⚠️ Autre sinistre",
+};
+const STATUT_WORKFLOW_LABELS: Record<string,{label:string,color:string,bg:string}> = {
+  EN_ATTENTE_DIAGNOSTIC: {label:"En attente diagnostic",color:"#92400E",bg:"#FFFBEB"},
+  DIAGNOSTIC_REALISE:    {label:"Diagnostic réalisé",   color:"#1D4ED8",bg:"#EFF6FF"},
+  EXPLOITATION_EN_COURS: {label:"Exploitation en cours", color:"#065F46",bg:"#ECFDF5"},
+  BOIS_EVACUES:          {label:"Bois évacués",          color:"#374151",bg:"#F3F4F6"},
+  EN_RECONSTITUTION:     {label:"En reconstitution",     color:"#5B21B6",bg:"#F5F3FF"},
+  RENOUVELLEMENT:        {label:"Renouvellement",        color:"#1E40AF",bg:"#EFF6FF"},
+  CLOS:                  {label:"Dossier clos",          color:"#6B7280",bg:"#F9FAFB"},
+};
+const URGENCE_COLORS = ["","#10B981","#84CC16","#F59E0B","#EF4444","#7C3AED"];
+
+function LotSanitaireBadge({ contactId }: { contactId: string }) {
+  const [data, setData]       = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [showForm, setShowForm] = useState(false);
+  const [saving, setSaving]   = useState(false);
+  const WORKFLOW_STEPS = Object.keys(STATUT_WORKFLOW_LABELS);
+
+  const load = () => {
+    setLoading(true);
+    apiGet(`/contacts/${contactId}/lot-sanitaire`)
+      .then((d: any) => { setData(d ?? null); setLoading(false); })
+      .catch(() => { setData(null); setLoading(false); });
+  };
+  useEffect(load, [contactId]);
+
+  const [form, setForm] = useState({
+    typeSinistre:"POST_INCENDIE",
+    surfaceAffecteeHa:"",
+    scoreUrgence:"3",
+    statutWorkflow:"EN_ATTENTE_DIAGNOSTIC",
+    diagnosticObservations:"",
+    preconisationReconstitution:"",
+    aidesDisponibles:"",
+    lienICarto:"",
+    notes:"",
+  });
+
+  const save = async () => {
+    setSaving(true);
+    try {
+      await apiPost(`/contacts/${contactId}/lot-sanitaire`, {
+        ...form,
+        surfaceAffecteeHa: form.surfaceAffecteeHa ? parseFloat(form.surfaceAffecteeHa) : undefined,
+        scoreUrgence: parseInt(form.scoreUrgence) || undefined,
+      });
+      setShowForm(false);
+      load();
+    } finally { setSaving(false); }
+  };
+
+  if (loading) return (
+    <div style={{borderRadius:12,padding:"10px 14px",marginBottom:16,
+      background:"#FFF7ED",border:"1px solid #FED7AA",fontSize:11,color:"#92400E",
+      display:"flex",alignItems:"center",gap:6}}>
+      ⚠️ Chargement dossier sanitaire…
+    </div>
+  );
+
+  const statut = data?.statutWorkflow ? STATUT_WORKFLOW_LABELS[data.statutWorkflow] : null;
+
+  return (
+    <div style={{marginBottom:16}}>
+      <div style={{borderRadius:14,padding:14,
+        background: statut?.bg ?? "#FFF7ED",
+        border:`1.5px solid ${statut?.color ?? "#F59E0B"}`}}>
+        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:6}}>
+          <div style={{fontSize:11,fontWeight:700,letterSpacing:"0.05em",textTransform:"uppercase",
+            color: statut?.color ?? "#92400E"}}>
+            🌲 Dossier sanitaire / Post-incendie
+          </div>
+          <button onClick={() => setShowForm(f=>!f)}
+            style={{fontSize:10,padding:"3px 10px",borderRadius:8,border:"1px solid",cursor:"pointer",
+              borderColor: statut?.color ?? "#F59E0B",
+              background:"white",color: statut?.color ?? "#92400E",fontWeight:600}}>
+            {showForm ? "Annuler" : data ? "Mettre à jour" : "Créer dossier"}
+          </button>
+        </div>
+
+        {data ? (
+          <>
+            <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:8}}>
+              <span style={{fontSize:18}}>
+                {TYPE_SINISTRE_LABELS[data.typeSinistre]?.split(" ")[0] ?? "⚠️"}
+              </span>
+              <div>
+                <div style={{fontSize:14,fontWeight:700,color: statut?.color ?? "#374151"}}>
+                  {TYPE_SINISTRE_LABELS[data.typeSinistre] ?? data.typeSinistre}
+                </div>
+                <div style={{fontSize:11,padding:"2px 8px",borderRadius:6,display:"inline-block",
+                  background:"rgba(255,255,255,0.7)",border:`1px solid ${statut?.color}`,
+                  color:statut?.color,fontWeight:600,marginTop:2}}>
+                  {statut?.label ?? data.statutWorkflow}
+                </div>
+              </div>
+              {data.scoreUrgence != null && (
+                <div style={{marginLeft:"auto",textAlign:"center"}}>
+                  <div style={{fontSize:22,fontWeight:700,
+                    color:URGENCE_COLORS[data.scoreUrgence] ?? "#6B7280"}}>
+                    {data.scoreUrgence}/5
+                  </div>
+                  <div style={{fontSize:9,color:"#6B7280"}}>urgence</div>
+                </div>
+              )}
+            </div>
+
+            <div style={{display:"flex",flexWrap:"wrap",gap:6,marginBottom:6}}>
+              {data.surfaceAffecteeHa && (
+                <span style={{fontSize:10,padding:"2px 8px",borderRadius:6,
+                  background:"rgba(255,255,255,0.7)",border:"1px solid #D1D5DB",color:"#374151"}}>
+                  📐 {data.surfaceAffecteeHa} ha affectés
+                </span>
+              )}
+              {data.dateSinistre && (
+                <span style={{fontSize:10,padding:"2px 8px",borderRadius:6,
+                  background:"rgba(255,255,255,0.7)",border:"1px solid #D1D5DB",color:"#374151"}}>
+                  📅 {new Date(data.dateSinistre).toLocaleDateString("fr-FR")}
+                </span>
+              )}
+              {data.aidesDisponibles && (
+                <span style={{fontSize:10,padding:"2px 8px",borderRadius:6,
+                  background:"#EFF6FF",border:"1px solid #BFDBFE",color:"#1E40AF"}}>
+                  💶 {data.aidesDisponibles}
+                </span>
+              )}
+            </div>
+
+            {/* Workflow progress */}
+            <div style={{display:"flex",gap:2,marginBottom:8}}>
+              {WORKFLOW_STEPS.map((step, i) => {
+                const idx = WORKFLOW_STEPS.indexOf(data.statutWorkflow ?? "");
+                const done = i <= idx;
+                return (
+                  <div key={step} style={{flex:1,height:4,borderRadius:2,
+                    background: done ? (statut?.color ?? "#F59E0B") : "#E5E7EB"}}/>
+                );
+              })}
+            </div>
+
+            {data.preconisationReconstitution && (
+              <div style={{fontSize:11,color:"#374151",marginBottom:4}}>
+                🌱 <strong>Reconstitution :</strong> {data.preconisationReconstitution}
+              </div>
+            )}
+            {data.lienICarto && (
+              <div style={{fontSize:10,color:"#1D4ED8",marginBottom:4}}>
+                🔗 iCarto MFR : <a href={data.lienICarto} target="_blank" rel="noreferrer"
+                  style={{color:"inherit"}}>{data.lienICarto}</a>
+              </div>
+            )}
+            {data.diagnosticObservations && (
+              <div style={{fontSize:10,color:"#6B7280",fontStyle:"italic",marginTop:4}}>
+                {data.diagnosticObservations}
+              </div>
+            )}
+          </>
+        ) : (
+          <div style={{fontSize:12,color:"#92400E"}}>
+            Aucun dossier sanitaire enregistré pour ce lot.
+          </div>
+        )}
+      </div>
+
+      {showForm && (
+        <div style={{borderRadius:12,padding:14,marginTop:8,
+          background:"#FFFBEB",border:"1px solid #FDE68A"}}>
+          <div style={{fontSize:11,fontWeight:700,color:"#78350F",marginBottom:10,
+            textTransform:"uppercase",letterSpacing:"0.05em"}}>
+            {data ? "Mise à jour du dossier" : "Nouveau dossier sanitaire"}
+          </div>
+
+          {/* Type sinistre */}
+          <div style={{marginBottom:10}}>
+            <div style={{fontSize:10,color:"#78350F",marginBottom:4,fontWeight:600}}>Type de sinistre *</div>
+            <div style={{display:"flex",flexWrap:"wrap",gap:6}}>
+              {Object.entries(TYPE_SINISTRE_LABELS).map(([k,v]) => (
+                <button key={k} onClick={()=>setForm(f=>({...f,typeSinistre:k}))}
+                  style={{padding:"6px 10px",borderRadius:8,cursor:"pointer",
+                    border:`2px solid ${form.typeSinistre===k?"#F59E0B":"#E5E7EB"}`,
+                    background:form.typeSinistre===k?"#FEF3C7":"white",
+                    color:form.typeSinistre===k?"#78350F":"#374151",
+                    fontWeight:form.typeSinistre===k?700:400,fontSize:11}}>
+                  {v}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div style={{display:"flex",gap:8,marginBottom:8}}>
+            <div style={{flex:1}}>
+              <div style={{fontSize:10,color:"#78350F",marginBottom:3,fontWeight:600}}>Surface affectée (ha)</div>
+              <input type="number" value={form.surfaceAffecteeHa}
+                onChange={e=>setForm(f=>({...f,surfaceAffecteeHa:e.target.value}))}
+                placeholder="12.5"
+                style={{width:"100%",boxSizing:"border-box",padding:"7px 10px",
+                  borderRadius:8,border:"1px solid #FCD34D",fontSize:11,background:"white"}}/>
+            </div>
+            <div style={{flex:1}}>
+              <div style={{fontSize:10,color:"#78350F",marginBottom:3,fontWeight:600}}>Urgence (1–5)</div>
+              <input type="range" min="1" max="5" value={form.scoreUrgence}
+                onChange={e=>setForm(f=>({...f,scoreUrgence:e.target.value}))}
+                style={{width:"100%",marginTop:8}}/>
+              <div style={{textAlign:"center",fontSize:12,fontWeight:700,
+                color:URGENCE_COLORS[parseInt(form.scoreUrgence)]???"#6B7280"}}>
+                {form.scoreUrgence}/5
+              </div>
+            </div>
+          </div>
+
+          {/* Statut workflow */}
+          <div style={{marginBottom:8}}>
+            <div style={{fontSize:10,color:"#78350F",marginBottom:3,fontWeight:600}}>Statut du dossier</div>
+            <select value={form.statutWorkflow}
+              onChange={e=>setForm(f=>({...f,statutWorkflow:e.target.value}))}
+              style={{width:"100%",padding:"7px 10px",borderRadius:8,
+                border:"1px solid #FCD34D",fontSize:11,background:"white",
+                fontFamily:"inherit"}}>
+              {WORKFLOW_STEPS.map(s => (
+                <option key={s} value={s}>{STATUT_WORKFLOW_LABELS[s].label}</option>
+              ))}
+            </select>
+          </div>
+
+          <div style={{marginBottom:8}}>
+            <div style={{fontSize:10,color:"#78350F",marginBottom:3,fontWeight:600}}>Observations diagnostic</div>
+            <textarea value={form.diagnosticObservations}
+              onChange={e=>setForm(f=>({...f,diagnosticObservations:e.target.value}))}
+              placeholder="Observations CNPF/ONF/gestionnaire…" rows={2}
+              style={{width:"100%",boxSizing:"border-box",padding:"7px 10px",
+                borderRadius:8,border:"1px solid #FCD34D",fontSize:11,
+                background:"white",resize:"vertical"}}/>
+          </div>
+
+          <div style={{display:"flex",gap:8,marginBottom:8}}>
+            <div style={{flex:2}}>
+              <div style={{fontSize:10,color:"#78350F",marginBottom:3,fontWeight:600}}>Préconisation reconstitution</div>
+              <input value={form.preconisationReconstitution}
+                onChange={e=>setForm(f=>({...f,preconisationReconstitution:e.target.value}))}
+                placeholder="Ex : Reboisement mixte pin + chêne"
+                style={{width:"100%",boxSizing:"border-box",padding:"7px 10px",
+                  borderRadius:8,border:"1px solid #FCD34D",fontSize:11,background:"white"}}/>
+            </div>
+          </div>
+
+          <div style={{display:"flex",gap:8,marginBottom:8}}>
+            <div style={{flex:1}}>
+              <div style={{fontSize:10,color:"#78350F",marginBottom:3,fontWeight:600}}>Aides mobilisables</div>
+              <input value={form.aidesDisponibles}
+                onChange={e=>setForm(f=>({...f,aidesDisponibles:e.target.value}))}
+                placeholder="France Relance, FRF, ADEME…"
+                style={{width:"100%",boxSizing:"border-box",padding:"7px 10px",
+                  borderRadius:8,border:"1px solid #FCD34D",fontSize:11,background:"white"}}/>
+            </div>
+            <div style={{flex:1}}>
+              <div style={{fontSize:10,color:"#78350F",marginBottom:3,fontWeight:600}}>Lien iCarto MFR</div>
+              <input value={form.lienICarto}
+                onChange={e=>setForm(f=>({...f,lienICarto:e.target.value}))}
+                placeholder="https://icarto.cnpf.fr/…"
+                style={{width:"100%",boxSizing:"border-box",padding:"7px 10px",
+                  borderRadius:8,border:"1px solid #FCD34D",fontSize:11,background:"white"}}/>
+            </div>
+          </div>
+
+          <button onClick={save} disabled={saving}
+            style={{width:"100%",padding:"10px 0",borderRadius:10,border:"none",
+              cursor:saving?"not-allowed":"pointer",fontWeight:700,fontSize:13,
+              background:saving?"#94A3B8":"#78350F",color:"white",marginTop:4}}>
+            {saving ? "Enregistrement…" : data ? "Mettre à jour" : "Créer le dossier sanitaire"}
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+// ─────────────────────────────────────────────────────────────────────────────
+
 // ── DFCIBadge ─────────────────────────────────────────────────────────────────
 // Affiche le statut sécurité/DFCI courant du chantier et permet d'enregistrer
 // un nouveau snapshot horodaté (valeur juridique = règle connue à l'instant T).
@@ -700,6 +986,9 @@ export const FicheLotCentrale = ({
 
             {/* Sécurité DFCI — snapshot horodaté valeur juridique */}
             <DFCIBadge contactId={lot.id} token={user?.token}/>
+
+            {/* Dossier sanitaire / Post-incendie */}
+            <LotSanitaireBadge contactId={lot.id}/>
 
             {/* Mandataire désigné — tant que la visite n'a pas été réalisée */}
             {!derniereVisite&&mandataireAssigne&&(
