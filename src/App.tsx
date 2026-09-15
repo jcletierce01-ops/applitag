@@ -634,7 +634,14 @@ export default function App() {
             onGoLots={(f: any)=>{ setFiltreLotsInitial(f); setScreen("lots"); }}
             onGoAlertes={()=>setScreen("alertes")}
             onGoDelegations={()=>setScreen("delegations")}
-            onAppelerContact={(c: any)=>{ setFiche0Prefill(c); setScreen("fiche0"); }}/>
+            onAppelerContact={(c: any)=>{ setFiche0Prefill(c); setScreen("fiche0"); }}
+            onGoSection={(id: string)=>{
+              if (id==="planning")          { toast("Planning disponible sur le tableau de bord PC","info"); }
+              else if (id==="chaufferies")  { toast("Chaufferies disponible sur le tableau de bord PC","info"); }
+              else if (id==="utilisateurs") { setScreen("accueil"); toast("Gestion des utilisateurs disponible sur PC","info"); }
+              else if (id==="parametres")   { toast("Paramètres disponibles sur le tableau de bord PC","info"); }
+              else                          { toast("Module disponible sur le tableau de bord PC","info"); }
+            }}/>
         )}
         {screen==="delegations"&&(
           <EcranDelegations entrepriseId={entrepriseId} toast={toast}

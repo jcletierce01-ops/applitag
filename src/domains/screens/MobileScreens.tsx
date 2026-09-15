@@ -14,6 +14,52 @@ import { FormulaireVisite } from "../../domains/visites/FormulaireVisite.jsx";
 import { ORIGINE_OPTS, TYPE_CONTACT_OPTS, TYPE_RESSOURCE_OPTS, PRIORITE_OPTS, STATUT_OPTS } from "../../domains/contacts/constants.js";
 import { TYPES_PRESTATION_ANNONCE, STATUTS_ANNONCE, ORDRE_STATUTS_ANNONCE } from "../../domains/connect/constants.js";
 import { indicesPonderes } from "../../metier/formules.js";
+import { FEATURE_FLAGS } from "../../config/featureFlags.js";
+
+// ── Groupes de modules pour le tiroir "Tous les modules" ────────────────────
+type ModuleDef = { id: string; icon: string; label: string; flag?: keyof typeof FEATURE_FLAGS; nav: string };
+const GROUPES_MODULES: { label: string; items: ModuleDef[] }[] = [
+  { label:"🌲 Terrain", items:[
+    { id:"lots",            icon:"🌲", label:"Lots",             flag:"LOTS",            nav:"lots" },
+    { id:"chantiers",       icon:"🪓", label:"Chantiers",        flag:"CHANTIERS",       nav:"chantiers" },
+    { id:"parcelles",       icon:"🌿", label:"Parcelles",        flag:"PARCELLES",       nav:"pc" },
+    { id:"desserte",        icon:"🛣️", label:"Desserte",         flag:"DESSERTE",        nav:"pc" },
+    { id:"permis_incendie", icon:"🔥", label:"Permis chantier",  flag:"PERMIS_INCENDIE", nav:"pc" },
+    { id:"bois_crise",      icon:"🌲", label:"Bois de crise",    flag:"BOIS_CRISE",      nav:"pc" },
+  ]},
+  { label:"🚛 Logistique", items:[
+    { id:"transports",  icon:"🚛", label:"Transports",   flag:"TRANSPORTS",  nav:"transports" },
+    { id:"livraisons",  icon:"📦", label:"Livraisons",   flag:"LIVRAISONS",  nav:"livraisons" },
+    { id:"chaufferies", icon:"🔥", label:"Chaufferies",  flag:"CHAUFFERIES", nav:"pc" },
+    { id:"coproduits",  icon:"♻️", label:"Coproduits",   flag:"COPRODUITS",  nav:"pc" },
+    { id:"scierie",     icon:"🏭", label:"Scierie",      flag:"SCIERIE",     nav:"pc" },
+  ]},
+  { label:"🇪🇺 Conformité & GES", items:[
+    { id:"conformite_red",     icon:"🇪🇺", label:"Conformité RED",  flag:"CONFORMITE_RED",     nav:"pc" },
+    { id:"cout_reglementaire", icon:"💶", label:"Coût RED/tonne",  flag:"COUT_REGLEMENTAIRE", nav:"pc" },
+    { id:"ges",                icon:"🌿", label:"Bilan GES",        flag:"GES",                nav:"pc" },
+    { id:"reglementation",     icon:"⚖️", label:"Réglementation",  flag:"REGLEMENTATION",     nav:"pc" },
+    { id:"fiche_comb",         icon:"📋", label:"Fiche combustible",flag:"FICHE_COMB",         nav:"pc" },
+  ]},
+  { label:"💼 Gestion & Commerce", items:[
+    { id:"planning",     icon:"📅", label:"Planning",        flag:"PLANNING",     nav:"pc" },
+    { id:"facture_elec", icon:"🧾", label:"Fact. électron.", flag:"FACTURE_ELEC", nav:"pc" },
+    { id:"financements", icon:"💶", label:"Financements",    flag:"FINANCEMENTS", nav:"pc" },
+    { id:"plan_appro",   icon:"📐", label:"Plan d'appro.",   flag:"PLAN_APPRO",   nav:"pc" },
+    { id:"documents",    icon:"📄", label:"Documents",       flag:"DOCUMENTS",    nav:"pc" },
+    { id:"rapports",     icon:"📋", label:"Rapports",        flag:"RAPPORTS",     nav:"pc" },
+    { id:"analyses",     icon:"📈", label:"Analyses",        flag:"ANALYSES",     nav:"pc" },
+  ]},
+  { label:"⚙️ Admin & Réseau", items:[
+    { id:"alertes",      icon:"🔔", label:"Alertes",       flag:"ALERTES",      nav:"alertes" },
+    { id:"utilisateurs", icon:"👥", label:"Utilisateurs",  flag:"UTILISATEURS", nav:"pc" },
+    { id:"abonnements",  icon:"💳", label:"Abonnements",   flag:"ABONNEMENTS",  nav:"pc" },
+    { id:"reseau",       icon:"🤝", label:"Réseau & Offres",flag:"RESEAU",      nav:"pc" },
+    { id:"territoire",   icon:"🗺️", label:"Territoire",    flag:"TERRITOIRE",   nav:"pc" },
+    { id:"registre_ia",  icon:"🤖", label:"Registre IA",   flag:"REGISTRE_IA",  nav:"pc" },
+    { id:"parametres",   icon:"⚙️", label:"Paramètres",    flag:"PARAMETRES",   nav:"pc" },
+  ]},
+];
 export const QrCodeAdmin = ({entrepriseId, entrepriseNom, onClose}: any) => {
   const [qrUrl, setQrUrl] = useState("");
 
@@ -2239,7 +2285,7 @@ export const EcranOperateur = ({operateur, onLogout, toast, onUpdateOperateur}: 
 // ── COULEURS STATUT LOT ───────────────────────────────────────
 
 // ── ÉCRAN ACCUEIL ─────────────────────────────────────────────
-export const EcranAccueil = ({contacts, notifications, user, onNewLot, onGoLots, onGoAlertes, onGoDelegations, onAppelerContact}: any) => {
+export const EcranAccueil = ({contacts, notifications, user, onNewLot, onGoLots, onGoAlertes, onGoDelegations, onAppelerContact, onGoSection}: any) => {
   const STATUTS_EXPLOITATION = ["VALIDE_EXPLOITATION","EN_COURS_EXPLOITATION","BORD_ROUTE","A_DECHIQUETER","EN_COURS_DECHIQUETAGE","EN_LIVRAISON","LIVRE_CHAUFFERIE","EN_STOCK_PLATEFORME","LIVRE"];
   const lotsAVisiter = contacts.filter((c: any)=>c.lotNumero&&(c.statutLot==="VISITE_PREVUE"||c.statutLot==="NOUVEAU"||!c.statutLot)&&!STATUTS_EXPLOITATION.includes(c.statutLot));
   const chantiersJour = contacts.filter((c: any)=>["EN_COURS_EXPLOITATION","VALIDE_EXPLOITATION"].includes(c.statutLot));
@@ -2249,6 +2295,7 @@ export const EcranAccueil = ({contacts, notifications, user, onNewLot, onGoLots,
   const [showInscrits, setShowInscrits] = useState(false);
   const [ficheCompte, setFicheCompte] = useState<any>(null);
   const [rapportTexte, setRapportTexte] = useState("");
+  const [tiroir, setTiroir] = useState(false);
 
   useEffect(()=>{
     apiGet(`/comptes-contact`)
@@ -2519,6 +2566,90 @@ export const EcranAccueil = ({contacts, notifications, user, onNewLot, onGoLots,
       <div style={{marginTop:8}}>
         <BigBtn onClick={onNewLot} bg={C.green} icon="➕">NOUVEAU LOT</BigBtn>
       </div>
+
+      {/* Bouton tiroir */}
+      <div onClick={()=>setTiroir(true)} style={{
+        marginTop:12,display:"flex",alignItems:"center",justifyContent:"center",
+        gap:8,padding:"14px",borderRadius:14,
+        background:C.bg2,border:`1.5px solid ${C.bd}`,cursor:"pointer",
+        WebkitTapHighlightColor:"transparent"}}>
+        <span style={{fontSize:18}}>⊞</span>
+        <span style={{fontSize:14,fontWeight:600,color:C.tx2}}>Tous les modules</span>
+        <span style={{background:C.greenL,color:C.greenD,fontSize:11,fontWeight:700,
+          borderRadius:10,padding:"2px 8px"}}>
+          {GROUPES_MODULES.reduce((n,g)=>n+g.items.length,0)}
+        </span>
+      </div>
+
+      {/* Tiroir bottom-sheet */}
+      {tiroir&&(
+        <div onClick={e=>{ if(e.target===e.currentTarget) setTiroir(false); }}
+          style={{position:"fixed",inset:0,background:"rgba(0,0,0,.5)",zIndex:3000,
+            display:"flex",flexDirection:"column",justifyContent:"flex-end"}}>
+          <div style={{background:"#fff",borderRadius:"22px 22px 0 0",
+            maxHeight:"82vh",display:"flex",flexDirection:"column",overflow:"hidden"}}>
+            {/* Handle + titre */}
+            <div style={{padding:"12px 20px 10px",borderBottom:`1px solid ${C.bd}`,
+              display:"flex",alignItems:"center",justifyContent:"space-between",flexShrink:0}}>
+              <div style={{width:36,height:4,borderRadius:2,background:C.bd,
+                position:"absolute",left:"50%",transform:"translateX(-50%)",top:8}}/>
+              <div style={{fontSize:15,fontWeight:700,color:C.tx}}>Tous les modules</div>
+              <button onClick={()=>setTiroir(false)}
+                style={{background:"none",border:"none",fontSize:22,cursor:"pointer",
+                  color:C.tx3,lineHeight:1,padding:"0 4px"}}>×</button>
+            </div>
+            {/* Groupes scrollables */}
+            <div style={{overflowY:"auto",padding:"12px 16px 40px"}}>
+              {GROUPES_MODULES.map((groupe)=>(
+                <div key={groupe.label} style={{marginBottom:16}}>
+                  <div style={{fontSize:11,fontWeight:700,color:C.tx3,
+                    textTransform:"uppercase",letterSpacing:".06em",marginBottom:8}}>
+                    {groupe.label}
+                  </div>
+                  <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:8}}>
+                    {groupe.items.map((mod)=>{
+                      const active = !mod.flag || FEATURE_FLAGS[mod.flag] !== false;
+                      return (
+                        <div key={mod.id}
+                          onClick={()=>{
+                            if (!active) return;
+                            setTiroir(false);
+                            if (mod.nav==="lots")       { onGoLots("TOUS"); }
+                            else if (mod.nav==="chantiers")  { onGoLots("EN_COURS_EXPLOITATION"); }
+                            else if (mod.nav==="transports") { onGoLots("EN_LIVRAISON"); }
+                            else if (mod.nav==="livraisons") { onGoLots("LIVRE_CHAUFFERIE"); }
+                            else if (mod.nav==="alertes")    { onGoAlertes(); }
+                            else if (onGoSection)            { onGoSection(mod.id); }
+                          }}
+                          style={{
+                            borderRadius:12,padding:"10px 6px",textAlign:"center",
+                            background: active ? "#fff" : C.bg2,
+                            border:`1px solid ${active ? C.bd : "transparent"}`,
+                            opacity: active ? 1 : 0.45,
+                            cursor: active ? "pointer" : "default",
+                            WebkitTapHighlightColor:"transparent",
+                          }}>
+                          <div style={{fontSize:20,marginBottom:4}}>{mod.icon}</div>
+                          <div style={{fontSize:10,color:active?C.tx2:C.tx3,
+                            lineHeight:1.3,wordBreak:"break-word"}}>
+                            {mod.label}
+                          </div>
+                          {!active&&(
+                            <div style={{fontSize:9,color:C.tx3,marginTop:2}}>🔒</div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+              <div style={{fontSize:11,color:C.tx3,textAlign:"center",marginTop:4}}>
+                🔒 Module non inclus dans votre abonnement
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
