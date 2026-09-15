@@ -775,6 +775,12 @@ export const EcranPropositionsConnect = () => {
           ["Voisins intéressés", detail.voisinsInteresses],
           ["Regroupement",      detail.souhaitRegroupement],
           ["Motivations",       Array.isArray(detail.motivations) ? detail.motivations.join(", ") : "—"],
+          ...(detail.typeSinistre
+            ? [
+                ["Sinistre", `${({ POST_INCENDIE: "🔥", CHABLIS: "🌪️", SCOLYTES: "🐛", PATHOGENE: "🦠", AUTRE: "⚠️" })[detail.typeSinistre] ?? "⚠️"} ${detail.typeSinistre.replace(/_/g, " ")}`],
+                ...(detail.dateSinistre ? [["Date sinistre", new Date(detail.dateSinistre).toLocaleDateString("fr-FR")]] : []),
+              ]
+            : []),
         ].map(([k, v]) => (
           <div key={String(k)} style={{
             display: "flex", justifyContent: "space-between",
@@ -926,13 +932,19 @@ export const EcranPropositionsConnect = () => {
                   {st.label}
                 </div>
               </div>
-              <div style={{
-                marginTop: 10, padding: "6px 10px", borderRadius: 8,
-                background: scoreInfo.bg, display: "inline-block",
-              }}>
-                <span style={{ fontSize: 12, fontWeight: 600, color: scoreInfo.color }}>
-                  {scoreInfo.label}
-                </span>
+              <div style={{ marginTop: 10, display: "flex", flexWrap: "wrap", gap: 6, alignItems: "center" }}>
+                <div style={{ padding: "6px 10px", borderRadius: 8, background: scoreInfo.bg }}>
+                  <span style={{ fontSize: 12, fontWeight: 600, color: scoreInfo.color }}>
+                    {scoreInfo.label}
+                  </span>
+                </div>
+                {p.typeSinistre && (
+                  <div style={{ padding: "5px 10px", borderRadius: 8, background: "#FEF3C7" }}>
+                    <span style={{ fontSize: 12, fontWeight: 600, color: "#92400e" }}>
+                      {`${({ POST_INCENDIE: "🔥", CHABLIS: "🌪️", SCOLYTES: "🐛", PATHOGENE: "🦠", AUTRE: "⚠️" })[p.typeSinistre] ?? "⚠️"} ${p.typeSinistre.replace(/_/g, " ")}`}
+                    </span>
+                  </div>
+                )}
               </div>
               {p.noteInterne && (
                 <div style={{ fontSize: 12, color: C.tx3, marginTop: 8 }}>
