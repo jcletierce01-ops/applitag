@@ -7,6 +7,8 @@ import { BigBtn, MInput, SectionTitle } from "../../shared/ui.jsx";
 import { generatePdfFromHtml, buildRedHTML } from "../../domains/documents/pdf-templates.js";
 import { validateCMR, formatCMR, formatImmat, validateImmat } from "../../shared/validators.js";
 import { STATUT_LOT } from "../../domains/screens/MobileScreens.constants.js";
+import L from "leaflet";
+import "leaflet/dist/leaflet.css";
 export const EcranRoleMandataire = ({user, contacts, onSelectLot}: any) => {
   const mesLots = contacts.filter((c: any)=>c.mandataireId===user.id);
   const [selLot, setSelLot] = useState<any>(null);
@@ -2355,40 +2357,20 @@ export const EcranCarte = ({contacts, visites, onOpenLot}: any) => {
   const chMarkersRef = useRef<any[]>([]);
   const tasMarkersRef = useRef<any[]>([]);
   const effisLayerRef = useRef<any>(null);
-  const [loaded,      setLoaded]     = useState(!!(window as any).L);
   const [filtre,      setFiltre]     = useState("TOUS");
   const [nbLots,      setNbLots]     = useState(0);
   const [couches,     setCouches]    = useState({lots:true,chaufferies:true,chantiers:true,tas:true,effis:false});
   const [effisCouche, setEffisCouche] = useState<"fires"|"danger"|"perimeters">("fires");
 
-  // ── Chargement Leaflet depuis CDN ──
-  useEffect(()=>{
-    if ((window as any).L) { setLoaded(true); return; }
-    if (!document.getElementById("lf-css")) {
-      const lnk = document.createElement("link");
-      lnk.id="lf-css"; lnk.rel="stylesheet";
-      lnk.href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css";
-      document.head.appendChild(lnk);
-    }
-    if (!document.getElementById("lf-js")) {
-      const sc = document.createElement("script");
-      sc.id="lf-js";
-      sc.src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js";
-      sc.onload=()=>setLoaded(true);
-      document.head.appendChild(sc);
-    }
-  },[]);
-
   // ── Init carte ──
   useEffect(()=>{
-    if (!loaded || !mapRef.current || mapInst.current) return;
-    const L = (window as any).L;
-    // Fix icônes Leaflet en prod
-    delete L.Icon.Default.prototype._getIconUrl;
+    if (!mapRef.current || mapInst.current) return;
+    // Fix icônes Leaflet en prod (Vite supprime _getIconUrl)
+    delete (L.Icon.Default.prototype as any)._getIconUrl;
     L.Icon.Default.mergeOptions({
-      iconUrl:"https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
-      iconRetinaUrl:"https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
-      shadowUrl:"https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
+      iconUrl: new URL("leaflet/dist/images/marker-icon.png", import.meta.url).href,
+      iconRetinaUrl: new URL("leaflet/dist/images/marker-icon-2x.png", import.meta.url).href,
+      shadowUrl: new URL("leaflet/dist/images/marker-shadow.png", import.meta.url).href,
     });
     const map = L.map(mapRef.current,{
       center:[46.8,2.5], zoom:6,
@@ -2400,7 +2382,7 @@ export const EcranCarte = ({contacts, visites, onOpenLot}: any) => {
     }).addTo(map);
     mapInst.current = map;
     return ()=>{ map.remove(); mapInst.current=null; };
-  },[loaded]);
+  },[]);
 
   // ── Callback popup → fiche lot ──
   useEffect(()=>{
@@ -2414,8 +2396,7 @@ export const EcranCarte = ({contacts, visites, onOpenLot}: any) => {
 
   // ── Mise à jour des markers ──
   useEffect(()=>{
-    if (!loaded || !mapInst.current) return;
-    const L = (window as any).L;
+    if (!mapInst.current) return;
     const map = mapInst.current;
 
     // Supprimer anciens markers
@@ -2484,12 +2465,11 @@ export const EcranCarte = ({contacts, visites, onOpenLot}: any) => {
     if (bounds.length>0) {
       map.fitBounds(bounds,{padding:[40,40],maxZoom:13});
     }
-  },[loaded, contacts, visites, filtre, couches.lots]);
+  },[contacts, visites, filtre, couches.lots]);
 
   // ── Couche Chaufferies ──
   useEffect(()=>{
-    if (!loaded || !mapInst.current) return;
-    const L = (window as any).L;
+    if (!mapInst.current) return;
     const map = mapInst.current;
     cfMarkersRef.current.forEach(m=>map.removeLayer(m));
     cfMarkersRef.current = [];
@@ -2507,12 +2487,11 @@ export const EcranCarte = ({contacts, visites, onOpenLot}: any) => {
       </div>`;
       cfMarkersRef.current.push(L.marker([cf.lat,cf.lng],{icon}).addTo(map).bindPopup(popup,{maxWidth:220,className:"aplt-popup"}));
     });
-  },[loaded, couches.chaufferies]);
+  },[couches.chaufferies]);
 
   // ── Couche Chantiers ──
   useEffect(()=>{
-    if (!loaded || !mapInst.current) return;
-    const L = (window as any).L;
+    if (!mapInst.current) return;
     const map = mapInst.current;
     chMarkersRef.current.forEach(m=>map.removeLayer(m));
     chMarkersRef.current = [];
@@ -2531,12 +2510,11 @@ export const EcranCarte = ({contacts, visites, onOpenLot}: any) => {
       </div>`;
       chMarkersRef.current.push(L.marker([ch.lat,ch.lng],{icon}).addTo(map).bindPopup(popup,{maxWidth:220,className:"aplt-popup"}));
     });
-  },[loaded, couches.chantiers]);
+  },[couches.chantiers]);
 
   // ── Couche Tas intermédiaires ──
   useEffect(()=>{
-    if (!loaded || !mapInst.current) return;
-    const L = (window as any).L;
+    if (!mapInst.current) return;
     const map = mapInst.current;
     tasMarkersRef.current.forEach(m=>map.removeLayer(m));
     tasMarkersRef.current = [];
@@ -2563,12 +2541,11 @@ export const EcranCarte = ({contacts, visites, onOpenLot}: any) => {
       </div>`;
       tasMarkersRef.current.push(L.marker([tas.lat,tas.lng],{icon}).addTo(map).bindPopup(popup,{maxWidth:220,className:"aplt-popup"}));
     });
-  },[loaded, couches.tas]);
+  },[couches.tas]);
 
   // ── Couche EFFIS WMS (feux actifs / danger / périmètres) ──
   useEffect(()=>{
-    if (!loaded || !mapInst.current) return;
-    const L = (window as any).L;
+    if (!mapInst.current) return;
     const map = mapInst.current;
     // Retire l'ancienne couche WMS quelle qu'elle soit
     if (effisLayerRef.current) {
@@ -2592,7 +2569,7 @@ export const EcranCarte = ({contacts, visites, onOpenLot}: any) => {
     });
     wms.addTo(map);
     effisLayerRef.current = wms;
-  },[loaded, couches.effis, effisCouche]);
+  },[couches.effis, effisCouche]);
 
   const FILTRES = [
     ["TOUS","Tous"],
@@ -2690,28 +2667,17 @@ export const EcranCarte = ({contacts, visites, onOpenLot}: any) => {
 
       {/* Carte */}
       <div style={{flex:1,position:"relative"}}>
-        {!loaded&&(
-          <div style={{position:"absolute",inset:0,display:"flex",
-            alignItems:"center",justifyContent:"center",
-            flexDirection:"column",background:C.bg,color:C.tx3,gap:12,zIndex:10}}>
-            <div style={{fontSize:40}}>🗺️</div>
-            <div style={{fontSize:14,fontWeight:500}}>Chargement de la carte…</div>
-            <div style={{fontSize:12,color:C.tx3}}>OpenStreetMap via Leaflet</div>
-          </div>
-        )}
         <div ref={mapRef} style={{width:"100%",height:"100%"}}/>
 
         {/* Badge nb lots */}
-        {loaded&&(
-          <div style={{position:"absolute",top:10,right:10,zIndex:1000,
-            background:"#fff",borderRadius:20,padding:"5px 12px",
-            boxShadow:"0 2px 8px rgba(0,0,0,.2)",fontSize:12,fontWeight:600,
-            color:C.tx,border:`1px solid ${C.bd}`}}>
-            {nbLots} lot{nbLots!==1?"s":""} {filtre!=="TOUS"?"filtré"+(nbLots>1?"s":""):""}
-          </div>
-        )}
+        <div style={{position:"absolute",top:10,right:10,zIndex:1000,
+          background:"#fff",borderRadius:20,padding:"5px 12px",
+          boxShadow:"0 2px 8px rgba(0,0,0,.2)",fontSize:12,fontWeight:600,
+          color:C.tx,border:`1px solid ${C.bd}`}}>
+          {nbLots} lot{nbLots!==1?"s":""} {filtre!=="TOUS"?"filtré"+(nbLots>1?"s":""):""}
+        </div>
         {/* Badge EFFIS actif */}
-        {loaded&&couches.effis&&(
+        {couches.effis&&(
           <div style={{position:"absolute",top:10,left:10,zIndex:1000,
             background:"#DC2626",borderRadius:20,padding:"5px 12px",
             boxShadow:"0 2px 8px rgba(0,0,0,.3)",fontSize:11,fontWeight:700,
@@ -2725,10 +2691,9 @@ export const EcranCarte = ({contacts, visites, onOpenLot}: any) => {
       </div>
 
       {/* Légende */}
-      {loaded&&(
-        <div style={{background:"#fff",borderTop:`1px solid ${C.bd}`,
-          padding:"8px 12px",display:"flex",gap:10,flexShrink:0,
-          overflowX:"auto",scrollbarWidth:"none"}}>
+      <div style={{background:"#fff",borderTop:`1px solid ${C.bd}`,
+        padding:"8px 12px",display:"flex",gap:10,flexShrink:0,
+        overflowX:"auto",scrollbarWidth:"none"}}>
           {LEGENDE.map(([k,color])=>(
             <div key={k} style={{display:"flex",alignItems:"center",
               gap:5,flexShrink:0}}>
@@ -2751,7 +2716,6 @@ export const EcranCarte = ({contacts, visites, onOpenLot}: any) => {
             ))}
           </>}
         </div>
-      )}
     </div>
   );
 };
