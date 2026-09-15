@@ -8,6 +8,10 @@
 
 import { useState, useEffect } from "react";
 import { C, PADDING } from "../../design-system/tokens.js";
+
+const SINISTRE_ICONE: Record<string, string> = {
+  POST_INCENDIE: "🔥", CHABLIS: "🌪️", SCOLYTES: "🐛", PATHOGENE: "🦠", AUTRE: "⚠️",
+};
 import { apiPostPublic, apiGet, apiPatch } from "../../services/api.service.js";
 import { STATUTS_ANNONCE } from "./constants.js";
 import { DEFAULT_ENTREPRISE_ID } from "./local-storage.js";
@@ -798,7 +802,7 @@ export const EcranPropositionsConnect = () => {
           ["Motivations",       Array.isArray(detail.motivations) ? detail.motivations.join(", ") : "—"],
           ...(detail.typeSinistre
             ? [
-                ["Sinistre", `${({ POST_INCENDIE: "🔥", CHABLIS: "🌪️", SCOLYTES: "🐛", PATHOGENE: "🦠", AUTRE: "⚠️" })[detail.typeSinistre] ?? "⚠️"} ${detail.typeSinistre.replace(/_/g, " ")}`],
+                ["Sinistre", `${SINISTRE_ICONE[detail.typeSinistre] ?? "⚠️"} ${detail.typeSinistre.replace(/_/g, " ")}`],
                 ...(detail.dateSinistre ? [["Date sinistre", new Date(detail.dateSinistre).toLocaleDateString("fr-FR")]] : []),
               ]
             : []),
@@ -1027,7 +1031,7 @@ export const EcranPropositionsConnect = () => {
                 {p.typeSinistre && (
                   <div style={{ padding: "5px 10px", borderRadius: 8, background: "#FEF3C7" }}>
                     <span style={{ fontSize: 12, fontWeight: 600, color: "#92400e" }}>
-                      {`${({ POST_INCENDIE: "🔥", CHABLIS: "🌪️", SCOLYTES: "🐛", PATHOGENE: "🦠", AUTRE: "⚠️" })[p.typeSinistre] ?? "⚠️"} ${p.typeSinistre.replace(/_/g, " ")}`}
+                      {`${SINISTRE_ICONE[p.typeSinistre] ?? "⚠️"} ${p.typeSinistre.replace(/_/g, " ")}`}
                     </span>
                   </div>
                 )}
