@@ -11549,6 +11549,8 @@ export const SectionParametres = () => {
   const [adresse, setAdresse] = useState("12 rue de la Forêt, 03000 Moulins");
   const [email, setEmail] = useState("contact@altegad.fr");
   const [tel, setTel] = useState("04 70 00 00 00");
+  const [codeInsee, setCodeInsee] = useState("03190");
+  const [codePostal, setCodePostal] = useState("03000");
   const [seuilHumi, setSeuilHumi] = useState(30);
   const [seuilStockAlerte, setSeuilStockAlerte] = useState(20);
   const [delaiRelance, setDelaiRelance] = useState(7);
@@ -11585,6 +11587,7 @@ export const SectionParametres = () => {
               ["Adresse",adresse,setAdresse,"text"],
               ["Email",email,setEmail,"email"],
               ["Téléphone",tel,setTel,"tel"],
+              ["Code postal",codePostal,setCodePostal,"text"],
             ].map(([label,val,setter,type])=>(
               <div key={label}>
                 <div style={{fontSize:11,fontWeight:700,color:C.tx2,marginBottom:4}}>{label}</div>
@@ -11600,6 +11603,37 @@ export const SectionParametres = () => {
                 📷 Glisser le logo ici (PNG/SVG)
               </div>
             </div>
+          </div>
+
+          {/* Bloc SDES — code INSEE */}
+          <div style={{marginTop:16,background:"#EFF6FF",borderRadius:10,
+            padding:"12px 16px",border:"1px solid #BFDBFE"}}>
+            <div style={{fontSize:12,fontWeight:700,color:"#1D4ED8",marginBottom:8}}>
+              📊 Données SDES — Réseaux de chaleur
+            </div>
+            <div style={{display:"flex",gap:12,alignItems:"flex-end",flexWrap:"wrap"}}>
+              <div style={{flex:1,minWidth:140}}>
+                <div style={{fontSize:10,fontWeight:700,color:"#1D4ED8",marginBottom:4}}>
+                  Code INSEE commune (5 chiffres)
+                </div>
+                <input value={codeInsee} onChange={e=>setCodeInsee(e.target.value)}
+                  placeholder="ex: 33063"
+                  style={{width:"100%",padding:"7px 10px",borderRadius:7,
+                    border:"1.5px solid #93C5FD",fontSize:13,fontFamily:"monospace",
+                    background:"#fff",color:"#1E40AF",outline:"none",letterSpacing:"0.1em"}}/>
+              </div>
+              <div style={{fontSize:10,color:"#3B82F6",lineHeight:1.5,flex:2,minWidth:200}}>
+                Ce code permet à APPLITAG de matcher automatiquement les données SDES
+                (livraisons GWh, PDL, taux CO₂) de la commune chaufferie.
+                Récupérable sur <strong>geo.api.gouv.fr</strong> ou <strong>insee.fr</strong>.
+              </div>
+            </div>
+            {codeInsee.length===5&&/^\d{5}$/.test(codeInsee)&&(
+              <div style={{marginTop:8,fontSize:11,color:"#065F46",
+                background:"#D1FAE5",borderRadius:6,padding:"4px 10px",display:"inline-block"}}>
+                ✅ Code INSEE valide — enrichissement SDES activé
+              </div>
+            )}
           </div>
         </div>
       )}
