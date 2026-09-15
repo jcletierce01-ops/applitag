@@ -27,6 +27,8 @@ import { EcranDashboardPC } from "./domains/dashboard/EcranDashboardPC.jsx";
 import { FicheLotCentrale, EcranFinChantier, EcranDechiquetage, EcranTransporteur, EcranLivraison } from "./domains/lots/LotScreens.jsx";
 import { EcranRoleMandataire, EcranRoleProprietaire, EcranRoleChauffeur, EcranRoleDechiquetage, EcranEntrepriseSollicitee, EcranRoleChaufferie, EcranRoleReceptionnaire, EcranAutoDeclarationRED, EcranCarte, EcranRoleCollectivite, EcranRoleBET, EcranRoleETF, EcranRoleAssociation, EcranRoleInstitutionnel, EcranRoleFinanceur, EcranRoleLogistique, EcranRoleGestionnaire, EcranRoleScierie } from "./domains/roles/RoleScreens.jsx";
 import { QrCodeAdmin, EcranReleves, EcranOperateur, EcranAccueil, EcranDelegations, Fiche0, Fiche0Edit } from "./domains/screens/MobileScreens.jsx";
+import { GROUPES_MODULES } from "./domains/screens/mobile-modules.constants.js";
+import { FEATURE_FLAGS } from "./config/featureFlags.js";
 import { EcranLots, ModalDelegationVisite, ModalSuggestionETF, EcranValidationExploitation, EcranClotureExploitation, EcranBonCommande, EcranSaisiesAdmin } from "./domains/exploitation/ExploitationScreens.jsx";
 import { LoginScreen } from "./domains/auth/LoginScreen.jsx";
 import { EcranProfilEntreprise } from "./domains/entreprise/EcranProfilEntreprise.jsx";
@@ -35,6 +37,7 @@ export default function App() {
   const [user,      setUser]      = useState<any>(()=>getUser());
   const [operateur, setOperateur] = useState<any>(()=>{ try { return JSON.parse(localStorage.getItem("applitag_operateur")||"null"); } catch { return null; } });
   const [screen,    setScreen]    = useState("accueil");
+  const [menuOpen,  setMenuOpen]  = useState(false);
   const [fiche0Prefill, setFiche0Prefill] = useState<any>(null);
   const [roleChoisi, setRoleChoisi] = useState<any>(null);
   const [contacts,  setContacts]  = useState<any[]>(()=>getUser()?.demo ? DEMO_LOTS : []);
@@ -590,6 +593,11 @@ export default function App() {
       {!isFullPage&&(
         <div style={{background:C.sb,color:"#fff",flexShrink:0,padding:"12px 16px 10px"}}>
           <div style={{display:"flex",alignItems:"center",gap:12}}>
+            <button onClick={()=>setMenuOpen(true)} style={{
+              background:"rgba(255,255,255,.12)",border:"none",color:"#fff",
+              width:36,height:36,borderRadius:9,fontSize:18,cursor:"pointer",
+              display:"flex",alignItems:"center",justifyContent:"center",
+              WebkitTapHighlightColor:"transparent",flexShrink:0}}>☰</button>
             <img src="/logo.png" alt="APPLITAG" style={{width:32,height:32,objectFit:"contain"}}/>
             <div style={{flex:1}}>
               <div style={{fontSize:16,fontWeight:600,fontFamily:FONT_TITLE}}>{SCREEN_TITLES[screen]||"APPLITAG"}</div>
@@ -635,13 +643,7 @@ export default function App() {
             onGoAlertes={()=>setScreen("alertes")}
             onGoDelegations={()=>setScreen("delegations")}
             onAppelerContact={(c: any)=>{ setFiche0Prefill(c); setScreen("fiche0"); }}
-            onGoSection={(id: string)=>{
-              if (id==="planning")          { toast("Planning disponible sur le tableau de bord PC","info"); }
-              else if (id==="chaufferies")  { toast("Chaufferies disponible sur le tableau de bord PC","info"); }
-              else if (id==="utilisateurs") { setScreen("accueil"); toast("Gestion des utilisateurs disponible sur PC","info"); }
-              else if (id==="parametres")   { toast("Paramètres disponibles sur le tableau de bord PC","info"); }
-              else                          { toast("Module disponible sur le tableau de bord PC","info"); }
-            }}/>
+            onOpenMenu={()=>setMenuOpen(true)}/>
         )}
         {screen==="delegations"&&(
           <EcranDelegations entrepriseId={entrepriseId} toast={toast}
@@ -915,6 +917,87 @@ export default function App() {
             toast(`ETF ${etfNom} assignée ✓`);
           }}
           onIgnorer={()=>setShowEtfModal(false)}/>
+      )}
+
+      {/* ── Tiroir latéral global (☰ depuis n'importe quel écran) ── */}
+      {menuOpen&&(
+        <div onClick={e=>{ if(e.target===e.currentTarget) setMenuOpen(false); }}
+          style={{position:"fixed",inset:0,zIndex:4000,display:"flex",
+            background:"rgba(0,0,0,.45)"}}>
+          <div style={{width:"78%",maxWidth:300,background:"#fff",
+            display:"flex",flexDirection:"column",overflowY:"auto",
+            boxShadow:"4px 0 24px rgba(0,0,0,.25)"}}>
+            {/* Header du panneau */}
+            <div style={{background:C.sb,color:"#fff",padding:"14px 16px 12px",
+              display:"flex",alignItems:"center",gap:10,flexShrink:0}}>
+              <img src="/logo.png" alt="" style={{width:28,height:28,objectFit:"contain"}}/>
+              <div style={{flex:1}}>
+                <div style={{fontSize:15,fontWeight:700,fontFamily:FONT_TITLE}}>APPLITAG</div>
+                <div style={{fontSize:11,opacity:.7}}>{user.prenom||user.nom} · {roleEffectif}</div>
+              </div>
+              <button onClick={()=>setMenuOpen(false)}
+                style={{background:"rgba(255,255,255,.15)",border:"none",color:"#fff",
+                  width:30,height:30,borderRadius:8,fontSize:18,cursor:"pointer",
+                  display:"flex",alignItems:"center",justifyContent:"center",
+                  WebkitTapHighlightColor:"transparent"}}>×</button>
+            </div>
+            {/* Raccourci Accueil */}
+            <button onClick={()=>{ setMenuOpen(false); setScreen("accueil"); }}
+              style={{display:"flex",alignItems:"center",gap:10,padding:"10px 16px",
+                background:screen==="accueil"?C.greenL:"transparent",
+                border:"none",borderBottom:`1px solid ${C.bd}`,
+                color:screen==="accueil"?C.greenD:C.tx,fontFamily:"inherit",
+                fontSize:14,fontWeight:screen==="accueil"?600:400,
+                cursor:"pointer",width:"100%",textAlign:"left",
+                WebkitTapHighlightColor:"transparent"}}>
+              <span style={{fontSize:18}}>🏠</span> Accueil
+            </button>
+            {/* Groupes de modules */}
+            <div style={{overflowY:"auto",padding:"10px 12px 40px",flex:1}}>
+              {GROUPES_MODULES.map((groupe)=>(
+                <div key={groupe.label} style={{marginBottom:16}}>
+                  <div style={{fontSize:10,fontWeight:700,color:C.tx3,
+                    textTransform:"uppercase",letterSpacing:".07em",
+                    marginBottom:8,padding:"0 4px"}}>{groupe.label}</div>
+                  <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:6}}>
+                    {groupe.items.map((mod: any)=>{
+                      const active = !mod.flag || FEATURE_FLAGS[mod.flag] !== false;
+                      return (
+                        <div key={mod.id}
+                          onClick={()=>{
+                            if (!active) return;
+                            setMenuOpen(false);
+                            if      (mod.nav==="lots")       { setFiltreLotsInitial("TOUS"); setScreen("lots"); }
+                            else if (mod.nav==="chantiers")  { setFiltreLotsInitial("EN_COURS_EXPLOITATION"); setScreen("lots"); }
+                            else if (mod.nav==="transports") { setFiltreLotsInitial("EN_LIVRAISON"); setScreen("lots"); }
+                            else if (mod.nav==="livraisons") { setFiltreLotsInitial("LIVRE_CHAUFFERIE"); setScreen("lots"); }
+                            else if (mod.nav==="alertes")    { setScreen("alertes"); }
+                            else { toast("Module disponible sur le tableau de bord PC","info"); }
+                          }}
+                          style={{borderRadius:10,padding:"8px 4px",textAlign:"center",
+                            background:active?"#fff":C.bg,
+                            border:`1px solid ${active?C.bd:"transparent"}`,
+                            opacity:active?1:0.4,
+                            cursor:active?"pointer":"default",
+                            WebkitTapHighlightColor:"transparent"}}>
+                          <div style={{fontSize:18,marginBottom:3}}>{mod.icon}</div>
+                          <div style={{fontSize:9,color:active?C.tx2:C.tx3,
+                            lineHeight:1.3,wordBreak:"break-word"}}>{mod.label}</div>
+                          {!active&&<div style={{fontSize:8,color:C.tx3,marginTop:1}}>🔒</div>}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+              <div style={{fontSize:10,color:C.tx3,textAlign:"center",marginTop:4,padding:"0 4px"}}>
+                🔒 Module non inclus dans votre abonnement
+              </div>
+            </div>
+          </div>
+          {/* Backdrop cliquable */}
+          <div style={{flex:1}} onClick={()=>setMenuOpen(false)}/>
+        </div>
       )}
 
       {/* Barre navigation basse */}
