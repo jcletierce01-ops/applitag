@@ -11080,7 +11080,14 @@ const PLAN_DATA = [
    lots:["LOT-2026-044","LOT-2026-041","LOT-2026-038"],
    statut:"en_cours",conformiteRED:"conforme",
    certif:"SBP",sourceForet:"Forêt de Tronçais + Bocage Nord Allier",
-   ghgEconomie:87.4,note:"Plan principal chaufferie urbaine Moulins — suivi mensuel"},
+   ghgEconomie:87.4,note:"Plan principal chaufferie urbaine Moulins — suivi mensuel",
+   // Entonnoir V2
+   ressourceTheoriqueT:2100, ressourceAccessibleT:1580,
+   ressourceConcurrentsT:380, ressourceSecuriseeT:920, niveauRisqueVolumeT:73,
+   // RED
+   installationAvant2023:true, regimeRED:"RED_II_GRAND_PERE",
+   certificationActuelle:"SBP", dateExpirationCertif:"2027-03-31",
+   declarationStatut:"SOUMISE", dateDeclarationAnnuelle:"2026-04-30"},
   {id:"PA-2026-002",nom:"Plan Creuse Pilote",
    periodeDebut:"2026-04-01",periodeFin:"2026-09-30",
    operateur:"ForêtPro Bourbonnais",chaufferie:"Chaufferie Guéret",
@@ -11088,7 +11095,12 @@ const PLAN_DATA = [
    lots:["LOT-2026-033","LOT-2026-034"],
    statut:"terminé",conformiteRED:"conforme",
    certif:"SURE",sourceForet:"Massif de Châtelus",
-   ghgEconomie:91.2,note:"Plan pilote finalisé — rapport RED envoyé"},
+   ghgEconomie:91.2,note:"Plan pilote finalisé — rapport RED envoyé",
+   ressourceTheoriqueT:650, ressourceAccessibleT:520,
+   ressourceConcurrentsT:80, ressourceSecuriseeT:430, niveauRisqueVolumeT:10,
+   installationAvant2023:false, regimeRED:"RED_III",
+   certificationActuelle:"SURE", dateExpirationCertif:"2027-09-30",
+   declarationStatut:"SOUMISE", dateDeclarationAnnuelle:"2026-04-15"},
   {id:"PA-2026-003",nom:"Plan Ternant Douglas",
    periodeDebut:"2026-06-01",periodeFin:"2026-12-31",
    operateur:"SARL Forestry Allier",chaufferie:"Chaufferie Nevers",
@@ -11096,7 +11108,12 @@ const PLAN_DATA = [
    lots:["LOT-2026-042"],
    statut:"en_cours",conformiteRED:"en_cours",
    certif:"SBP",sourceForet:"Parcelle Ternant GFA",
-   ghgEconomie:88.9,note:"Éclaircie Douglas en cours — pesée finale juillet"},
+   ghgEconomie:88.9,note:"Éclaircie Douglas en cours — pesée finale juillet",
+   ressourceTheoriqueT:850, ressourceAccessibleT:710,
+   ressourceConcurrentsT:130, ressourceSecuriseeT:480, niveauRisqueVolumeT:55,
+   installationAvant2023:true, regimeRED:"RED_II_GRAND_PERE",
+   certificationActuelle:"SBP", dateExpirationCertif:"2027-06-15",
+   declarationStatut:"EN_COURS", dateDeclarationAnnuelle:null},
 ];
 
 const STATUT_PLAN = {
@@ -11112,26 +11129,58 @@ const CONF_STYLE: Record<string,{col:string,bg:string,label:string}> = {
   non_conf:  {col:"#991B1B",bg:"#FEE2E2",label:"❌ Non conforme"},
 };
 
+const REGIME_RED_STYLE: Record<string,{col:string,bg:string,label:string}> = {
+  RED_II_GRAND_PERE: {col:"#92400E",bg:"#FEF3C7",label:"🏛️ RED II — clause grand-père"},
+  RED_III:           {col:"#1E40AF",bg:"#DBEAFE",label:"🇪🇺 RED III"},
+  NON_CONCERNE:      {col:"#6B7280",bg:"#F3F4F6",label:"➖ Non concerné"},
+};
+
+const DECL_STYLE: Record<string,{col:string,bg:string,label:string}> = {
+  SOUMISE:      {col:"#065F46",bg:"#D1FAE5",label:"✅ Déclaration soumise"},
+  EN_COURS:     {col:"#B45309",bg:"#FEF3C7",label:"📝 En cours"},
+  NON_REQUISE:  {col:"#6B7280",bg:"#F3F4F6",label:"➖ Non requise"},
+};
+
 export const SectionPlanApprovisionnement = () => {
   const [selected, setSelected] = useState<string|null>(null);
-  const [onglet, setOnglet] = useState<"liste"|"synthese">("liste");
+  const [onglet, setOnglet] = useState<"liste"|"entonnoir"|"red_iii"|"synthese">("liste");
+  const [planEntonnoir, setPlanEntonnoir] = useState(PLAN_DATA[0].id);
 
   const plan = selected ? PLAN_DATA.find(p=>p.id===selected) : null;
+  const pe   = PLAN_DATA.find(p=>p.id===planEntonnoir) ?? PLAN_DATA[0];
 
   const totalObj  = PLAN_DATA.reduce((s,p)=>s+p.objectifT,0);
   const totalReal = PLAN_DATA.reduce((s,p)=>s+p.realiseT,0);
   const tauxGlobal = Math.round(totalReal/totalObj*100);
 
+  // Entonnoir : calcule le volume contractualisé (= réalisé pour la démo)
+  const contractualiseeT = pe.realiseT;
+  const entonnoir = [
+    {label:"Ressource théorique",   val:pe.ressourceTheoriqueT,   color:"#1E40AF",bg:"#DBEAFE",
+     note:"Inventaire CRPF / CBQ / estimation terrain"},
+    {label:"Ressource accessible",  val:pe.ressourceAccessibleT,  color:"#0369A1",bg:"#E0F2FE",
+     note:"Propriétaires contactables, accès camion confirmé"},
+    {label:"Contractualisée",       val:contractualiseeT,         color:"#065F46",bg:"#D1FAE5",
+     note:"Contrats signés — volume engagé"},
+    {label:"− Concurrents",         val:-(pe.ressourceConcurrentsT??0), color:"#991B1B",bg:"#FEE2E2",
+     note:"Volume capté par ETF concurrents / achats directs"},
+    {label:"Sécurisée nette",       val:pe.ressourceSecuriseeT,   color:"#047857",bg:"#ECFDF5",
+     note:"Volume sécurisé après déduction concurrence + risques"},
+    {label:"⚠ Risque volumique",   val:-(pe.niveauRisqueVolumeT??0), color:"#B45309",bg:"#FEF3C7",
+     note:"Risque de non-livraison (aléas climatiques, sanitaires…)"},
+  ];
+  const maxAbs = Math.max(...entonnoir.map(e=>Math.abs(e.val??0)));
+
   return (
     <div style={{maxWidth:1000,margin:"0 auto"}}>
       <div style={{marginBottom:14}}>
-        <div style={{fontSize:20,fontWeight:800,color:C.tx}}>📐 Plan d'approvisionnement auditable</div>
-        <div style={{fontSize:13,color:C.tx2}}>Traçabilité complète origine→chaufferie · Conformité RED · Économie GES</div>
+        <div style={{fontSize:20,fontWeight:800,color:C.tx}}>📐 Plan d'approvisionnement V2</div>
+        <div style={{fontSize:13,color:C.tx2}}>Entonnoir ressource · Conformité RED II/III · Traçabilité GES</div>
       </div>
 
       {/* Onglets */}
-      <div style={{display:"flex",gap:4,marginBottom:16,borderBottom:`1px solid ${C.bd}`,paddingBottom:8}}>
-        {([["liste","📋 Plans"],["synthese","📊 Synthèse RED"]] as const).map(([v,l])=>(
+      <div style={{display:"flex",gap:4,marginBottom:16,borderBottom:`1px solid ${C.bd}`,paddingBottom:8,flexWrap:"wrap"}}>
+        {([["liste","📋 Plans"],["entonnoir","📊 Entonnoir V2"],["red_iii","🇪🇺 RED II/III"],["synthese","🌿 GES"]] as const).map(([v,l])=>(
           <button key={v} onClick={()=>{setOnglet(v);setSelected(null);}}
             style={{padding:"6px 14px",borderRadius:8,fontSize:11,fontWeight:700,cursor:"pointer",
               fontFamily:"inherit",border:"none",
@@ -11141,6 +11190,176 @@ export const SectionPlanApprovisionnement = () => {
           </button>
         ))}
       </div>
+
+      {/* ── ONGLET ENTONNOIR V2 ─────────────────────────────────────────────── */}
+      {onglet==="entonnoir"&&(
+        <div>
+          {/* Sélecteur plan */}
+          <div style={{display:"flex",gap:6,marginBottom:14,flexWrap:"wrap"}}>
+            {PLAN_DATA.map(p=>(
+              <button key={p.id} onClick={()=>setPlanEntonnoir(p.id)}
+                style={{padding:"5px 12px",borderRadius:8,fontSize:11,fontWeight:700,
+                  cursor:"pointer",border:"none",fontFamily:"inherit",
+                  background:planEntonnoir===p.id?"#1E5B3A":"#F3F4F6",
+                  color:planEntonnoir===p.id?"#fff":C.tx2}}>
+                {p.nom}
+              </button>
+            ))}
+          </div>
+
+          <div style={{fontSize:13,fontWeight:700,color:C.tx,marginBottom:4}}>{pe.nom}</div>
+          <div style={{fontSize:11,color:C.tx3,marginBottom:14}}>
+            {pe.chaufferie} · Objectif {pe.objectifT.toLocaleString("fr-FR")} t
+          </div>
+
+          {/* Barres entonnoir */}
+          <div style={{display:"flex",flexDirection:"column",gap:6,marginBottom:20}}>
+            {entonnoir.map((e,i)=>{
+              const v = e.val ?? 0;
+              const pct = maxAbs>0 ? Math.abs(v)/maxAbs*100 : 0;
+              const isDeduction = v < 0;
+              return (
+                <div key={i}>
+                  <div style={{display:"flex",justifyContent:"space-between",
+                    alignItems:"center",marginBottom:3}}>
+                    <div style={{fontSize:11,fontWeight:600,color:e.color}}>{e.label}</div>
+                    <div style={{fontSize:12,fontWeight:800,color:e.color,
+                      fontVariantNumeric:"tabular-nums"}}>
+                      {isDeduction?"-":""}{Math.abs(v).toLocaleString("fr-FR")} t
+                    </div>
+                  </div>
+                  <div style={{height:28,background:"#F3F4F6",borderRadius:6,overflow:"hidden",
+                    display:"flex",alignItems:"center"}}>
+                    <div style={{height:"100%",width:`${pct}%`,
+                      background:e.color,borderRadius:6,minWidth:pct>0?4:0,
+                      display:"flex",alignItems:"center",justifyContent:"flex-end",
+                      paddingRight:6,transition:"width .4s"}}>
+                    </div>
+                  </div>
+                  <div style={{fontSize:9,color:C.tx3,marginTop:2}}>{e.note}</div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Synthèse entonnoir */}
+          <div style={{background:"#F0FDF4",borderRadius:12,padding:14,
+            border:"1px solid #BBF7D0"}}>
+            <div style={{fontSize:12,fontWeight:700,color:"#065F46",marginBottom:8}}>
+              Synthèse entonnoir
+            </div>
+            <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8}}>
+              {[
+                {label:"Taux de contractualisation",
+                 val:pe.ressourceAccessibleT
+                   ? Math.round(contractualiseeT/pe.ressourceAccessibleT*100)+"%"
+                   : "—",
+                 color:"#065F46"},
+                {label:"Pression concurrentielle",
+                 val:pe.ressourceAccessibleT
+                   ? Math.round((pe.ressourceConcurrentsT??0)/pe.ressourceAccessibleT*100)+"%"
+                   : "—",
+                 color:"#991B1B"},
+                {label:"Couverture objectif (sécurisé)",
+                 val:pe.ressourceSecuriseeT
+                   ? Math.round(pe.ressourceSecuriseeT/pe.objectifT*100)+"%"
+                   : "—",
+                 color:"#047857"},
+              ].map(k=>(
+                <div key={k.label} style={{background:"#fff",borderRadius:8,padding:"10px 12px",
+                  textAlign:"center",border:"1px solid #D1FAE5"}}>
+                  <div style={{fontSize:18,fontWeight:900,color:k.color}}>{k.val}</div>
+                  <div style={{fontSize:9,color:C.tx3,lineHeight:1.3,marginTop:2}}>{k.label}</div>
+                </div>
+              ))}
+            </div>
+            <div style={{marginTop:10,fontSize:10,color:"#6B7280",fontStyle:"italic"}}>
+              Cet écart reflète les contraintes de desserte, propriété, qualité et concurrence locale — pas un manque de ressource.
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── ONGLET RED II/III ─────────────────────────────────────────────────── */}
+      {onglet==="red_iii"&&(
+        <div>
+          <div style={{background:"#FFF7ED",border:"1px solid #FDE68A",borderRadius:10,
+            padding:"12px 16px",marginBottom:16,fontSize:12,color:"#92400E"}}>
+            <strong>🏛️ Clause grand-père RED II / RED III</strong><br/>
+            Les installations mises en service avant le <strong>20 novembre 2023</strong> et disposant
+            d'une certification reconnue (SBP, SURE, PEFC, FSC…) peuvent rester sous le régime RED II
+            jusqu'au <strong>31 décembre 2027</strong> — à condition que leur certification soit à jour
+            et que la déclaration annuelle soit soumise avant le 30 avril de chaque année.
+          </div>
+
+          <div style={{display:"flex",flexDirection:"column",gap:10}}>
+            {PLAN_DATA.map(p=>{
+              const regime = REGIME_RED_STYLE[p.regimeRED]??REGIME_RED_STYLE.NON_CONCERNE;
+              const decl   = DECL_STYLE[p.declarationStatut]??DECL_STYLE.NON_REQUISE;
+              const certifExpire = p.dateExpirationCertif
+                ? new Date(p.dateExpirationCertif) < new Date(Date.now()+90*86400000)
+                : false;
+              return (
+                <div key={p.id} style={{background:"#fff",borderRadius:12,
+                  border:`1.5px solid ${certifExpire?"#F59E0B":C.bd}`,padding:16}}>
+                  <div style={{display:"flex",justifyContent:"space-between",
+                    alignItems:"flex-start",marginBottom:10,flexWrap:"wrap",gap:6}}>
+                    <div>
+                      <div style={{fontSize:13,fontWeight:800,color:C.tx}}>{p.nom}</div>
+                      <div style={{fontSize:11,color:C.tx3}}>{p.chaufferie}</div>
+                    </div>
+                    <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+                      <span style={{fontSize:10,fontWeight:700,padding:"3px 8px",borderRadius:20,
+                        background:regime.bg,color:regime.col}}>{regime.label}</span>
+                      <span style={{fontSize:10,fontWeight:700,padding:"3px 8px",borderRadius:20,
+                        background:decl.bg,color:decl.col}}>{decl.label}</span>
+                    </div>
+                  </div>
+
+                  <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8,marginBottom:6}}>
+                    {[
+                      ["🏛️","Installation avant 2023",
+                        p.installationAvant2023?"Oui — éligible grand-père":"Non — régime RED III"],
+                      ["🏅","Certification actuelle",
+                        p.certificationActuelle??"—"],
+                      ["📅","Expiration certification",
+                        p.dateExpirationCertif
+                          ?new Date(p.dateExpirationCertif).toLocaleDateString("fr-FR")
+                          :"—"],
+                    ].map(([ico,label,val])=>(
+                      <div key={label} style={{background:"#F9FAFB",borderRadius:8,
+                        padding:"8px 10px",border:"1px solid #E5E7EB"}}>
+                        <div style={{fontSize:9,color:C.tx3,marginBottom:2}}>{ico} {label}</div>
+                        <div style={{fontSize:12,fontWeight:700,color:C.tx}}>{val}</div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {certifExpire&&(
+                    <div style={{background:"#FFFBEB",border:"1px solid #FDE68A",
+                      borderRadius:8,padding:"6px 10px",fontSize:11,color:"#92400E",
+                      display:"flex",alignItems:"center",gap:6}}>
+                      ⚠️ Certification expire dans moins de 90 jours — renouvellement urgent
+                    </div>
+                  )}
+                  {p.dateDeclarationAnnuelle&&(
+                    <div style={{fontSize:10,color:C.tx3,marginTop:6}}>
+                      📝 Déclaration annuelle : {new Date(p.dateDeclarationAnnuelle).toLocaleDateString("fr-FR")}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+
+          <div style={{marginTop:14,background:"#F0FDF4",borderRadius:10,padding:"10px 14px",
+            fontSize:11,color:"#065F46",border:"1px solid #BBF7D0"}}>
+            📌 La date limite de déclaration annuelle RED II est le <strong>30 avril</strong>.
+            La déclaration 2025 est encore ouverte en septembre 2026 — vérifier auprès du
+            Ministère de la Transition Écologique.
+          </div>
+        </div>
+      )}
 
       {onglet==="liste"&&<>
         {/* KPIs */}
