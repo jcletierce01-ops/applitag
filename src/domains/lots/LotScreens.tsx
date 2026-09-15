@@ -413,6 +413,70 @@ function LotSanitaireBadge({ contactId }: { contactId: string }) {
 }
 // ─────────────────────────────────────────────────────────────────────────────
 
+// ── RisqueBadge ───────────────────────────────────────────────────────────────
+const RISQUE_NIVEAU: Record<string,{bg:string,bd:string,txt:string,icon:string}> = {
+  TRES_FAIBLE:  {bg:"#F0FDF4",bd:"#86EFAC",txt:"#166534",icon:"🟢"},
+  FAIBLE:       {bg:"#ECFDF5",bd:"#6EE7B7",txt:"#065F46",icon:"🟢"},
+  MODERE:       {bg:"#FFFBEB",bd:"#FDE68A",txt:"#92400E",icon:"🟡"},
+  ELEVE:        {bg:"#FFF7ED",bd:"#FDBA74",txt:"#C2410C",icon:"🟠"},
+  TRES_ELEVE:   {bg:"#FEF2F2",bd:"#FCA5A5",txt:"#991B1B",icon:"🔴"},
+  EXTREME:      {bg:"#FDF4FF",bd:"#E879F9",txt:"#86198F",icon:"🚨"},
+};
+const RISQUE_TYPE_LABELS: Record<string,string> = {
+  INCENDIE:"🔥 Incendie", CLIMATIQUE:"🌪️ Climatique", SANITAIRE:"🦠 Sanitaire",
+  SOL:"🪨 Sol", ACCESSIBILITE:"🛣️ Accès", BIODIVERSITE:"🦎 Biodiversité",
+  REGLEMENTATION:"📋 Réglementation", ECONOMIQUE:"💶 Économique",
+};
+
+function RisqueBadge({ contactId }: { contactId: string }) {
+  const [risques, setRisques] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(()=>{
+    apiGet(`/contacts/${contactId}/risques`)
+      .then((d: any)=>setRisques(Array.isArray(d)?d:[]))
+      .catch(()=>setRisques([]))
+      .finally(()=>setLoading(false));
+  },[contactId]);
+
+  if (loading) return null;
+  if (!risques.length) return null;
+
+  const max = risques.reduce((a: any,b: any)=>{
+    const ordre = ["TRES_FAIBLE","FAIBLE","MODERE","ELEVE","TRES_ELEVE","EXTREME"];
+    return ordre.indexOf(b.niveauRisque)>ordre.indexOf(a.niveauRisque)?b:a;
+  }, risques[0]);
+  const style = RISQUE_NIVEAU[max.niveauRisque]??RISQUE_NIVEAU.MODERE;
+
+  return (
+    <div style={{borderRadius:12,padding:14,marginBottom:14,
+      background:style.bg,border:`1.5px solid ${style.bd}`}}>
+      <div style={{display:"flex",justifyContent:"space-between",
+        alignItems:"center",marginBottom:risques.length>1?10:0}}>
+        <div style={{fontSize:12,fontWeight:700,color:style.txt}}>
+          {style.icon} Risques ressource — {risques.length} évaluation{risques.length>1?"s":""}
+        </div>
+        <div style={{fontSize:10,padding:"2px 8px",borderRadius:12,
+          background:style.bd,color:style.txt,fontWeight:700}}>
+          {max.niveauRisque.replace("_"," ")}
+        </div>
+      </div>
+      <div style={{display:"flex",flexWrap:"wrap",gap:5,marginTop:risques.length>1?4:0}}>
+        {risques.map((r: any)=>{
+          const s = RISQUE_NIVEAU[r.niveauRisque]??RISQUE_NIVEAU.MODERE;
+          return (
+            <span key={r.id} style={{fontSize:10,padding:"2px 8px",borderRadius:10,
+              background:s.bd,color:s.txt,fontWeight:600}}>
+              {RISQUE_TYPE_LABELS[r.type]??r.type} · {r.niveauRisque.replace("_"," ")}
+            </span>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+// ─────────────────────────────────────────────────────────────────────────────
+
 // ── DFCIBadge ─────────────────────────────────────────────────────────────────
 // Affiche le statut sécurité/DFCI courant du chantier et permet d'enregistrer
 // un nouveau snapshot horodaté (valeur juridique = règle connue à l'instant T).
@@ -1029,6 +1093,9 @@ export const FicheLotCentrale = ({
 
             {/* Sécurité DFCI — snapshot horodaté valeur juridique */}
             <DFCIBadge contactId={lot.id} token={user?.token}/>
+
+            {/* Risques ressource (INCENDIE, CLIMATIQUE, SANITAIRE…) */}
+            <RisqueBadge contactId={lot.id}/>
 
             {/* Dossier sanitaire / Post-incendie */}
             <LotSanitaireBadge contactId={lot.id}/>
