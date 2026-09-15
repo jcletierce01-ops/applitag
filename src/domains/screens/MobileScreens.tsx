@@ -68,6 +68,7 @@ export const Fiche0 = ({onBack, onSaved, toast, entrepriseId, prefill=null, comp
   const [codePostal,    setCP]       = useState("");
   const [adresseParcelle,setParc]    = useState("");
   const [surfaceHa,     setSurface]  = useState("");
+  const [geoLoading,    setGeoLoading] = useState(false);
   const [refCadastrale, setRef]      = useState("");
   const [typeRessource, setRessource]= useState("");
   const [mixteDetails,  setMixteD]   = useState<any[]>([]);
@@ -251,6 +252,39 @@ export const Fiche0 = ({onBack, onSaved, toast, entrepriseId, prefill=null, comp
         </div>
 
         <SectionTitle icon="🌲" label="Parcelle"/>
+        <button
+          type="button"
+          disabled={geoLoading}
+          onClick={async () => {
+            if (!navigator.geolocation) { toast("Géolocalisation non disponible sur cet appareil", "warn"); return; }
+            setGeoLoading(true);
+            navigator.geolocation.getCurrentPosition(
+              async pos => {
+                try {
+                  const r: any = await apiGet(
+                    `/geoplateforme/context?lat=${pos.coords.latitude}&lng=${pos.coords.longitude}`
+                  );
+                  if (r?.commune)   setCommune(r.commune);
+                  if (r?.codePostal) setCP(r.codePostal);
+                  if (r?.parcelleId && !adresseParcelle) setParc(`Parcelle cadastrale : ${r.parcelleId}`);
+                  toast("📍 Commune et code postal récupérés depuis votre position");
+                } catch {
+                  toast("Impossible d'identifier la commune — vérifiez votre connexion", "warn");
+                } finally {
+                  setGeoLoading(false);
+                }
+              },
+              () => { toast("Accès à la position refusé", "warn"); setGeoLoading(false); },
+              { timeout: 10000, maximumAge: 60000 }
+            );
+          }}
+          style={{display:"flex",alignItems:"center",gap:8,padding:"10px 16px",
+            borderRadius:10,border:`1.5px solid ${C.green}`,background:C.greenL,
+            color:C.greenD,fontFamily:"inherit",fontSize:13,fontWeight:600,
+            cursor:geoLoading?"wait":"pointer",marginBottom:12,
+            WebkitTapHighlightColor:"transparent",width:"100%",justifyContent:"center"}}>
+          {geoLoading ? "📡 Localisation en cours…" : "📍 Géolocaliser la parcelle"}
+        </button>
         <div style={{display:"grid",gridTemplateColumns:"2fr 1fr",gap:10}}>
           <MInput label="Commune" value={commune} onChange={setCommune}
             placeholder="Nom de la commune" required error={errors.commune}/>

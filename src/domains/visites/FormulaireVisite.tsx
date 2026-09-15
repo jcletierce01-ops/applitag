@@ -4,7 +4,7 @@ import { IS_DEMO_BUILD } from "../../config/env.js";
 import { uid, nowISO, todayS } from "../../shared/utils.js";
 import { fmtNum } from "../../shared/format.js";
 import { indicesPonderes } from "../../metier/formules.js";
-import { apiPost } from "../../services/api.service.js";
+import { apiPost, apiGet } from "../../services/api.service.js";
 import { BigBtn, MInput, SectionTitle, MSlider, CheckItem } from "../../shared/ui.jsx";
 import { SignatureCanvas } from "../../shared/SignatureCanvas.jsx";
 import { GeoContextBadge as GeoCtxBadge } from "../../shared/GeoContextBadge.jsx";
@@ -579,23 +579,19 @@ export const FormulaireVisite = ({lot, onBack, onSaved, toast, entrepriseId, use
     } catch { /* noop */ }
   },[lot.id]);
 
-  // Pré-remplit le massif depuis les coordonnées GPS (Nominatim OSM)
+  // Pré-remplit le massif depuis les coordonnées GPS (IGN Géoplateforme)
   useEffect(()=>{
     if (!gps || redMassif) return;
-    const ctrl = new AbortController();
-    fetch(
-      `https://nominatim.openstreetmap.org/reverse?format=json&lat=${gps.lat}&lon=${gps.lng}&zoom=10&accept-language=fr`,
-      {signal:ctrl.signal}
-    )
-      .then(r=>r.json())
-      .then(d=>{
-        const a = d.address || {};
-        const lieu = a.forest || a.nature_reserve || a.village || a.town || a.city || a.municipality || lot?.commune || "";
-        const dept = a.county || a.state_district || "";
-        if (lieu) setRedMassif(dept ? `${lieu} — ${dept}` : lieu);
+    let cancelled = false;
+    (apiGet(`/geoplateforme/context?lat=${gps.lat}&lng=${gps.lng}`) as Promise<any>)
+      .then((d: any)=>{
+        if (cancelled) return;
+        const commune = d?.commune || lot?.commune || "";
+        const dept    = d?.nomDept || "";
+        if (commune) setRedMassif(dept ? `${commune} — ${dept}` : commune);
       })
       .catch(()=>{});
-    return ()=>ctrl.abort();
+    return ()=>{ cancelled = true; };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   },[gps?.lat, gps?.lng]);
 
