@@ -673,6 +673,8 @@ export const EcranPropositionsConnect = () => {
   const [erreur, setErreur] = useState<string | null>(null);
   const [noteEnCours, setNoteEnCours] = useState("");
   const [saving, setSaving] = useState(false);
+  const [typeSinistreEnCours, setTypeSinistreEnCours] = useState<string>("");
+  const [dateSinistreEnCours, setDateSinistreEnCours] = useState<string>("");
 
   const charger = async () => {
     setLoading(true);
@@ -696,6 +698,25 @@ export const EcranPropositionsConnect = () => {
       const updated = await apiPatch(`/connect/${id}`, { statut }) as any;
       setPropositions(ps => ps.map(p => p.id === id ? updated : p));
       if (detail?.id === id) setDetail(updated);
+    } catch (e: any) {
+      setErreur(e.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const sauvegarderSinistre = async (id: string) => {
+    setSaving(true);
+    try {
+      const payload: any = {
+        typeSinistre: typeSinistreEnCours || null,
+        dateSinistre: typeSinistreEnCours && dateSinistreEnCours ? dateSinistreEnCours : null,
+      };
+      const updated = await apiPatch(`/connect/${id}`, payload) as any;
+      setPropositions(ps => ps.map(p => p.id === id ? updated : p));
+      setDetail(updated);
+      setTypeSinistreEnCours(updated.typeSinistre ?? "");
+      setDateSinistreEnCours(updated.dateSinistre ? String(updated.dateSinistre).slice(0, 10) : "");
     } catch (e: any) {
       setErreur(e.message);
     } finally {
@@ -825,6 +846,66 @@ export const EcranPropositionsConnect = () => {
           </div>
         </div>
 
+        {/* Sinistre */}
+        <div style={{ marginTop: 20 }}>
+          <div style={{ fontSize: 13, fontWeight: 600, color: C.tx2, marginBottom: 8 }}>
+            Type de sinistre
+          </div>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 10 }}>
+            {([
+              ["", "Aucun"],
+              ["POST_INCENDIE", "🔥 Incendie"],
+              ["CHABLIS",       "🌪️ Chablis"],
+              ["SCOLYTES",      "🐛 Scolytes"],
+              ["PATHOGENE",     "🦠 Pathogène"],
+              ["AUTRE",         "⚠️ Autre"],
+            ] as [string, string][]).map(([val, label]) => (
+              <button
+                key={val}
+                disabled={saving}
+                onClick={() => setTypeSinistreEnCours(val)}
+                style={{
+                  height: 34, padding: "0 12px", borderRadius: 17,
+                  border: `1.5px solid ${typeSinistreEnCours === val ? "#F59E0B" : C.bd}`,
+                  background: typeSinistreEnCours === val ? "#FEF3C7" : C.bg,
+                  color: typeSinistreEnCours === val ? "#92400e" : C.tx2,
+                  fontSize: 13, fontFamily: "inherit",
+                  cursor: saving || typeSinistreEnCours === val ? "default" : "pointer",
+                }}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+          {typeSinistreEnCours && (
+            <div style={{ marginBottom: 10 }}>
+              <div style={{ fontSize: 12, color: C.tx3, marginBottom: 4 }}>Date du sinistre (optionnel)</div>
+              <input
+                type="date"
+                value={dateSinistreEnCours}
+                onChange={e => setDateSinistreEnCours(e.target.value)}
+                style={{
+                  height: 38, padding: "0 10px", borderRadius: 8,
+                  border: `1.5px solid ${C.bd}`, fontSize: 13,
+                  fontFamily: "inherit", background: C.bg, color: C.tx,
+                  outline: "none", boxSizing: "border-box",
+                }}
+              />
+            </div>
+          )}
+          <button
+            disabled={saving}
+            onClick={() => sauvegarderSinistre(detail.id)}
+            style={{
+              height: 40, padding: "0 20px", borderRadius: 10,
+              background: "#F59E0B", color: "#fff", border: "none",
+              fontSize: 14, fontFamily: "inherit", cursor: saving ? "wait" : "pointer",
+            }}
+          >
+            {saving ? "Enregistrement…" : "💾 Enregistrer le sinistre"}
+          </button>
+        </div>
+
         {/* Note interne */}
         <div style={{ marginTop: 20 }}>
           <div style={{ fontSize: 13, fontWeight: 600, color: C.tx2, marginBottom: 8 }}>
@@ -909,7 +990,12 @@ export const EcranPropositionsConnect = () => {
           return (
             <div
               key={p.id}
-              onClick={() => { setDetail(p); setNoteEnCours(p.noteInterne ?? ""); }}
+              onClick={() => {
+                setDetail(p);
+                setNoteEnCours(p.noteInterne ?? "");
+                setTypeSinistreEnCours(p.typeSinistre ?? "");
+                setDateSinistreEnCours(p.dateSinistre ? String(p.dateSinistre).slice(0, 10) : "");
+              }}
               style={{
                 background: "#fff", borderRadius: 14, padding: 16, marginBottom: 12,
                 border: `1px solid ${C.bd}`, cursor: "pointer",
