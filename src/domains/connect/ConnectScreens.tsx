@@ -36,6 +36,9 @@ interface FormState {
   souhaitRegroupement: string;
   motivations: string[];
   commentaire: string;
+  // Sinistre (optionnel — bois brûlé ou sanitaire)
+  typeSinistre: string;
+  dateSinistre: string;
 }
 
 const INIT: FormState = {
@@ -45,6 +48,7 @@ const INIT: FormState = {
   accesRoutier: "", documentGestion: "", contactAnterieur: null,
   voisinsInteresses: "", souhaitRegroupement: "",
   motivations: [], commentaire: "",
+  typeSinistre: "", dateSinistre: "",
 };
 
 // ── Calcul du score ───────────────────────────────────────────────────────────
@@ -311,6 +315,8 @@ export const FormulaireConnect = ({
         souhaitRegroupement:  form.souhaitRegroupement,
         motivations:          form.motivations,
         commentaire:          form.commentaire || undefined,
+        typeSinistre:         form.typeSinistre || undefined,
+        dateSinistre:         form.dateSinistre || undefined,
         cibleEntrepriseId,
         score,
         niveau: 5,
@@ -438,6 +444,33 @@ export const FormulaireConnect = ({
               { v: "plus_20_ans",  label: "> 20 ans"     },
             ]}
           />
+          <Label>Ce bois est-il issu d'un sinistre ? (facultatif)</Label>
+          <RadioRow
+            value={form.typeSinistre}
+            onChange={v => set("typeSinistre", v === form.typeSinistre ? "" : v)}
+            options={[
+              { v: "POST_INCENDIE", label: "🔥 Incendie"   },
+              { v: "CHABLIS",       label: "🌪 Chablis"     },
+              { v: "SCOLYTES",      label: "🐛 Scolytes"    },
+              { v: "PATHOGENE",     label: "🦠 Pathogène"   },
+              { v: "AUTRE",         label: "⚠️ Autre"       },
+            ]}
+          />
+          {form.typeSinistre !== "" && (
+            <div style={{ marginBottom: 12 }}>
+              <Label>Date du sinistre (approximative)</Label>
+              <input
+                type="date"
+                value={form.dateSinistre}
+                onChange={e => set("dateSinistre", e.target.value)}
+                style={{
+                  width: "100%", height: 44, padding: "0 14px", borderRadius: 10,
+                  border: `1.5px solid ${C.bd}`, fontFamily: "inherit", fontSize: 15,
+                  background: C.bg, color: C.tx, outline: "none", boxSizing: "border-box",
+                }}
+              />
+            </div>
+          )}
         </div>
       )}
 
@@ -552,6 +585,7 @@ export const FormulaireConnect = ({
             ["Dernière interv.", form.derniereIntervention.replace(/_/g, " ")],
             ["Accès routier",   form.accesRoutier.replace(/_/g, " ")],
             ["Document gestion", form.documentGestion.toUpperCase()],
+            ...(form.typeSinistre ? [["Sinistre", `${form.typeSinistre.replace(/_/g, " ")}${form.dateSinistre ? ` · ${form.dateSinistre}` : ""}`]] : []),
           ].map(([k, v]) => (
             <div key={k} style={{
               display: "flex", justifyContent: "space-between",
