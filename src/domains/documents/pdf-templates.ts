@@ -1506,3 +1506,166 @@ ${typeDecl === "pos" ? `
 </div>
 </div></body></html>`;
 };
+
+// ── DOSSIER DE TRAÇABILITÉ PREUVE — livraison unique ─────────────────────────
+
+export interface DossierTracabiliteData {
+  livraison: {
+    id: string; lotNumero: string; date?: string; nomDestination?: string;
+    numeroBL?: string; poidsBrut?: number | null; tare?: number | null;
+    poidsNet?: number | null; humiditeReception?: number | null;
+    numTicket?: string | null; peseeVerifiee?: boolean;
+    distanceKm?: number | null; prixMatiereT?: number | null;
+    prixBroyageT?: number | null; prixChargementT?: number | null;
+    prixTransportT?: number | null; prixSurchargeCarburantT?: number | null;
+    statut?: string;
+  };
+  contact?: {
+    nom?: string; prenom?: string; commune?: string; surfaceHa?: number | null;
+    refCadastrale?: string | null; lotNumero?: string | null; potentiel?: string | null;
+    adresseParcelle?: string | null;
+  } | null;
+  gesKgCO2e?: number | null;
+  gesSource?: string;
+  facteurEmissionKgCO2eTKm?: number;
+  generatedAt?: string;
+  entrepriseNom?: string;
+}
+
+export const buildDossierTracabiliteHTML = (d: DossierTracabiliteData): string => {
+  const { livraison: l, contact: c } = d;
+  const dateGen = d.generatedAt ? new Date(d.generatedAt).toLocaleDateString("fr-FR") : new Date().toLocaleDateString("fr-FR");
+  const prixTotal = [l.prixMatiereT, l.prixBroyageT, l.prixChargementT, l.prixTransportT, l.prixSurchargeCarburantT]
+    .reduce((s: number, v) => s + (v ?? 0), 0);
+  const gesTonnes = d.gesKgCO2e != null ? (d.gesKgCO2e / 1000).toFixed(4) : null;
+
+  const row = (label: string, value: string | number | null | undefined) =>
+    value != null && value !== ""
+      ? `<tr><td class="lbl">${label}</td><td>${value}</td></tr>`
+      : "";
+
+  return `<!DOCTYPE html><html lang="fr"><head><meta charset="utf-8"/>
+<title>Dossier traçabilité — ${l.lotNumero}</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Helvetica Neue', Arial, sans-serif; font-size: 11px;
+         color: #333; background: #fff; padding: 24px; }
+  .header { display: flex; justify-content: space-between; align-items: flex-start;
+            border-bottom: 2px solid #1E5B3A; padding-bottom: 12px; margin-bottom: 16px; }
+  .brand { font-size: 18px; font-weight: 900; color: #1E5B3A; letter-spacing: -0.5px; }
+  .brand span { font-weight: 400; color: #4CAF50; }
+  .doc-type { font-size: 10px; color: #5A5955; margin-top: 2px; }
+  .lot-badge { background: #E8F5E9; color: #1E5B3A; font-size: 16px; font-weight: 800;
+               padding: 6px 14px; border-radius: 8px; border: 2px solid #1E5B3A; }
+  h3 { font-size: 11px; font-weight: 700; color: #1E5B3A; text-transform: uppercase;
+       letter-spacing: 0.5px; margin: 14px 0 6px; padding-bottom: 4px;
+       border-bottom: 1px solid #E8F5E9; }
+  table { width: 100%; border-collapse: collapse; margin-bottom: 8px; }
+  td { padding: 4px 6px; border-bottom: 1px solid #F3F4F6; vertical-align: top; }
+  td.lbl { color: #5A5955; width: 48%; font-weight: 500; }
+  .ges-box { background: #E6F1FB; border: 1.5px solid #185FA5; border-radius: 8px;
+             padding: 12px 16px; margin: 14px 0; }
+  .ges-main { font-size: 22px; font-weight: 900; color: #042C53; }
+  .ges-unit { font-size: 13px; font-weight: 600; color: #185FA5; }
+  .ges-note { font-size: 9px; color: #5A5955; margin-top: 4px; line-height: 1.4; }
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 10px;
+           font-size: 10px; font-weight: 600; }
+  .badge-ok  { background: #E8F5E9; color: #1E5B3A; }
+  .badge-ko  { background: #FCEBEB; color: #A32D2D; }
+  .badge-dec { background: #FAEEDA; color: #BA7517; }
+  .prix-grid { display: flex; gap: 6px; flex-wrap: wrap; margin: 4px 0; }
+  .prix-item { background: #F3F4F6; border-radius: 6px; padding: 3px 8px;
+               font-size: 10px; color: #333; }
+  .footer { margin-top: 20px; padding-top: 10px; border-top: 1px solid #DDDBD5;
+            font-size: 9px; color: #9A9892; text-align: center; line-height: 1.6; }
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media print { body { padding: 10mm; } }
+</style>
+</head><body>
+
+<div class="header">
+  <div>
+    <div class="brand">APPLITAG<span> Connect</span></div>
+    <div class="doc-type">Dossier de preuve — Traçabilité livraison bois-énergie</div>
+    <div class="doc-type">Généré le ${dateGen}${d.entrepriseNom ? ` · ${d.entrepriseNom}` : ""}</div>
+  </div>
+  <div class="lot-badge">Lot ${l.lotNumero}</div>
+</div>
+
+<div class="two-col">
+<div>
+<h3>📦 Livraison</h3>
+<table>
+  ${row("Date", l.date)}
+  ${row("Destination", l.nomDestination)}
+  ${row("N° BL / CMR", l.numeroBL)}
+  ${row("Statut", l.statut === "verifiee" ? "✅ Pesée vérifiée" : l.statut === "litigieuse" ? "⚠️ Litigieuse" : "📋 Déclarée")}
+</table>
+
+<h3>⚖️ Pesée</h3>
+<table>
+  ${row("Poids brut (kg)", l.poidsBrut?.toLocaleString("fr-FR") ?? null)}
+  ${row("Tare (kg)", l.tare?.toLocaleString("fr-FR") ?? null)}
+  ${row("Poids net (kg)", l.poidsNet?.toLocaleString("fr-FR") ?? null)}
+  ${row("Humidité réception (%)", l.humiditeReception != null ? `${l.humiditeReception} %` : null)}
+  ${row("N° ticket balance", l.numTicket)}
+  ${row("Pesée vérifiée", l.peseeVerifiee
+    ? '<span class="badge badge-ok">✓ Oui — justificatif reçu</span>'
+    : '<span class="badge badge-dec">En attente de confirmation</span>')}
+</table>
+</div>
+
+<div>
+<h3>🌲 Lot d'origine</h3>
+<table>
+  ${row("N° lot", c?.lotNumero)}
+  ${row("Propriétaire", c ? `${c.nom ?? ""}${c.prenom ? " " + c.prenom : ""}`.trim() : null)}
+  ${row("Commune", c?.commune)}
+  ${row("Parcelle", c?.adresseParcelle)}
+  ${row("Réf. cadastrale", c?.refCadastrale)}
+  ${row("Surface (ha)", c?.surfaceHa != null ? `${c.surfaceHa} ha` : null)}
+  ${row("Type ressource", c?.potentiel)}
+</table>
+
+<h3>🚛 Transport</h3>
+<table>
+  ${row("Distance (km)", l.distanceKm != null ? `${l.distanceKm} km` : null)}
+  ${row("Coût total (/t)", prixTotal > 0 ? `${prixTotal.toFixed(2)} €/t` : null)}
+</table>
+${prixTotal > 0 ? `
+<div class="prix-grid">
+  ${l.prixMatiereT  ? `<div class="prix-item">🪵 ${l.prixMatiereT.toFixed(2)} €/t matière</div>`  : ""}
+  ${l.prixBroyageT  ? `<div class="prix-item">🌀 ${l.prixBroyageT.toFixed(2)} €/t broyage</div>`  : ""}
+  ${l.prixChargementT ? `<div class="prix-item">🏗️ ${l.prixChargementT.toFixed(2)} €/t charg.</div>` : ""}
+  ${l.prixTransportT ? `<div class="prix-item">🚛 ${l.prixTransportT.toFixed(2)} €/t transp.</div>` : ""}
+  ${l.prixSurchargeCarburantT ? `<div class="prix-item">⛽ ${l.prixSurchargeCarburantT.toFixed(2)} €/t carbu.</div>` : ""}
+</div>` : ""}
+</div>
+</div>
+
+<h3>🌍 Bilan GES transport — calcul ADEME</h3>
+${d.gesKgCO2e != null
+  ? `<div class="ges-box">
+  <span class="ges-main">${d.gesKgCO2e.toFixed(3)}</span>
+  <span class="ges-unit"> kgCO₂e</span>
+  &nbsp;·&nbsp;
+  <span class="ges-main">${gesTonnes}</span>
+  <span class="ges-unit"> tCO₂e</span>
+  <div class="ges-note">
+    Formule : (${l.poidsNet?.toLocaleString("fr-FR") ?? "—"} kg / 1 000) × ${l.distanceKm} km × ${d.facteurEmissionKgCO2eTKm ?? 0.096} kgCO₂e/t.km<br/>
+    Source : ${d.gesSource ?? "ADEME Base Carbone v25.0 — Transport routier marchandises (code 1.5.1)"}<br/>
+    Mode : Transport routier, poids lourd diesel, charge complète
+  </div>
+</div>`
+  : `<p style="color:#9A9892;font-style:italic">
+      GES non calculable — poids net ou distance non renseignés sur cette livraison.
+    </p>`
+}
+
+<div class="footer">
+  APPLITAG · Dossier de preuve traçabilité · Lot ${l.lotNumero} · Livraison du ${l.date || "—"} ·
+  Généré le ${dateGen} — Document confidentiel, usage interne et réglementaire (RED, marchés publics)
+</div>
+
+</body></html>`;
+};
