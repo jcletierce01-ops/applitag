@@ -2356,11 +2356,26 @@ export const EcranCarte = ({contacts, visites, onOpenLot}: any) => {
   const cfMarkersRef = useRef<any[]>([]);
   const chMarkersRef = useRef<any[]>([]);
   const tasMarkersRef = useRef<any[]>([]);
-  const effisLayerRef = useRef<any>(null);
-  const [filtre,      setFiltre]     = useState("TOUS");
-  const [nbLots,      setNbLots]     = useState(0);
-  const [couches,     setCouches]    = useState({lots:true,chaufferies:true,chantiers:true,tas:true,effis:false});
-  const [effisCouche, setEffisCouche] = useState<"fires"|"danger"|"perimeters">("fires");
+  const effisLayerRef  = useRef<any>(null);
+  const tileLayerRef   = useRef<any>(null);
+  const [filtre,       setFiltre]     = useState("TOUS");
+  const [nbLots,       setNbLots]     = useState(0);
+  const [couches,      setCouches]    = useState({lots:true,chaufferies:true,chantiers:true,tas:true,effis:false});
+  const [effisCouche,  setEffisCouche] = useState<"fires"|"danger"|"perimeters">("fires");
+  const [fondCarte,    setFondCarte]  = useState<"plan"|"satellite">("plan");
+
+  const FONDS: Record<string,{url:string,attr:string,maxZoom:number}> = {
+    plan: {
+      url: "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png",
+      attr: '© <a href="https://www.openstreetmap.org/">OpenStreetMap</a> © <a href="https://carto.com/">CARTO</a>',
+      maxZoom: 19,
+    },
+    satellite: {
+      url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+      attr: "© Esri, Maxar, Earthstar Geographics",
+      maxZoom: 18,
+    },
+  };
 
   // ── Init carte ──
   useEffect(()=>{
@@ -2376,13 +2391,26 @@ export const EcranCarte = ({contacts, visites, onOpenLot}: any) => {
       center:[46.8,2.5], zoom:6,
       zoomControl:true,
     });
-    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{
-      attribution:'© <a href="https://www.openstreetmap.org/">OpenStreetMap</a>',
-      maxZoom:19,
+    const fond = FONDS.plan;
+    tileLayerRef.current = L.tileLayer(fond.url,{
+      attribution: fond.attr,
+      maxZoom: fond.maxZoom,
     }).addTo(map);
     mapInst.current = map;
-    return ()=>{ map.remove(); mapInst.current=null; };
+    return ()=>{ map.remove(); mapInst.current=null; tileLayerRef.current=null; };
   },[]);
+
+  // ── Permutation fond de carte ──
+  useEffect(()=>{
+    if (!mapInst.current) return;
+    const map = mapInst.current;
+    if (tileLayerRef.current) map.removeLayer(tileLayerRef.current);
+    const fond = FONDS[fondCarte];
+    tileLayerRef.current = L.tileLayer(fond.url,{
+      attribution: fond.attr,
+      maxZoom: fond.maxZoom,
+    }).addTo(map);
+  },[fondCarte]);
 
   // ── Callback popup → fiche lot ──
   useEffect(()=>{
@@ -2616,6 +2644,23 @@ export const EcranCarte = ({contacts, visites, onOpenLot}: any) => {
             <span>{icon}</span>{label}
           </button>
         ))}
+        {/* Séparateur */}
+        <div style={{width:1,height:18,background:C.bd,flexShrink:0,alignSelf:"center"}}/>
+        {/* Toggle Plan / Satellite */}
+        <div style={{display:"flex",borderRadius:12,overflow:"hidden",
+          border:`1.5px solid ${C.bd}`,flexShrink:0}}>
+          {([ ["plan","🗺️","Plan"], ["satellite","🛰️","Satellite"] ] as ["plan"|"satellite",string,string][]).map(([k,icon,label])=>(
+            <button key={k} onClick={()=>setFondCarte(k)} style={{
+              height:24,padding:"0 8px",whiteSpace:"nowrap",border:"none",
+              background:fondCarte===k?"#1A3A5C":"#fff",
+              color:fondCarte===k?"#fff":C.tx3,
+              fontFamily:"inherit",fontSize:10,fontWeight:fondCarte===k?700:500,
+              cursor:"pointer",display:"flex",alignItems:"center",gap:3,
+              WebkitTapHighlightColor:"transparent"}}>
+              {icon} {label}
+            </button>
+          ))}
+        </div>
         {/* Séparateur */}
         <div style={{width:1,height:18,background:C.bd,flexShrink:0,alignSelf:"center"}}/>
         {/* Toggle EFFIS */}
