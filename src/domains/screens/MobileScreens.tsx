@@ -14,7 +14,6 @@ import { FormulaireVisite } from "../../domains/visites/FormulaireVisite.jsx";
 import { ORIGINE_OPTS, TYPE_CONTACT_OPTS, TYPE_RESSOURCE_OPTS, PRIORITE_OPTS, STATUT_OPTS } from "../../domains/contacts/constants.js";
 import { TYPES_PRESTATION_ANNONCE, STATUTS_ANNONCE, ORDRE_STATUTS_ANNONCE } from "../../domains/connect/constants.js";
 import { indicesPonderes } from "../../metier/formules.js";
-import { FEATURE_FLAGS } from "../../config/featureFlags.js";
 import { GROUPES_MODULES } from "./mobile-modules.constants.js";
 export const QrCodeAdmin = ({entrepriseId, entrepriseNom, onClose}: any) => {
   const [qrUrl, setQrUrl] = useState("");

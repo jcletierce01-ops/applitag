@@ -961,7 +961,7 @@ export default function App() {
                     marginBottom:8,padding:"0 4px"}}>{groupe.label}</div>
                   <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:6}}>
                     {groupe.items.map((mod: any)=>{
-                      const active = !mod.flag || FEATURE_FLAGS[mod.flag] !== false;
+                      const active = !mod.flag || FEATURE_FLAGS[mod.flag as keyof typeof FEATURE_FLAGS] !== false;
                       return (
                         <div key={mod.id}
                           onClick={()=>{
