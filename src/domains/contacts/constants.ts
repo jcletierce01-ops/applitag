@@ -33,6 +33,7 @@ export const TYPE_RESSOURCE_OPTS: [string, string, string][] = [
   ["bois_trituration", "📄", "Bois de trituration"],
   ["bois_bord_route",  "🛣️", "Bois bord de route"],
   ["stock_plaquettes", "🪣", "Stock plaquettes"],
+  ["haie_bocager",     "🌿", "Haie / Bocage"],
   ["mixte",            "🌳", "Mixte"],
 ];
 

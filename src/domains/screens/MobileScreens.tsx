@@ -71,6 +71,9 @@ export const Fiche0 = ({onBack, onSaved, toast, entrepriseId, prefill=null, comp
   const [refCadastrale, setRef]      = useState("");
   const [typeRessource, setRessource]= useState("");
   const [mixteDetails,  setMixteD]   = useState<any[]>([]);
+  const [lineaireHaie,  setLineaireHaie]     = useState("");
+  const [proprietaireHaie, setProprietaireHaie] = useState("");
+  const [cbqPlus,       setCbqPlus]           = useState(false);
   const [priorite,      setPriorite] = useState("moyenne");
   const [statut,        setStatut]   = useState("nouveau");
   const [commentaire,   setComment]  = useState("");
@@ -112,6 +115,9 @@ export const Fiche0 = ({onBack, onSaved, toast, entrepriseId, prefill=null, comp
       entrepriseId, redacteur, conclusion, exploitationAutorisee,
       delaiExecution: delaiExecutionFiche || undefined,
       dateRdv: (["rendez_vous","visite_prevue","a_rappeler"].includes(conclusion) && dateRdv) ? dateRdv : undefined,
+      lineaireHaieM: typeRessource==="haie_bocager" && lineaireHaie ? parseFloat(lineaireHaie) : undefined,
+      proprietaireHaie: typeRessource==="haie_bocager" && proprietaireHaie ? proprietaireHaie : undefined,
+      cbqPlus: typeRessource==="haie_bocager" ? cbqPlus : undefined,
       // lotNumero omis volontairement : généré côté serveur (P0.5)
     };
     try {
@@ -294,6 +300,37 @@ export const Fiche0 = ({onBack, onSaved, toast, entrepriseId, prefill=null, comp
                   </div>
                 );
               })}
+            </div>
+          </div>
+        )}
+
+        {typeRessource==="haie_bocager"&&(
+          <div style={{background:"#F0FDF4",borderRadius:12,padding:14,marginBottom:14,
+            border:"1px solid #BBF7D0"}}>
+            <div style={{fontSize:13,fontWeight:600,color:"#166534",marginBottom:10}}>
+              🌿 Détail bois bocager
+            </div>
+            <MInput label="Linéaire de haie (m)" value={lineaireHaie}
+              onChange={setLineaireHaie} type="number" placeholder="ex: 450" hint="optionnel"/>
+            <MInput label="Propriétaire de la haie" value={proprietaireHaie}
+              onChange={setProprietaireHaie}
+              placeholder="Nom si différent du contact" hint="optionnel"/>
+            <div onClick={()=>setCbqPlus(v=>!v)} style={{display:"flex",alignItems:"center",
+              gap:10,padding:"10px 14px",background:"#fff",borderRadius:10,
+              border:"1px solid #D1FAE5",cursor:"pointer",marginBottom:4,
+              WebkitTapHighlightColor:"transparent"}}>
+              <div style={{width:22,height:22,borderRadius:6,flexShrink:0,
+                border:`2px solid ${cbqPlus?"#16A34A":"#D1D5DB"}`,
+                background:cbqPlus?"#16A34A":"#fff",
+                display:"flex",alignItems:"center",justifyContent:"center"}}>
+                {cbqPlus&&<span style={{color:"#fff",fontSize:13,fontWeight:700}}>✓</span>}
+              </div>
+              <div>
+                <div style={{fontSize:12,fontWeight:600,color:"#166534"}}>Éligible CBQ+</div>
+                <div style={{fontSize:10,color:"#6B7280"}}>
+                  Combustible Bois de Qualité+ — filière bocagère structurée
+                </div>
+              </div>
             </div>
           </div>
         )}
@@ -1175,6 +1212,9 @@ export const Fiche0Edit = ({contact, onBack, onSaved, toast, user, onLaunchVisit
   const [numeroSiret,   setSiret]    = useState(contact.numeroSiret||"");
   const [nomSignataire, setSignataire]=useState(contact.nomSignataire||"");
   const [qualiteSignataire,setQualite]=useState(contact.qualiteSignataire||"");
+  const [lineaireHaieM, setLineaireHaieM]   = useState(contact.lineaireHaieM||"");
+  const [proprietaireHaie,setProprietaireHaie] = useState(contact.proprietaireHaie||"");
+  const [cbqPlus,       setCbqPlus]          = useState(contact.cbqPlus||false);
   const [saving, setSaving] = useState(false);
   const [showHistorique, setShowHistorique] = useState(false);
   const [historique, setHistorique] = useState<any[]>([]);
@@ -1198,6 +1238,9 @@ export const Fiche0Edit = ({contact, onBack, onSaved, toast, user, onLaunchVisit
       statut, potentiel, commentaire,
       estPersonneMorale, typePersonneMorale, numeroSiret,
       nomSignataire, qualiteSignataire,
+      lineaireHaieM: potentiel==="haie_bocager" && lineaireHaieM ? parseFloat(String(lineaireHaieM)) : undefined,
+      proprietaireHaie: potentiel==="haie_bocager" && proprietaireHaie ? proprietaireHaie : undefined,
+      cbqPlus: potentiel==="haie_bocager" ? cbqPlus : undefined,
       operateur: user?.nom || "inconnu",
     };
     try {
@@ -1371,6 +1414,36 @@ export const Fiche0Edit = ({contact, onBack, onSaved, toast, user, onLaunchVisit
 
             <SectionTitle icon="🪵" label="Nature du produit"/>
             <GridSelect options={TYPE_RESSOURCE_OPTS} value={potentiel} onChange={setPotentiel} cols={3}/>
+            {potentiel==="haie_bocager"&&(
+              <div style={{background:"#F0FDF4",borderRadius:12,padding:14,marginBottom:14,
+                border:"1px solid #BBF7D0"}}>
+                <div style={{fontSize:13,fontWeight:600,color:"#166534",marginBottom:10}}>
+                  🌿 Détail bois bocager
+                </div>
+                <MInput label="Linéaire de haie (m)" value={String(lineaireHaieM||"")}
+                  onChange={setLineaireHaieM} type="number" placeholder="ex: 450" hint="optionnel"/>
+                <MInput label="Propriétaire de la haie" value={proprietaireHaie}
+                  onChange={setProprietaireHaie}
+                  placeholder="Nom si différent du contact" hint="optionnel"/>
+                <div onClick={()=>setCbqPlus((v:boolean)=>!v)} style={{display:"flex",alignItems:"center",
+                  gap:10,padding:"10px 14px",background:"#fff",borderRadius:10,
+                  border:"1px solid #D1FAE5",cursor:"pointer",marginBottom:4,
+                  WebkitTapHighlightColor:"transparent"}}>
+                  <div style={{width:22,height:22,borderRadius:6,flexShrink:0,
+                    border:`2px solid ${cbqPlus?"#16A34A":"#D1D5DB"}`,
+                    background:cbqPlus?"#16A34A":"#fff",
+                    display:"flex",alignItems:"center",justifyContent:"center"}}>
+                    {cbqPlus&&<span style={{color:"#fff",fontSize:13,fontWeight:700}}>✓</span>}
+                  </div>
+                  <div>
+                    <div style={{fontSize:12,fontWeight:600,color:"#166534"}}>Éligible CBQ+</div>
+                    <div style={{fontSize:10,color:"#6B7280"}}>
+                      Combustible Bois de Qualité+ — filière bocagère structurée
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
 
             <SectionTitle icon="📊" label="Qualification"/>
             <div style={{marginBottom:14}}>

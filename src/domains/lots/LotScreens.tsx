@@ -340,7 +340,7 @@ function LotSanitaireBadge({ contactId }: { contactId: string }) {
                 onChange={e=>setForm(f=>({...f,scoreUrgence:e.target.value}))}
                 style={{width:"100%",marginTop:8}}/>
               <div style={{textAlign:"center",fontSize:12,fontWeight:700,
-                color:URGENCE_COLORS[parseInt(form.scoreUrgence)]???"#6B7280"}}>
+                color:URGENCE_COLORS[parseInt(form.scoreUrgence)]??"#6B7280"}}>
                 {form.scoreUrgence}/5
               </div>
             </div>
@@ -878,7 +878,9 @@ export const FicheLotCentrale = ({
             {/* Métriques clés */}
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:16}}>
               {[
-                {icon:"🌲",label:"Surface",val:lot.surfaceHa?`${lot.surfaceHa} ha`:"—",color:C.green,bg:C.greenL},
+                lot.potentiel==="haie_bocager"
+                  ? {icon:"🌿",label:"Linéaire",val:lot.lineaireHaieM?`${lot.lineaireHaieM} m`:"—",color:"#16A34A",bg:"#F0FDF4"}
+                  : {icon:"🌲",label:"Surface",val:lot.surfaceHa?`${lot.surfaceHa} ha`:"—",color:C.green,bg:C.greenL},
                 {icon:"🪵",label:"Ressource",val:typeRessLabel(lot.potentiel)||"—",color:C.brown,bg:C.brownL},
                 {icon:"⚖️",label:"Volume estimé",val:derniereVisite?`${fmtNum(derniereVisite.volumeEstimeT)} t`:"—",color:C.amber,bg:C.amberL},
                 {icon:"📊",label:"Relevés",val:`${releves.length} relevé${releves.length!==1?"s":""}`,color:C.blue,bg:C.blueL},
@@ -973,6 +975,47 @@ export const FicheLotCentrale = ({
                 </div>
               ))}
             </div>
+
+            {/* Bois bocager — champs spécifiques haie */}
+            {lot.potentiel==="haie_bocager"&&(
+              <div style={{borderRadius:14,padding:14,marginBottom:14,
+                background:"#F0FDF4",border:"1.5px solid #86EFAC"}}>
+                <div style={{fontSize:11,fontWeight:700,color:"#166534",
+                  textTransform:"uppercase",letterSpacing:"0.05em",marginBottom:10}}>
+                  🌿 Bois bocager / Haie
+                </div>
+                <div style={{display:"flex",flexWrap:"wrap",gap:8}}>
+                  {lot.lineaireHaieM&&(
+                    <div style={{background:"#fff",borderRadius:10,padding:"6px 12px",
+                      border:"1px solid #BBF7D0"}}>
+                      <div style={{fontSize:10,color:"#6B7280"}}>Linéaire haie</div>
+                      <div style={{fontSize:15,fontWeight:700,color:"#166534"}}>
+                        {lot.lineaireHaieM} m
+                      </div>
+                    </div>
+                  )}
+                  {lot.cbqPlus&&(
+                    <div style={{background:"#DCFCE7",borderRadius:10,padding:"6px 12px",
+                      border:"1px solid #86EFAC",display:"flex",alignItems:"center",gap:6}}>
+                      <span style={{fontSize:16}}>🏅</span>
+                      <div>
+                        <div style={{fontSize:11,fontWeight:700,color:"#166534"}}>CBQ+</div>
+                        <div style={{fontSize:9,color:"#4ADE80"}}>Éligible</div>
+                      </div>
+                    </div>
+                  )}
+                  {lot.proprietaireHaie&&(
+                    <div style={{background:"#fff",borderRadius:10,padding:"6px 12px",
+                      border:"1px solid #BBF7D0",flex:1,minWidth:120}}>
+                      <div style={{fontSize:10,color:"#6B7280"}}>Propriétaire haie</div>
+                      <div style={{fontSize:12,fontWeight:600,color:"#166534"}}>
+                        {lot.proprietaireHaie}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
 
             {/* Contexte territorial IGN — si le lot a des coordonnées GPS */}
             {lot.gpsLat&&lot.gpsLng&&(
