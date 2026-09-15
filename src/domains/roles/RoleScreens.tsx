@@ -2324,10 +2324,12 @@ export const EcranCarte = ({contacts, visites, onOpenLot}: any) => {
   const cfMarkersRef = useRef<any[]>([]);
   const chMarkersRef = useRef<any[]>([]);
   const tasMarkersRef = useRef<any[]>([]);
-  const [loaded,   setLoaded]  = useState(!!(window as any).L);
-  const [filtre,   setFiltre]  = useState("TOUS");
-  const [nbLots,   setNbLots]  = useState(0);
-  const [couches,  setCouches] = useState({lots:true,chaufferies:true,chantiers:true,tas:true});
+  const effisLayerRef = useRef<any>(null);
+  const [loaded,      setLoaded]     = useState(!!(window as any).L);
+  const [filtre,      setFiltre]     = useState("TOUS");
+  const [nbLots,      setNbLots]     = useState(0);
+  const [couches,     setCouches]    = useState({lots:true,chaufferies:true,chantiers:true,tas:true,effis:false});
+  const [effisCouche, setEffisCouche] = useState<"fires"|"danger"|"perimeters">("fires");
 
   // ── Chargement Leaflet depuis CDN ──
   useEffect(()=>{
@@ -2533,6 +2535,35 @@ export const EcranCarte = ({contacts, visites, onOpenLot}: any) => {
     });
   },[loaded, couches.tas]);
 
+  // ── Couche EFFIS WMS (feux actifs / danger / périmètres) ──
+  useEffect(()=>{
+    if (!loaded || !mapInst.current) return;
+    const L = (window as any).L;
+    const map = mapInst.current;
+    // Retire l'ancienne couche WMS quelle qu'elle soit
+    if (effisLayerRef.current) {
+      map.removeLayer(effisLayerRef.current);
+      effisLayerRef.current = null;
+    }
+    if (!couches.effis) return;
+    const EFFIS_URL = "https://ies-ows.jrc.ec.europa.eu/effis";
+    const EFFIS_LAYERS: Record<string,string> = {
+      fires:      "activefires.viirs.fire",
+      danger:     "FireDanger.FireDangerForecasted",
+      perimeters: "fireperimeters.recent",
+    };
+    const wms = L.tileLayer.wms(EFFIS_URL, {
+      layers:      EFFIS_LAYERS[effisCouche],
+      format:      "image/png",
+      transparent: true,
+      opacity:     0.70,
+      version:     "1.3.0",
+      attribution: "© <a href='https://effis.jrc.ec.europa.eu/'>EFFIS / EU JRC</a>",
+    });
+    wms.addTo(map);
+    effisLayerRef.current = wms;
+  },[loaded, couches.effis, effisCouche]);
+
   const FILTRES = [
     ["TOUS","Tous"],
     ["VISITE_PREVUE","À visiter"],
@@ -2578,6 +2609,36 @@ export const EcranCarte = ({contacts, visites, onOpenLot}: any) => {
             <span>{icon}</span>{label}
           </button>
         ))}
+        {/* Séparateur */}
+        <div style={{width:1,height:18,background:C.bd,flexShrink:0,alignSelf:"center"}}/>
+        {/* Toggle EFFIS */}
+        <button onClick={()=>setCouches(c=>({...c,effis:!c.effis}))} style={{
+          height:24,padding:"0 9px",borderRadius:12,whiteSpace:"nowrap",flexShrink:0,
+          border:`1.5px solid ${couches.effis?"#EF4444":C.bd}`,
+          background:couches.effis?"#FEE2E2":"#fff",
+          color:couches.effis?"#B91C1C":C.tx3,
+          fontFamily:"inherit",fontSize:10,fontWeight:600,cursor:"pointer",
+          display:"flex",alignItems:"center",gap:3,
+          WebkitTapHighlightColor:"transparent"}}>
+          🔥 EFFIS
+        </button>
+        {/* Sous-sélecteur couche EFFIS */}
+        {couches.effis&&([
+          ["fires","🔴","Feux actifs"],
+          ["danger","⚠️","Danger"],
+          ["perimeters","📐","Périmètres"],
+        ] as ["fires"|"danger"|"perimeters",string,string][]).map(([k,icon,label])=>(
+          <button key={k} onClick={()=>setEffisCouche(k)} style={{
+            height:24,padding:"0 8px",borderRadius:12,whiteSpace:"nowrap",flexShrink:0,
+            border:`1.5px solid ${effisCouche===k?"#EF4444":"#FECACA"}`,
+            background:effisCouche===k?"#DC2626":"#FEF2F2",
+            color:effisCouche===k?"#fff":"#B91C1C",
+            fontFamily:"inherit",fontSize:10,fontWeight:effisCouche===k?700:500,
+            cursor:"pointer",display:"flex",alignItems:"center",gap:3,
+            WebkitTapHighlightColor:"transparent"}}>
+            {icon} {label}
+          </button>
+        ))}
       </div>
 
       {/* Filtres statut lots */}
@@ -2617,6 +2678,18 @@ export const EcranCarte = ({contacts, visites, onOpenLot}: any) => {
             boxShadow:"0 2px 8px rgba(0,0,0,.2)",fontSize:12,fontWeight:600,
             color:C.tx,border:`1px solid ${C.bd}`}}>
             {nbLots} lot{nbLots!==1?"s":""} {filtre!=="TOUS"?"filtré"+(nbLots>1?"s":""):""}
+          </div>
+        )}
+        {/* Badge EFFIS actif */}
+        {loaded&&couches.effis&&(
+          <div style={{position:"absolute",top:10,left:10,zIndex:1000,
+            background:"#DC2626",borderRadius:20,padding:"5px 12px",
+            boxShadow:"0 2px 8px rgba(0,0,0,.3)",fontSize:11,fontWeight:700,
+            color:"#fff",display:"flex",alignItems:"center",gap:5}}>
+            🔥 EFFIS —&nbsp;
+            {effisCouche==="fires"?"Feux actifs (VIIRS)":
+             effisCouche==="danger"?"Danger incendie":
+             "Périmètres récents"}
           </div>
         )}
       </div>
