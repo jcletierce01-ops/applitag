@@ -462,7 +462,7 @@ export default function App() {
           border:"none",color:"rgba(255,255,255,.6)",padding:"6px 10px",borderRadius:8,
           fontSize:12,cursor:"pointer"}}>⎋</button>
       </div>
-      <EcranRoleReceptionnaire user={user} livraisons={livraisons as any} contacts={contacts as any} visites={visites as any} toast={toast}/>
+      <EcranRoleReceptionnaire user={user} livraisons={livraisons as any} contacts={contacts as any} visites={visites as any} toast={toast} refresh={refreshLivraisons}/>
     </div>
   );
 

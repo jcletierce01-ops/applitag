@@ -1825,10 +1825,12 @@ export const EcranRoleChaufferie = ({user, livraisons=[], toast, onRefresh}: any
 };
 
 // ── RÉCEPTIONNAIRE PLATEFORME DE STOCKAGE ─────────────────────
-export const EcranRoleReceptionnaire = ({user, livraisons=[], contacts=[], visites=[], toast}: any) => {
+export const EcranRoleReceptionnaire = ({user, livraisons=[], contacts=[], visites=[], toast, refresh}: any) => {
   const [onglet, setOnglet] = useState("attente"); // "attente" | "stock" | "historique"
   const [humidite, setHumidite] = useState<Record<string,any>>({});
+  const [numTickets, setNumTickets] = useState<Record<string,string>>({});
   const [confirmes, setConfirmes] = useState<Record<string,any>>({});
+  const [saving, setSaving] = useState<Record<string,boolean>>({});
   const [lotStockSelec, setLotStockSelec] = useState<any>(null); // lot contact ouvert dans "En stock"
   const [rechercheHisto, setRechercheHisto] = useState("");
 
@@ -1839,9 +1841,24 @@ export const EcranRoleReceptionnaire = ({user, livraisons=[], contacts=[], visit
   const tonnageStock = platLivs.filter((l: any)=>l.statut==="verifiee"||confirmes[l.id]).reduce((s: any,l: any)=>s+((l.poidsNet||l.poidsBrut)||0),0);
   const tonnageRecus = recues.reduce((s: any,l: any)=>s+((l.poidsNet||l.poidsBrut)||0),0);
 
-  const handleConfirmer = (l: any) => {
-    setConfirmes(p=>({...p,[l.id]:true}));
-    toast("Réception enregistrée ✓");
+  const handleConfirmer = async (l: any) => {
+    const h = humidite[l.id];
+    if (!h) return;
+    setSaving(p=>({...p,[l.id]:true}));
+    try {
+      await apiPatch(`/livraisons/${l.id}/pesee`, {
+        peseeVerifiee: true,
+        humiditeReception: parseFloat(h),
+        ...(numTickets[l.id] ? { numTicket: numTickets[l.id] } : {}),
+      });
+      setConfirmes(p=>({...p,[l.id]:true}));
+      toast("Réception enregistrée ✓");
+      if (refresh) refresh();
+    } catch (e: any) {
+      toast("Erreur : " + (e.message || "impossible de confirmer"));
+    } finally {
+      setSaving(p=>({...p,[l.id]:false}));
+    }
   };
 
   const enAttenteVisibles = enAttente.filter((l: any)=>!confirmes[l.id]);
@@ -1939,13 +1956,25 @@ export const EcranRoleReceptionnaire = ({user, livraisons=[], contacts=[], visit
                   </div>
                 )}
                 <div style={{fontSize:12,color:C.tx3,lineHeight:1.9,marginBottom:12}}>
+                  {l.nomDestination&&<>🏭 {l.nomDestination}<br/></>}
                   🚛 BL : {l.numeroBL||"—"}<br/>
                   ⚖️ Pesée transport : <strong style={{color:C.tx}}>{(l.poidsNet||l.poidsBrut||0)} t</strong><br/>
                   📅 {new Date(l.date).toLocaleDateString("fr-FR",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"})}
                 </div>
+                <div style={{marginBottom:10}}>
+                  <div style={{fontSize:12,fontWeight:600,color:C.tx,marginBottom:6}}>
+                    🎫 N° ticket chaufferie (optionnel)
+                  </div>
+                  <input type="text" value={numTickets[l.id]||""}
+                    onChange={e=>setNumTickets(p=>({...p,[l.id]:e.target.value}))}
+                    placeholder="Ex : TK-2026-001"
+                    style={{width:"100%",padding:"10px 12px",borderRadius:10,fontSize:13,
+                      border:`1.5px solid ${numTickets[l.id]?C.green:C.bd}`,fontFamily:"inherit",
+                      background:"#fff",boxSizing:"border-box"}}/>
+                </div>
                 <div style={{marginBottom:12}}>
                   <div style={{fontSize:12,fontWeight:600,color:C.tx,marginBottom:6}}>
-                    💧 Taux d'humidité à réception (%)
+                    💧 Taux d'humidité à réception (%) *
                   </div>
                   <input type="number" min={0} max={100} value={h}
                     onChange={e=>setHumidite(p=>({...p,[l.id]:e.target.value}))}
@@ -1961,13 +1990,14 @@ export const EcranRoleReceptionnaire = ({user, livraisons=[], contacts=[], visit
                   )}
                 </div>
                 <button onClick={()=>handleConfirmer(l)}
-                  disabled={!h}
+                  disabled={!h||saving[l.id]}
                   style={{width:"100%",padding:13,borderRadius:10,
-                    background:h?"#1565C0":C.bg2,color:h?"#fff":C.tx3,
+                    background:h&&!saving[l.id]?"#1565C0":C.bg2,
+                    color:h&&!saving[l.id]?"#fff":C.tx3,
                     border:"none",fontFamily:"inherit",fontSize:14,fontWeight:700,
-                    cursor:h?"pointer":"not-allowed",
+                    cursor:h&&!saving[l.id]?"pointer":"not-allowed",
                     WebkitTapHighlightColor:"transparent"}}>
-                  ✅ Confirmer la réception
+                  {saving[l.id]?"⏳ Enregistrement…":"✅ Confirmer la réception"}
                 </button>
               </div>
             );
