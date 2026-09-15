@@ -2365,15 +2365,14 @@ export const EcranCarte = ({contacts, visites, onOpenLot}: any) => {
   const [fondCarte,    setFondCarte]  = useState<"plan"|"satellite">("plan");
   const [tilesErreur,  setTilesErreur] = useState(false);
 
-  const FONDS: Record<string,{url:string,attr:string,maxZoom:number,subdomains?:string,tileSize?:number,zoomOffset?:number}> = {
+  const FONDS: Record<string,{url:string,attr:string,maxZoom:number}> = {
     plan: {
-      url: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+      url: "/api/tiles?z={z}&x={x}&y={y}",
       attr: '© <a href="https://www.openstreetmap.org/">OpenStreetMap</a> contributeurs',
-      maxZoom: 19,
-      subdomains: "abc",
+      maxZoom: 18,
     },
     satellite: {
-      url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+      url: "/api/tiles?type=sat&z={z}&x={x}&y={y}",
       attr: "© Esri, Maxar, Earthstar Geographics",
       maxZoom: 18,
     },
@@ -2397,7 +2396,6 @@ export const EcranCarte = ({contacts, visites, onOpenLot}: any) => {
     const tl = L.tileLayer(fond.url,{
       attribution: fond.attr,
       maxZoom: fond.maxZoom,
-      subdomains: fond.subdomains ?? "abc",
     });
     tl.on("tileerror", ()=>setTilesErreur(true));
     tl.on("tileload",  ()=>setTilesErreur(false));
@@ -2417,7 +2415,6 @@ export const EcranCarte = ({contacts, visites, onOpenLot}: any) => {
     const tl = L.tileLayer(fond.url,{
       attribution: fond.attr,
       maxZoom: fond.maxZoom,
-      subdomains: fond.subdomains ?? "abc",
     });
     tl.on("tileerror", ()=>setTilesErreur(true));
     tl.on("tileload",  ()=>setTilesErreur(false));
