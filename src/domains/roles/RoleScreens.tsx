@@ -2367,12 +2367,12 @@ export const EcranCarte = ({contacts, visites, onOpenLot}: any) => {
 
   const FONDS: Record<string,{url:string,attr:string,maxZoom:number}> = {
     plan: {
-      url: "/api/tiles?z={z}&x={x}&y={y}",
+      url: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
       attr: '© <a href="https://www.openstreetmap.org/">OpenStreetMap</a> contributeurs',
-      maxZoom: 18,
+      maxZoom: 19,
     },
     satellite: {
-      url: "/api/tiles?type=sat&z={z}&x={x}&y={y}",
+      url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
       attr: "© Esri, Maxar, Earthstar Geographics",
       maxZoom: 18,
     },
