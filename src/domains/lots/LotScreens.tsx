@@ -126,6 +126,296 @@ function EffisBadge({ lat, lng }: { lat: number; lng: number }) {
 }
 // ─────────────────────────────────────────────────────────────────────────────
 
+// ── DFCIBadge ─────────────────────────────────────────────────────────────────
+// Affiche le statut sécurité/DFCI courant du chantier et permet d'enregistrer
+// un nouveau snapshot horodaté (valeur juridique = règle connue à l'instant T).
+const DFCI_COLORS: Record<string,{bg:string,bd:string,txt:string,icon:string}> = {
+  AUTORISE:       {bg:"#ECFDF5",bd:"#10B981",txt:"#065F46",icon:"✅"},
+  SOUS_CONDITIONS:{bg:"#FFFBEB",bd:"#F59E0B",txt:"#92400E",icon:"⚠️"},
+  SUSPENDU:       {bg:"#FEF2F2",bd:"#EF4444",txt:"#991B1B",icon:"🚫"},
+};
+
+function DFCIBadge({ contactId }: { contactId: string; token?: string }) {
+  const [current, setCurrent]   = useState<any>(null);
+  const [loading, setLoading]   = useState(true);
+  const [showForm, setShowForm] = useState(false);
+  const [saving,   setSaving]   = useState(false);
+  const [form, setForm] = useState({
+    statutChantier:"AUTORISE",
+    restrictionHoraire:"",
+    arreteRef:"",
+    pisteDFCI:"",
+    pointEauDistanceKm:"",
+    pointEauDescription:"",
+    largeurAccesM:"",
+    accessibilitePompiers:true,
+    notes:"",
+  });
+
+  const load = () => {
+    setLoading(true);
+    apiGet(`/contacts/${contactId}/securite-dfci/current`)
+      .then((d: any) => { setCurrent(d ?? null); setLoading(false); })
+      .catch(() => { setCurrent(null); setLoading(false); });
+  };
+  useEffect(load, [contactId]);
+
+  const save = async () => {
+    setSaving(true);
+    try {
+      await apiPost(`/contacts/${contactId}/securite-dfci`, {
+        ...form,
+        pointEauDistanceKm: form.pointEauDistanceKm ? parseFloat(form.pointEauDistanceKm) : undefined,
+        largeurAccesM:      form.largeurAccesM      ? parseFloat(form.largeurAccesM)      : undefined,
+      });
+      setShowForm(false);
+      load();
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (loading) return (
+    <div style={{borderRadius:12,padding:"10px 14px",marginBottom:16,
+      background:"#F3F4F6",border:"1px solid #E5E7EB",fontSize:11,color:"#6B7280",
+      display:"flex",alignItems:"center",gap:6}}>
+      <span>🛡️</span> Chargement sécurité DFCI…
+    </div>
+  );
+
+  const palette = DFCI_COLORS[current?.statutChantier ?? ""] ?? DFCI_COLORS.AUTORISE;
+  const hasCurrent = !!current;
+
+  return (
+    <div style={{marginBottom:16}}>
+      {/* Carte statut courant */}
+      <div style={{borderRadius:14,padding:14,
+        background: hasCurrent ? palette.bg : "#F9FAFB",
+        border:`1.5px solid ${hasCurrent ? palette.bd : "#E5E7EB"}`}}>
+        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:6}}>
+          <div style={{fontSize:11,fontWeight:700,letterSpacing:"0.05em",textTransform:"uppercase",
+            color: hasCurrent ? palette.txt : "#6B7280"}}>
+            🛡️ Sécurité DFCI Chantier
+          </div>
+          <button onClick={() => setShowForm(f=>!f)}
+            style={{fontSize:10,padding:"3px 10px",borderRadius:8,border:"1px solid",cursor:"pointer",
+              borderColor: hasCurrent ? palette.bd : "#D1D5DB",
+              background:"white",color: hasCurrent ? palette.txt : "#374151",fontWeight:600}}>
+            {showForm ? "Annuler" : hasCurrent ? "Mettre à jour" : "Enregistrer décision"}
+          </button>
+        </div>
+
+        {hasCurrent ? (
+          <>
+            {/* Statut principal */}
+            <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:8}}>
+              <span style={{fontSize:20}}>{palette.icon}</span>
+              <div>
+                <div style={{fontSize:15,fontWeight:700,color:palette.txt}}>
+                  CHANTIER {current.statutChantier === "SOUS_CONDITIONS" ? "SOUS CONDITIONS" : current.statutChantier}
+                </div>
+                {current.restrictionHoraire && (
+                  <div style={{fontSize:11,color:palette.txt,opacity:0.85}}>
+                    {current.restrictionHoraire}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Détails DFCI */}
+            <div style={{display:"flex",flexWrap:"wrap",gap:6,marginBottom:6}}>
+              {current.pisteDFCI && (
+                <span style={{fontSize:10,padding:"2px 8px",borderRadius:6,
+                  background:"rgba(255,255,255,0.7)",border:`1px solid ${palette.bd}`,
+                  color:palette.txt}}>
+                  🛤️ {current.pisteDFCI}
+                </span>
+              )}
+              {current.pointEauDistanceKm != null && (
+                <span style={{fontSize:10,padding:"2px 8px",borderRadius:6,
+                  background:"rgba(255,255,255,0.7)",border:`1px solid ${palette.bd}`,
+                  color:palette.txt}}>
+                  💧 {current.pointEauDistanceKm} km
+                  {current.pointEauDescription ? ` · ${current.pointEauDescription}` : ""}
+                </span>
+              )}
+              {current.largeurAccesM != null && (
+                <span style={{fontSize:10,padding:"2px 8px",borderRadius:6,
+                  background:"rgba(255,255,255,0.7)",border:`1px solid ${palette.bd}`,
+                  color:palette.txt}}>
+                  ↔️ {current.largeurAccesM} m accès
+                </span>
+              )}
+              {current.accessibilitePompiers === false && (
+                <span style={{fontSize:10,padding:"2px 8px",borderRadius:6,
+                  background:"#FEE2E2",border:"1px solid #EF4444",color:"#991B1B",fontWeight:600}}>
+                  🚒 Accès pompiers limité
+                </span>
+              )}
+            </div>
+
+            {current.arreteRef && (
+              <div style={{fontSize:10,color:palette.txt,opacity:0.8}}>
+                📋 Arrêté : {current.arreteRef}
+                {current.arreteDate ? ` (${new Date(current.arreteDate).toLocaleDateString("fr-FR")})` : ""}
+              </div>
+            )}
+            {current.notes && (
+              <div style={{fontSize:10,color:"#6B7280",marginTop:4,fontStyle:"italic"}}>
+                {current.notes}
+              </div>
+            )}
+            <div style={{fontSize:9,color:"#9CA3AF",marginTop:6}}>
+              Décision enregistrée le {new Date(current.horodatageDecision).toLocaleString("fr-FR")}
+              {current.auteurNom ? ` · par ${current.auteurNom}` : ""}
+            </div>
+          </>
+        ) : (
+          <div style={{fontSize:12,color:"#6B7280"}}>
+            Aucune décision DFCI enregistrée pour ce chantier.
+          </div>
+        )}
+      </div>
+
+      {/* Formulaire de saisie */}
+      {showForm && (
+        <div style={{borderRadius:12,padding:14,marginTop:8,
+          background:"#F8FAFC",border:"1px solid #E2E8F0"}}>
+          <div style={{fontSize:11,fontWeight:700,color:"#334155",marginBottom:10,
+            textTransform:"uppercase",letterSpacing:"0.05em"}}>
+            Nouveau snapshot de décision
+          </div>
+
+          {/* Statut */}
+          <div style={{marginBottom:10}}>
+            <div style={{fontSize:10,color:"#64748B",marginBottom:4,fontWeight:600}}>
+              Statut chantier *
+            </div>
+            <div style={{display:"flex",gap:6}}>
+              {(["AUTORISE","SOUS_CONDITIONS","SUSPENDU"] as const).map(s => {
+                const p = DFCI_COLORS[s];
+                return (
+                  <button key={s} onClick={()=>setForm(f=>({...f,statutChantier:s}))}
+                    style={{flex:1,padding:"8px 4px",borderRadius:8,cursor:"pointer",
+                      border:`2px solid ${form.statutChantier===s ? p.bd : "#E2E8F0"}`,
+                      background:form.statutChantier===s ? p.bg : "white",
+                      color:form.statutChantier===s ? p.txt : "#64748B",
+                      fontWeight:form.statutChantier===s ? 700 : 400,fontSize:10,
+                      textAlign:"center"}}>
+                    {p.icon} {s.replace("_"," ")}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Restriction horaire */}
+          {form.statutChantier === "SOUS_CONDITIONS" && (
+            <div style={{marginBottom:8}}>
+              <div style={{fontSize:10,color:"#64748B",marginBottom:3,fontWeight:600}}>
+                Restriction horaire
+              </div>
+              <input
+                value={form.restrictionHoraire}
+                onChange={e=>setForm(f=>({...f,restrictionHoraire:e.target.value}))}
+                placeholder="Ex : Travaux mécaniques autorisés jusqu'à 13h00"
+                style={{width:"100%",boxSizing:"border-box",padding:"7px 10px",
+                  borderRadius:8,border:"1px solid #CBD5E1",fontSize:11,
+                  background:"white"}}
+              />
+            </div>
+          )}
+
+          {/* Arrêté */}
+          <div style={{display:"flex",gap:8,marginBottom:8}}>
+            <div style={{flex:2}}>
+              <div style={{fontSize:10,color:"#64748B",marginBottom:3,fontWeight:600}}>Arrêté préfectoral</div>
+              <input value={form.arreteRef}
+                onChange={e=>setForm(f=>({...f,arreteRef:e.target.value}))}
+                placeholder="Réf. arrêté"
+                style={{width:"100%",boxSizing:"border-box",padding:"7px 10px",
+                  borderRadius:8,border:"1px solid #CBD5E1",fontSize:11,background:"white"}}/>
+            </div>
+          </div>
+
+          {/* DFCI */}
+          <div style={{display:"flex",gap:8,marginBottom:8}}>
+            <div style={{flex:2}}>
+              <div style={{fontSize:10,color:"#64748B",marginBottom:3,fontWeight:600}}>Piste DFCI</div>
+              <input value={form.pisteDFCI}
+                onChange={e=>setForm(f=>({...f,pisteDFCI:e.target.value}))}
+                placeholder="Ex : Piste n°12"
+                style={{width:"100%",boxSizing:"border-box",padding:"7px 10px",
+                  borderRadius:8,border:"1px solid #CBD5E1",fontSize:11,background:"white"}}/>
+            </div>
+            <div style={{flex:1}}>
+              <div style={{fontSize:10,color:"#64748B",marginBottom:3,fontWeight:600}}>Point d'eau (km)</div>
+              <input type="number" value={form.pointEauDistanceKm}
+                onChange={e=>setForm(f=>({...f,pointEauDistanceKm:e.target.value}))}
+                placeholder="1.4"
+                style={{width:"100%",boxSizing:"border-box",padding:"7px 10px",
+                  borderRadius:8,border:"1px solid #CBD5E1",fontSize:11,background:"white"}}/>
+            </div>
+          </div>
+
+          <div style={{display:"flex",gap:8,marginBottom:8}}>
+            <div style={{flex:2}}>
+              <div style={{fontSize:10,color:"#64748B",marginBottom:3,fontWeight:600}}>Point d'eau (description)</div>
+              <input value={form.pointEauDescription}
+                onChange={e=>setForm(f=>({...f,pointEauDescription:e.target.value}))}
+                placeholder="Ex : Mare forestière"
+                style={{width:"100%",boxSizing:"border-box",padding:"7px 10px",
+                  borderRadius:8,border:"1px solid #CBD5E1",fontSize:11,background:"white"}}/>
+            </div>
+            <div style={{flex:1}}>
+              <div style={{fontSize:10,color:"#64748B",marginBottom:3,fontWeight:600}}>Largeur accès (m)</div>
+              <input type="number" value={form.largeurAccesM}
+                onChange={e=>setForm(f=>({...f,largeurAccesM:e.target.value}))}
+                placeholder="4.5"
+                style={{width:"100%",boxSizing:"border-box",padding:"7px 10px",
+                  borderRadius:8,border:"1px solid #CBD5E1",fontSize:11,background:"white"}}/>
+            </div>
+          </div>
+
+          {/* Accessibilité pompiers */}
+          <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:8}}>
+            <input type="checkbox" id="dfci-pompiers"
+              checked={form.accessibilitePompiers}
+              onChange={e=>setForm(f=>({...f,accessibilitePompiers:e.target.checked}))}/>
+            <label htmlFor="dfci-pompiers" style={{fontSize:11,color:"#374151",cursor:"pointer"}}>
+              🚒 Accès pompiers dégagé
+            </label>
+          </div>
+
+          {/* Notes */}
+          <div style={{marginBottom:12}}>
+            <div style={{fontSize:10,color:"#64748B",marginBottom:3,fontWeight:600}}>Notes</div>
+            <textarea value={form.notes}
+              onChange={e=>setForm(f=>({...f,notes:e.target.value}))}
+              placeholder="Observations complémentaires…"
+              rows={2}
+              style={{width:"100%",boxSizing:"border-box",padding:"7px 10px",
+                borderRadius:8,border:"1px solid #CBD5E1",fontSize:11,
+                background:"white",resize:"vertical"}}/>
+          </div>
+
+          <div style={{fontSize:9,color:"#94A3B8",marginBottom:8}}>
+            ⏱️ Ce snapshot sera horodaté et conservé comme preuve de la décision.
+          </div>
+
+          <button onClick={save} disabled={saving}
+            style={{width:"100%",padding:"10px 0",borderRadius:10,border:"none",
+              cursor:saving?"not-allowed":"pointer",fontWeight:700,fontSize:13,
+              background:saving?"#94A3B8":"#0F172A",color:"white"}}>
+            {saving ? "Enregistrement…" : "Enregistrer la décision"}
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+// ─────────────────────────────────────────────────────────────────────────────
+
 export const FicheLotCentrale = ({
   lot, visites=[], operateurs=[], onBack, onEdit, onBonCommande,
   onLaunchVisite, onLaunchValidation, onLaunchCloture,
@@ -401,6 +691,9 @@ export const FicheLotCentrale = ({
             {lot.gpsLat&&lot.gpsLng&&(
               <EffisBadge lat={lot.gpsLat} lng={lot.gpsLng}/>
             )}
+
+            {/* Sécurité DFCI — snapshot horodaté valeur juridique */}
+            <DFCIBadge contactId={lot.id} token={user?.token}/>
 
             {/* Mandataire désigné — tant que la visite n'a pas été réalisée */}
             {!derniereVisite&&mandataireAssigne&&(
