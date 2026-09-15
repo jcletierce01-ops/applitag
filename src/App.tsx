@@ -29,6 +29,7 @@ import { EcranRoleMandataire, EcranRoleProprietaire, EcranRoleChauffeur, EcranRo
 import { QrCodeAdmin, EcranReleves, EcranOperateur, EcranAccueil, EcranDelegations, Fiche0, Fiche0Edit } from "./domains/screens/MobileScreens.jsx";
 import { EcranLots, ModalDelegationVisite, ModalSuggestionETF, EcranValidationExploitation, EcranClotureExploitation, EcranBonCommande, EcranSaisiesAdmin } from "./domains/exploitation/ExploitationScreens.jsx";
 import { LoginScreen } from "./domains/auth/LoginScreen.jsx";
+import { EcranProfilEntreprise } from "./domains/entreprise/EcranProfilEntreprise.jsx";
 
 export default function App() {
   const [user,      setUser]      = useState<any>(()=>getUser());
@@ -658,43 +659,48 @@ export default function App() {
             onBack={()=>setScreen("accueil")}/>
         )}
         {screen==="profil"&&(
-          <div style={{padding:PADDING}}>
-            <SectionTitle icon="👤" label="Profil"/>
-            <div style={{background:"#fff",borderRadius:14,padding:16,marginBottom:12}}>
-              <div style={{fontSize:16,fontWeight:700}}>{user.prenom} {user.nom}</div>
-              <div style={{fontSize:13,color:C.tx3,marginTop:4}}>Rôle : {user.role}</div>
-              {isDemoMode&&<div style={{fontSize:11,color:C.amberD,marginTop:4}}>🎭 Mode démonstration</div>}
+          <div style={{paddingBottom:80}}>
+            <div style={{padding:PADDING}}>
+              <SectionTitle icon="👤" label="Profil"/>
+              <div style={{background:"#fff",borderRadius:14,padding:16,marginBottom:12}}>
+                <div style={{fontSize:16,fontWeight:700}}>{user.prenom} {user.nom}</div>
+                <div style={{fontSize:13,color:C.tx3,marginTop:4}}>Rôle : {user.role}</div>
+                {isDemoMode&&<div style={{fontSize:11,color:C.amberD,marginTop:4}}>🎭 Mode démonstration</div>}
+              </div>
+              {isDemoMode&&(
+                <div style={{background:C.amberL,borderRadius:12,padding:14,marginBottom:12,
+                  border:`1px solid ${C.amber}`}}>
+                  <div style={{fontSize:12,color:C.amberD,fontWeight:600,marginBottom:6}}>
+                    🎭 Données de démonstration
+                  </div>
+                  <div style={{fontSize:11,color:C.amberD,lineHeight:1.7}}>
+                    {DEMO_LOTS.length} lots · {DEMO_VISITES.length} visites ·
+                    {DEMO_REPORTINGS.length} reportings · {DEMO_TRANSPORTS.length} transports
+                  </div>
+                </div>
+              )}
+              {(roleEffectif==="admin"||roleEffectif==="manager")&&(
+                <div style={{marginBottom:12}}>
+                  <button onClick={()=>{
+                    const next=!forcePCView;
+                    setForcePCView(next);
+                    try{localStorage.setItem("applitag_force_pc",next?"1":"0");}catch{}
+                  }} style={{width:"100%",height:48,borderRadius:12,
+                    background:forcePCView?"#1a237e":"#fff",
+                    color:forcePCView?"#fff":C.tx,
+                    border:`1.5px solid ${forcePCView?"#1a237e":C.bd}`,
+                    fontFamily:"inherit",fontSize:14,fontWeight:600,
+                    cursor:"pointer",display:"flex",alignItems:"center",
+                    justifyContent:"center",gap:8,WebkitTapHighlightColor:"transparent"}}>
+                    🖥️ {forcePCView?"Quitter le mode PC":"Basculer vers l'écran PC admin"}
+                  </button>
+                </div>
+              )}
+              <BigBtn onClick={handleLogout} bg={C.red} icon="⎋">Se déconnecter</BigBtn>
             </div>
-            {isDemoMode&&(
-              <div style={{background:C.amberL,borderRadius:12,padding:14,marginBottom:12,
-                border:`1px solid ${C.amber}`}}>
-                <div style={{fontSize:12,color:C.amberD,fontWeight:600,marginBottom:6}}>
-                  🎭 Données de démonstration
-                </div>
-                <div style={{fontSize:11,color:C.amberD,lineHeight:1.7}}>
-                  {DEMO_LOTS.length} lots · {DEMO_VISITES.length} visites ·
-                  {DEMO_REPORTINGS.length} reportings · {DEMO_TRANSPORTS.length} transports
-                </div>
-              </div>
+            {!isDemoMode&&(
+              <EcranProfilEntreprise user={user} toast={toast}/>
             )}
-            {(roleEffectif==="admin"||roleEffectif==="manager")&&(
-              <div style={{marginBottom:12}}>
-                <button onClick={()=>{
-                  const next=!forcePCView;
-                  setForcePCView(next);
-                  try{localStorage.setItem("applitag_force_pc",next?"1":"0");}catch{}
-                }} style={{width:"100%",height:48,borderRadius:12,
-                  background:forcePCView?"#1a237e":"#fff",
-                  color:forcePCView?"#fff":C.tx,
-                  border:`1.5px solid ${forcePCView?"#1a237e":C.bd}`,
-                  fontFamily:"inherit",fontSize:14,fontWeight:600,
-                  cursor:"pointer",display:"flex",alignItems:"center",
-                  justifyContent:"center",gap:8,WebkitTapHighlightColor:"transparent"}}>
-                  🖥️ {forcePCView?"Quitter le mode PC":"Basculer vers l'écran PC admin"}
-                </button>
-              </div>
-            )}
-            <BigBtn onClick={handleLogout} bg={C.red} icon="⎋">Se déconnecter</BigBtn>
           </div>
         )}
         {screen==="carte"&&(
