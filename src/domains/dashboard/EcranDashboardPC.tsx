@@ -8,7 +8,8 @@ import { SectionDemoScenario, SectionModulesFuturs } from "./sections-admin-demo
 import { SectionFinancements } from "./sections-terrain.jsx";
 import { SectionApplitgData, SectionScierie } from "./sections-terrain-op.jsx";
 import { SectionPermisIncendie, SectionDesserte } from "./sections-dfci.jsx";
-import { SectionCoproduits, SectionProjetFinance, SectionParcelleTravaux } from "./sections-projets.jsx";
+import { SectionCoproduits, SectionProjetFinance } from "./sections-projets.jsx";
+import { SectionParcelleTravaux } from "./sections-projets-parcelles.jsx";
 import { SectionRegistreIA, SectionBoisCrise, SectionFicheCombustible, SectionVeilleReglementaire } from "./sections-veille.jsx";
 import { SectionLivraisons, SectionFacturationElec, SectionChaufferies } from "./sections-energie.jsx";
 import { SectionRapports, SectionReseau } from "./sections-config.jsx";
