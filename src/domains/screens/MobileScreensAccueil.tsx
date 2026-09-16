@@ -61,10 +61,15 @@ export const EcranAccueil = ({contacts, notifications, user, livraisons=[], tran
 
   return (
     <div style={{display:"flex",flexDirection:"column",height:"100%",overflowY:"auto",
-      padding:PADDING,paddingBottom:90}}>
-      <div style={{marginBottom:20}}>
-        <div style={{fontSize:13,color:C.tx3}}>{new Date().toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long'})}</div>
-        <div style={{fontSize:22,fontWeight:700,color:C.tx,marginTop:2}}>
+      padding:PADDING,paddingBottom:90,background:"#FFFFFF"}}>
+      {/* ── Bandeau d'accueil ── */}
+      <div style={{background:"linear-gradient(135deg,#E8F5E9 0%,#F1F8F2 100%)",borderRadius:18,
+        padding:"18px 16px 14px",marginBottom:16,
+        borderLeft:`4px solid ${C.green}`}}>
+        <div style={{fontSize:12,color:C.greenD,opacity:.75,fontWeight:500,marginBottom:2}}>
+          {new Date().toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long'})}
+        </div>
+        <div style={{fontSize:22,fontWeight:700,color:C.greenD,marginTop:0}}>
           Bonjour {user?.prenom||user?.nom} 👋
         </div>
       </div>
@@ -253,7 +258,8 @@ export const EcranAccueil = ({contacts, notifications, user, livraisons=[], tran
         ))}
       </div>
       {/* ── Tonnages du mois ── */}
-      <div style={{fontSize:13,fontWeight:700,color:C.tx2,marginBottom:8,fontFamily:FONT_TITLE}}>
+      <div style={{fontSize:12,fontWeight:700,color:C.greenD,marginBottom:8,fontFamily:FONT_TITLE,
+        textTransform:"uppercase",letterSpacing:".06em"}}>
         Tonnages du mois
       </div>
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:16}}>
@@ -273,7 +279,8 @@ export const EcranAccueil = ({contacts, notifications, user, livraisons=[], tran
       </div>
 
       {/* ── Stocks & Conformité ── */}
-      <div style={{fontSize:13,fontWeight:700,color:C.tx2,marginBottom:8,fontFamily:FONT_TITLE}}>
+      <div style={{fontSize:12,fontWeight:700,color:C.greenD,marginBottom:8,fontFamily:FONT_TITLE,
+        textTransform:"uppercase",letterSpacing:".06em"}}>
         Stocks &amp; Conformité
       </div>
       <div style={{display:"flex",gap:10,marginBottom:16}}>
@@ -293,7 +300,8 @@ export const EcranAccueil = ({contacts, notifications, user, livraisons=[], tran
       {/* ── Transports en cours ── */}
       {transportsEnCours.length>0&&(
         <>
-          <div style={{fontSize:13,fontWeight:700,color:C.tx2,marginBottom:8,fontFamily:FONT_TITLE}}>
+          <div style={{fontSize:12,fontWeight:700,color:C.greenD,marginBottom:8,fontFamily:FONT_TITLE,
+            textTransform:"uppercase",letterSpacing:".06em"}}>
             🚛 Transports en cours
           </div>
           <div style={{background:"#fff",borderRadius:14,border:`1px solid ${C.bd}`,padding:"0 14px",marginBottom:16}}>
@@ -320,7 +328,8 @@ export const EcranAccueil = ({contacts, notifications, user, livraisons=[], tran
       {/* ── Alertes non lues ── */}
       {alertes.slice(0,2).length>0&&(
         <>
-          <div style={{fontSize:13,fontWeight:700,color:C.tx2,marginBottom:8,fontFamily:FONT_TITLE}}>
+          <div style={{fontSize:12,fontWeight:700,color:C.greenD,marginBottom:8,fontFamily:FONT_TITLE,
+            textTransform:"uppercase",letterSpacing:".06em"}}>
             🔔 Alertes non lues
           </div>
           <div style={{background:"#fff",borderRadius:14,border:`1px solid ${C.bd}`,padding:"0 14px",marginBottom:16}}>
@@ -341,7 +350,8 @@ export const EcranAccueil = ({contacts, notifications, user, livraisons=[], tran
         </>
       )}
 
-      <div style={{fontSize:13,fontWeight:700,color:C.tx2,marginBottom:10,fontFamily:FONT_TITLE}}>
+      <div style={{fontSize:12,fontWeight:700,color:C.greenD,marginBottom:10,fontFamily:FONT_TITLE,
+        textTransform:"uppercase",letterSpacing:".06em"}}>
         Chantiers du jour
       </div>
       {chantiersJour.length===0&&(
@@ -374,11 +384,11 @@ export const EcranAccueil = ({contacts, notifications, user, livraisons=[], tran
       <div onClick={()=>onOpenMenu&&onOpenMenu()} style={{
         marginTop:12,display:"flex",alignItems:"center",justifyContent:"center",
         gap:8,padding:"14px",borderRadius:14,
-        background:C.bg2,border:`1.5px solid ${C.bd}`,cursor:"pointer",
+        background:C.greenL,border:`1.5px solid ${C.green}`,cursor:"pointer",
         WebkitTapHighlightColor:"transparent"}}>
         <span style={{fontSize:18}}>⊞</span>
-        <span style={{fontSize:14,fontWeight:600,color:C.tx2}}>Tous les modules</span>
-        <span style={{background:C.greenL,color:C.greenD,fontSize:11,fontWeight:700,
+        <span style={{fontSize:14,fontWeight:600,color:C.greenD}}>Tous les modules</span>
+        <span style={{background:C.green,color:"#fff",fontSize:11,fontWeight:700,
           borderRadius:10,padding:"2px 8px"}}>
           {GROUPES_MODULES.reduce((n,g)=>n+g.items.length,0)}
         </span>
