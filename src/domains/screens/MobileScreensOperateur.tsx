@@ -975,20 +975,20 @@ export const EcranAccueil = ({contacts, notifications, user, livraisons=[], tran
       )}
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:10,marginBottom:16}}>
         {[
-          {icon:"🔭",label:"À visiter",count:lotsAVisiter.length,color:C.amber,bg:C.amberL,action:()=>onGoLots("VISITE_PREVUE")},
-          {icon:"🪓",label:"En exploitation",count:chantiersJour.length,color:C.blue,bg:C.blueL,action:()=>onGoLots("EN_COURS_EXPLOITATION")},
-          {icon:"📦",label:"Bord de route",count:contacts.filter((c: any)=>c.statutLot==="BORD_ROUTE").length,color:C.brown,bg:C.brownL,action:()=>onGoLots("BORD_ROUTE")},
-          {icon:"🚛",label:"Transports",count:contacts.filter((c: any)=>c.statutLot==="EN_LIVRAISON").length,color:C.purple,bg:C.purpleL,action:()=>onGoLots("EN_LIVRAISON")},
-          {icon:"✅",label:"Livraisons",count:contacts.filter((c: any)=>c.statutLot==="LIVRE_CHAUFFERIE").length,color:C.green,bg:C.greenL,action:()=>onGoLots("LIVRE_CHAUFFERIE")},
-          {icon:"⚠️",label:"Alertes",count:alertes.length,color:alertes.length>0?"#fff":C.red,bg:alertes.length>0?C.red:C.redL,action:onGoAlertes},
-          {icon:"🏢",label:"Délégations",count:null,color:C.purpleD,bg:C.purpleL,action:onGoDelegations},
+          {icon:"🔭",label:"À visiter",count:lotsAVisiter.length,color:C.amber,labelColor:C.tx2,bg:C.amberL,action:()=>onGoLots("VISITE_PREVUE")},
+          {icon:"🪓",label:"En exploitation",count:chantiersJour.length,color:C.blue,labelColor:C.tx2,bg:C.blueL,action:()=>onGoLots("EN_COURS_EXPLOITATION")},
+          {icon:"📦",label:"Bord de route",count:contacts.filter((c: any)=>c.statutLot==="BORD_ROUTE").length,color:C.brown,labelColor:C.tx2,bg:C.brownL,action:()=>onGoLots("BORD_ROUTE")},
+          {icon:"🚛",label:"Transports",count:contacts.filter((c: any)=>c.statutLot==="EN_LIVRAISON").length,color:C.purple,labelColor:C.tx2,bg:C.purpleL,action:()=>onGoLots("EN_LIVRAISON")},
+          {icon:"✅",label:"Livraisons",count:contacts.filter((c: any)=>c.statutLot==="LIVRE_CHAUFFERIE").length,color:C.green,labelColor:C.tx2,bg:C.greenL,action:()=>onGoLots("LIVRE_CHAUFFERIE")},
+          {icon:"⚠️",label:"Alertes",count:alertes.length,color:alertes.length>0?"#fff":C.red,labelColor:alertes.length>0?"rgba(255,255,255,.8)":C.tx2,bg:alertes.length>0?C.red:C.redL,action:onGoAlertes},
+          {icon:"🏢",label:"Délégations",count:null,color:C.purpleD,labelColor:C.tx2,bg:C.purpleL,action:onGoDelegations},
         ].filter(card=>card.icon!=="🏢"||(user?.role==="admin"||user?.role==="manager")).map((card,i)=>(
           <div key={i} onClick={card.action} style={{
             background:card.bg,borderRadius:14,padding:"14px 10px",cursor:"pointer",
             WebkitTapHighlightColor:"transparent"}}>
             <div style={{fontSize:22,marginBottom:6}}>{card.icon}</div>
             <div style={{fontSize:22,fontWeight:700,color:card.color,fontFamily:FONT_TITLE}}>{card.count??""}</div>
-            <div style={{fontSize:11,color:C.tx2,marginTop:2}}>{card.label}</div>
+            <div style={{fontSize:11,color:card.labelColor,marginTop:2}}>{card.label}</div>
           </div>
         ))}
       </div>
