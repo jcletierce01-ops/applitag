@@ -553,7 +553,7 @@ export const LoginScreen = ({onLogin, onLoginOperateur, onLoginDemo}: any) => {
         {/* ── HOME — connexion ── */}
         {step==="home"&&(
           <div>
-            <button onClick={()=>setStep("bienvenue")}
+            <button onClick={()=>{ setEntrepriseId(""); setEntrepriseNom(""); setPin(""); setError(""); setStep("bienvenue"); }}
               style={{background:"none",border:"none",color:"rgba(255,255,255,.55)",
                 fontFamily:"inherit",fontSize:13,cursor:"pointer",marginBottom:24,
                 display:"flex",alignItems:"center",gap:6,WebkitTapHighlightColor:"transparent"}}>
@@ -563,10 +563,11 @@ export const LoginScreen = ({onLogin, onLoginOperateur, onLoginDemo}: any) => {
               textAlign:"center",marginBottom:8,letterSpacing:".06em",
               textTransform:"uppercase"}}>Connexion</div>
             <div style={{fontSize:13,color:"rgba(255,255,255,.55)",
-              textAlign:"center",marginBottom:32,lineHeight:1.5}}>
+              textAlign:"center",marginBottom:28,lineHeight:1.5}}>
               Utilisez les codes fournis par votre administrateur
             </div>
             <div style={{display:"flex",flexDirection:"column",gap:14}}>
+              {/* QR */}
               <button onClick={()=>{ setError(""); setStep("scan"); }}
                 style={{width:"100%",padding:"20px 22px",borderRadius:18,
                   background:"rgba(255,255,255,.18)",border:"1.5px solid rgba(255,255,255,.6)",
@@ -582,24 +583,65 @@ export const LoginScreen = ({onLogin, onLoginOperateur, onLoginDemo}: any) => {
                   </div>
                 </div>
               </button>
-              <button onClick={()=>{
-                  setEntrepriseId(""); setEntrepriseNom(""); setPin(""); setError("");
-                  setStep("pin");
-                }}
-                style={{width:"100%",padding:"20px 22px",borderRadius:18,
-                  background:"rgba(255,255,255,.1)",border:"1.5px solid rgba(255,255,255,.4)",
-                  backdropFilter:"blur(8px)",
-                  color:"#fff",fontFamily:"inherit",fontSize:15,fontWeight:600,
-                  cursor:"pointer",WebkitTapHighlightColor:"transparent",
-                  display:"flex",alignItems:"center",justifyContent:"center",gap:16}}>
-                <span style={{fontSize:30,flexShrink:0}}>🔑</span>
-                <div style={{flex:1,textAlign:"center"}}>
-                  <div style={{fontWeight:700}}>Saisir mes identifiants</div>
-                  <div style={{fontSize:12,color:"rgba(255,255,255,.65)",fontWeight:400,marginTop:3}}>
-                    Identifiant et code d'accès fournis
-                  </div>
+
+              {/* Séparateur */}
+              <div style={{display:"flex",alignItems:"center",gap:12}}>
+                <div style={{flex:1,height:1,background:"rgba(255,255,255,.2)"}}/>
+                <span style={{fontSize:12,color:"rgba(255,255,255,.4)",letterSpacing:".08em"}}>OU</span>
+                <div style={{flex:1,height:1,background:"rgba(255,255,255,.2)"}}/>
+              </div>
+
+              {/* Formulaire identifiants inline */}
+              <div style={{background:"rgba(255,255,255,.07)",borderRadius:18,
+                border:"1.5px solid rgba(255,255,255,.3)",backdropFilter:"blur(8px)",
+                padding:"20px 18px",display:"flex",flexDirection:"column",gap:14}}>
+                <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:4}}>
+                  <span style={{fontSize:20}}>🔑</span>
+                  <span style={{fontSize:14,fontWeight:700,color:"#fff"}}>Identifiants</span>
                 </div>
-              </button>
+                <div>
+                  <div style={{fontSize:12,color:"rgba(255,255,255,.6)",marginBottom:6,fontWeight:500}}>
+                    Identifiant
+                  </div>
+                  <input
+                    type="text"
+                    placeholder="Fourni par votre administrateur"
+                    value={entrepriseId}
+                    onChange={e=>{ setEntrepriseId(e.target.value); setError(""); }}
+                    style={{width:"100%",padding:"13px 14px",borderRadius:12,boxSizing:"border-box" as any,
+                      border:"1.5px solid rgba(255,255,255,.3)",background:"rgba(255,255,255,.1)",
+                      color:"#fff",fontFamily:"inherit",fontSize:14,outline:"none"}}/>
+                </div>
+                <div>
+                  <div style={{fontSize:12,color:"rgba(255,255,255,.6)",marginBottom:6,fontWeight:500}}>
+                    Code d'accès
+                  </div>
+                  <input
+                    type="password"
+                    placeholder="Code fourni par votre administrateur"
+                    value={pin}
+                    onChange={e=>{ setPin(e.target.value); setError(""); }}
+                    style={{width:"100%",padding:"13px 14px",borderRadius:12,boxSizing:"border-box" as any,
+                      border:"1.5px solid rgba(255,255,255,.3)",background:"rgba(255,255,255,.1)",
+                      color:"#fff",fontFamily:"inherit",fontSize:14,outline:"none"}}/>
+                </div>
+                {error&&(
+                  <div style={{color:C.amber,fontSize:13,textAlign:"center"}}>⚠ {error}</div>
+                )}
+                <button
+                  onClick={handleLogin}
+                  disabled={loading||!entrepriseId.trim()||!pin.trim()}
+                  style={{width:"100%",padding:"15px 0",borderRadius:13,
+                    background:(!entrepriseId.trim()||!pin.trim())
+                      ? "rgba(255,255,255,.12)"
+                      : "rgba(29,158,117,.6)",
+                    border:"1.5px solid rgba(255,255,255,.35)",
+                    color:"#fff",fontFamily:"inherit",fontSize:15,fontWeight:700,
+                    cursor:(!entrepriseId.trim()||!pin.trim())?"not-allowed":"pointer",
+                    WebkitTapHighlightColor:"transparent" as any}}>
+                  {loading ? "Vérification…" : "Se connecter"}
+                </button>
+              </div>
             </div>
           </div>
         )}
