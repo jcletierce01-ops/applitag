@@ -506,7 +506,18 @@ export const LoginScreen = ({onLogin, onLoginOperateur, onLoginDemo}: any) => {
                   WebkitTapHighlightColor:"transparent",
                   display:"flex",alignItems:"center",gap:14}}>
                 <div style={{width:44,height:44,borderRadius:12,background:"rgba(80,160,255,.25)",
-                  display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,fontSize:22}}>🛠️</div>
+                  display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                  <svg width="28" height="22" viewBox="0 0 28 22" fill="white" xmlns="http://www.w3.org/2000/svg">
+                    <rect x="17" y="2" width="9" height="13" rx="1.5"/>
+                    <rect x="2" y="9" width="19" height="6" rx="1"/>
+                    <circle cx="6" cy="17" r="3.5"/>
+                    <circle cx="20" cy="17" r="3.5"/>
+                    <circle cx="5"  cy="11.5" r="2" fill="rgba(30,95,185,0.55)"/>
+                    <circle cx="9"  cy="11.5" r="2" fill="rgba(30,95,185,0.55)"/>
+                    <circle cx="13" cy="11.5" r="2" fill="rgba(30,95,185,0.55)"/>
+                    <rect x="24" y="0" width="1.5" height="4" rx="0.75"/>
+                  </svg>
+                </div>
                 <div>
                   <div style={{fontWeight:700}}>Proposer une prestation</div>
                   <div style={{fontSize:12,color:"rgba(255,255,255,.7)",fontWeight:400,marginTop:2}}>
