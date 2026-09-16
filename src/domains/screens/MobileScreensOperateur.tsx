@@ -980,7 +980,7 @@ export const EcranAccueil = ({contacts, notifications, user, livraisons=[], tran
           {icon:"📦",label:"Bord de route",count:contacts.filter((c: any)=>c.statutLot==="BORD_ROUTE").length,color:C.brown,bg:C.brownL,action:()=>onGoLots("BORD_ROUTE")},
           {icon:"🚛",label:"Transports",count:contacts.filter((c: any)=>c.statutLot==="EN_LIVRAISON").length,color:C.purple,bg:C.purpleL,action:()=>onGoLots("EN_LIVRAISON")},
           {icon:"✅",label:"Livraisons",count:contacts.filter((c: any)=>c.statutLot==="LIVRE_CHAUFFERIE").length,color:C.green,bg:C.greenL,action:()=>onGoLots("LIVRE_CHAUFFERIE")},
-          {icon:"⚠️",label:"Alertes",count:alertes.length,color:C.red,bg:C.redL,action:onGoAlertes},
+          {icon:"⚠️",label:"Alertes",count:alertes.length,color:alertes.length>0?"#fff":C.red,bg:alertes.length>0?C.red:C.redL,action:onGoAlertes},
           {icon:"🏢",label:"Délégations",count:null,color:C.purpleD,bg:C.purpleL,action:onGoDelegations},
         ].filter(card=>card.icon!=="🏢"||(user?.role==="admin"||user?.role==="manager")).map((card,i)=>(
           <div key={i} onClick={card.action} style={{
