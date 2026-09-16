@@ -3,7 +3,7 @@ import { C, FONT_TITLE, FONT_BODY } from "../../design-system/tokens.js";
 import { fmtNum } from "../../shared/format.js";
 import { MiniBarChart } from "../../shared/ui.jsx";
 import { EcranLots } from "../exploitation/ExploitationScreens.jsx";
-import { SectionAcces, SectionAbonnements, SectionDemoScenario, SectionModulesFuturs } from "./sections.jsx";
+import { SectionAcces, SectionAbonnements, SectionDemoScenario, SectionModulesFuturs } from "./sections-admin.jsx";
 import { SectionFinancements, SectionApplitgData, SectionScierie } from "./sections-terrain.jsx";
 import { SectionPermisIncendie, SectionDesserte } from "./sections-dfci.jsx";
 import { SectionCoproduits, SectionProjetFinance, SectionParcelleTravaux } from "./sections-projets.jsx";
