@@ -40,6 +40,7 @@ import { Fiche0Edit } from "./domains/screens/MobileScreensFiche0Edit.jsx";
 import { EcranOperateur } from "./domains/screens/MobileScreensOperateur.jsx";
 import { EcranAccueil, EcranDelegations } from "./domains/screens/MobileScreensAccueil.jsx";
 import { GROUPES_MODULES } from "./domains/screens/mobile-modules.constants.js";
+import { hasPermission } from "./domains/auth/rolePermissions.js";
 import { FEATURE_FLAGS } from "./config/featureFlags.js";
 import { EcranLots, ModalDelegationVisite, ModalSuggestionETF, EcranValidationExploitation } from "./domains/exploitation/ExploitationScreens.jsx";
 import { EcranClotureExploitation, EcranBonCommande, EcranSaisiesAdmin } from "./domains/exploitation/ExploitationScreensOp.jsx";
@@ -997,7 +998,9 @@ export default function App() {
                     marginBottom:8,padding:"0 4px"}}>{groupe.label}</div>
                   <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:6}}>
                     {groupe.items.map((mod: any)=>{
-                      const active = !mod.flag || FEATURE_FLAGS[mod.flag as keyof typeof FEATURE_FLAGS] !== false;
+                      const featureOn = !mod.flag || FEATURE_FLAGS[mod.flag as keyof typeof FEATURE_FLAGS] !== false;
+                      const roleOk    = hasPermission(user?.role as string, mod.id);
+                      const active    = featureOn && roleOk;
                       return (
                         <div key={mod.id}
                           onClick={()=>{
@@ -1013,10 +1016,11 @@ export default function App() {
                             else if (mod.nav==="carte")      { setScreen("carte"); }
                             else { toast("Module disponible sur le tableau de bord PC","info"); }
                           }}
+                          title={!roleOk ? "Module non inclus dans vos autorisations" : undefined}
                           style={{borderRadius:10,padding:"8px 4px",textAlign:"center",
                             background:active?"#fff":C.bg,
                             border:`1px solid ${active?C.bd:"transparent"}`,
-                            opacity:active?1:0.4,
+                            opacity:active?1:0.35,
                             cursor:active?"pointer":"default",
                             WebkitTapHighlightColor:"transparent"}}>
                           <div style={{fontSize:18,marginBottom:3}}>{mod.icon}</div>

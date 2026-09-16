@@ -27,6 +27,7 @@ import { SectionTransports, SectionAnalyses } from "./sections-logistique-transp
 import { SectionDocuments, SectionTerritoire } from "./sections-logistique-docs.jsx";
 import { HubAlertes, SectionPlanning } from "./sections-logistique-alertes.jsx";
 import { DASHBOARD_NAV } from "./sections.constants.js";
+import { hasPermission } from "../auth/rolePermissions.js";
 
 import { EcranCarte } from "../roles/RoleScreensEntrepriseGeo.jsx";
 import { STATUT_LOT } from "../screens/MobileScreens.constants.js";
@@ -114,21 +115,33 @@ export const EcranDashboardPC = ({user, contacts, visites, notifications, transp
           </div>
         </div>
         <div style={{flex:1,overflowY:"auto",overflowX:"hidden"}}>
-          {DASHBOARD_NAV.map((item: any)=>(
-            <div key={item.id} onClick={()=>setSection(item.id)} style={{
-              display:"flex",alignItems:"center",gap:10,padding:"11px 20px",cursor:"pointer",
-              background:section===item.id?"rgba(255,255,255,.12)":"transparent",
-              borderLeft:`3px solid ${section===item.id?C.greenPale:"transparent"}`,
-              fontSize:14,fontWeight:section===item.id?600:400,
-              WebkitTapHighlightColor:"transparent"}}>
-              <span style={{fontSize:16,flexShrink:0}}>{item.icon}</span>
-              <span style={{flex:1,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{item.label}</span>
-              {item.id==="alertes"&&alertesActives.length>0&&(
-                <span style={{background:C.red,color:"#fff",fontSize:10,fontWeight:700,
-                  borderRadius:10,padding:"2px 7px",flexShrink:0}}>{alertesActives.length}</span>
-              )}
-            </div>
-          ))}
+          {DASHBOARD_NAV.map((item: any)=>{
+            const allowed = hasPermission(user?.role as string, item.id);
+            return (
+              <div key={item.id}
+                onClick={allowed ? ()=>setSection(item.id) : undefined}
+                title={!allowed ? "Module non inclus dans vos autorisations" : undefined}
+                style={{
+                  display:"flex",alignItems:"center",gap:10,padding:"11px 20px",
+                  cursor: allowed ? "pointer" : "default",
+                  background: section===item.id ? "rgba(255,255,255,.12)" : "transparent",
+                  borderLeft: `3px solid ${section===item.id ? C.greenPale : "transparent"}`,
+                  fontSize:14, fontWeight: section===item.id ? 600 : 400,
+                  opacity: allowed ? 1 : 0.38,
+                  WebkitTapHighlightColor:"transparent",
+                }}>
+                <span style={{fontSize:16,flexShrink:0}}>{item.icon}</span>
+                <span style={{flex:1,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{item.label}</span>
+                {item.id==="alertes" && alertesActives.length>0 && allowed && (
+                  <span style={{background:C.red,color:"#fff",fontSize:10,fontWeight:700,
+                    borderRadius:10,padding:"2px 7px",flexShrink:0}}>{alertesActives.length}</span>
+                )}
+                {!allowed && (
+                  <span style={{fontSize:11,flexShrink:0,opacity:.7}}>🔒</span>
+                )}
+              </div>
+            );
+          })}
         </div>
         <div onClick={onLogout} style={{display:"flex",alignItems:"center",gap:10,
           padding:"12px 20px",cursor:"pointer",borderTop:"1px solid rgba(255,255,255,.12)"}}>
