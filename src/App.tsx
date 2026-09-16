@@ -28,7 +28,8 @@ import { FicheLotCentrale, EcranFinChantier, EcranDechiquetage, EcranTransporteu
 import { EcranRoleMandataire, EcranRoleProprietaire, EcranRoleChauffeur, EcranRoleDechiquetage } from "./domains/roles/RoleScreens.jsx";
 import { EcranEntrepriseSollicitee, EcranRoleChaufferie, EcranRoleReceptionnaire, EcranAutoDeclarationRED, EcranCarte } from "./domains/roles/RoleScreensEntreprise.jsx";
 import { EcranRoleGestionnaire, EcranRoleScierie, EcranRoleCollectivite, EcranRoleBET, EcranRoleETF, EcranRoleAssociation, EcranRoleInstitutionnel, EcranRoleFinanceur, EcranRoleLogistique } from "./domains/roles/RoleScreensSecondaires.jsx";
-import { QrCodeAdmin, EcranReleves, EcranOperateur, EcranAccueil, EcranDelegations, Fiche0, Fiche0Edit } from "./domains/screens/MobileScreens.jsx";
+import { QrCodeAdmin, Fiche0, EcranReleves, Fiche0Edit } from "./domains/screens/MobileScreensContacts.jsx";
+import { EcranOperateur, EcranAccueil, EcranDelegations } from "./domains/screens/MobileScreensOperateur.jsx";
 import { GROUPES_MODULES } from "./domains/screens/mobile-modules.constants.js";
 import { FEATURE_FLAGS } from "./config/featureFlags.js";
 import { EcranLots, ModalDelegationVisite, ModalSuggestionETF, EcranValidationExploitation, EcranClotureExploitation, EcranBonCommande, EcranSaisiesAdmin } from "./domains/exploitation/ExploitationScreens.jsx";
