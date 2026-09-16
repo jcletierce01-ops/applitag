@@ -11,7 +11,8 @@ import { SectionRegistreIA, SectionBoisCrise, SectionFicheCombustible, SectionVe
 import { SectionLivraisons, SectionFacturationElec, SectionChaufferies } from "./sections-energie.jsx";
 import { SectionRapports, SectionReseau, SectionPlanApprovisionnement, SectionParametres } from "./sections-config.jsx";
 import { SectionConformiteRED, SectionCoutReglementaire, SectionGES } from "./sections-reglementaire.jsx";
-import { SectionChantiers, SectionTransports, SectionAnalyses, SectionDocuments, SectionTerritoire, HubAlertes, SectionPlanning } from "./sections-logistique.jsx";
+import { SectionChantiers, SectionTransports, SectionAnalyses } from "./sections-logistique.jsx";
+import { SectionDocuments, SectionTerritoire, HubAlertes, SectionPlanning } from "./sections-logistique-docs.jsx";
 import { DASHBOARD_NAV } from "./sections.constants.js";
 
 import { EcranCarte } from "../roles/RoleScreensEntreprise.jsx";
