@@ -476,7 +476,7 @@ export const LoginScreen = ({onLogin, onLoginOperateur, onLoginDemo}: any) => {
                 <div>
                   <div style={{fontWeight:700}}>Se connecter</div>
                   <div style={{fontSize:12,color:"rgba(255,255,255,.7)",fontWeight:400,marginTop:2}}>
-                    Lire un code · Scanner un QR code
+                    Avec ses identifiants ou QR code
                   </div>
                 </div>
               </button>
