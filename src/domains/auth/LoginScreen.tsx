@@ -407,7 +407,7 @@ export const LoginScreen = ({onLogin, onLoginOperateur, onLoginDemo}: any) => {
   };
 
   useEffect(() => {
-    if (pin.length === 4) handleLogin();
+    if (pin.length === 4 && entrepriseNom) handleLogin();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pin]);
 
@@ -1635,73 +1635,115 @@ export const LoginScreen = ({onLogin, onLoginOperateur, onLoginDemo}: any) => {
               {"< "} Retour
             </button>
             {entrepriseNom ? (
-              <div style={{textAlign:"center",marginBottom:24}}>
-                <div style={{fontSize:13,color:"rgba(255,255,255,.5)",marginBottom:4}}>Entreprise</div>
-                <div style={{fontSize:18,fontWeight:700,color:C.green}}>{entrepriseNom}</div>
-              </div>
-            ) : (
-              <div style={{marginBottom:20}}>
-                <div style={{fontSize:13,color:"rgba(255,255,255,.6)",marginBottom:8}}>
-                  Identifiant d'entreprise
+              <>
+                <div style={{textAlign:"center",marginBottom:24}}>
+                  <div style={{fontSize:13,color:"rgba(255,255,255,.5)",marginBottom:4}}>Entreprise</div>
+                  <div style={{fontSize:18,fontWeight:700,color:C.green}}>{entrepriseNom}</div>
                 </div>
-                <input
-                  type="text" placeholder="Code fourni par votre administrateur"
-                  value={entrepriseId}
-                  onChange={e=>{ setEntrepriseId(e.target.value); setEntrepriseNom(""); }}
-                  style={{width:"100%",padding:"12px 16px",borderRadius:12,boxSizing:"border-box",
-                    border:"1.5px solid rgba(255,255,255,.35)",background:"rgba(255,255,255,.1)",
-                    color:"#fff",fontFamily:"inherit",fontSize:14,outline:"none"}}/>
-              </div>
-            )}
-            <div style={{fontSize:14,color:"rgba(255,255,255,.7)",
-              textAlign:"center",marginBottom:24}}>
-              Code d'accès
-            </div>
-            <div style={{display:"flex",justifyContent:"center",gap:16,marginBottom:32}}>
-              {[0,1,2,3].map(i=>(
-                <div key={i} style={{
-                  width:18,height:18,borderRadius:"50%",
-                  background:pin.length>i?C.green:"rgba(255,255,255,.2)",
-                  transition:"background .15s",
-                }}/>
-              ))}
-            </div>
-            {(()=>{
-              const btnBase: React.CSSProperties = {
-                aspectRatio:"1",borderRadius:12,
-                background:"rgba(255,255,255,.1)",
-                border:"1px solid rgba(255,255,255,.15)",
-                color:"#fff",fontSize:22,fontWeight:500,
-                cursor:"pointer",fontFamily:"inherit",
-                WebkitTapHighlightColor:"transparent" as any,
-                display:"flex",alignItems:"center",justifyContent:"center",
-              };
-              return (
-                <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",
-                  gap:8,margin:"0 auto",
-                  width:"min(280px, 76vw)" as any}}>
-                  {[1,2,3,4,5,6,7,8,9].map(d=>(
-                    <button key={d} onClick={()=>handlePin(String(d))} style={btnBase}>{d}</button>
+                <div style={{fontSize:14,color:"rgba(255,255,255,.7)",
+                  textAlign:"center",marginBottom:24}}>
+                  Code d'accès
+                </div>
+                <div style={{display:"flex",justifyContent:"center",gap:16,marginBottom:32}}>
+                  {[0,1,2,3].map(i=>(
+                    <div key={i} style={{
+                      width:18,height:18,borderRadius:"50%",
+                      background:pin.length>i?C.green:"rgba(255,255,255,.2)",
+                      transition:"background .15s",
+                    }}/>
                   ))}
-                  <div/>
-                  <button onClick={()=>handlePin("0")} style={btnBase}>0</button>
-                  <button onClick={handleDel} style={{...btnBase,
-                    background:"rgba(255,255,255,.08)",
-                    border:"1px solid rgba(255,255,255,.1)",
-                    fontSize:20}}>⌫</button>
                 </div>
-              );
-            })()}
-            {error&&(
-              <div style={{color:C.amber,fontSize:13,textAlign:"center",marginTop:16}}>
-                ⚠ {error}
-              </div>
-            )}
-            {loading&&(
-              <div style={{color:"rgba(255,255,255,.5)",fontSize:13,
-                textAlign:"center",marginTop:16}}>
-                Vérification…
-              </div>
+                {(()=>{
+                  const btnBase: React.CSSProperties = {
+                    aspectRatio:"1",borderRadius:12,
+                    background:"rgba(255,255,255,.1)",
+                    border:"1px solid rgba(255,255,255,.15)",
+                    color:"#fff",fontSize:22,fontWeight:500,
+                    cursor:"pointer",fontFamily:"inherit",
+                    WebkitTapHighlightColor:"transparent" as any,
+                    display:"flex",alignItems:"center",justifyContent:"center",
+                  };
+                  return (
+                    <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",
+                      gap:8,margin:"0 auto",
+                      width:"min(280px, 76vw)" as any}}>
+                      {[1,2,3,4,5,6,7,8,9].map(d=>(
+                        <button key={d} onClick={()=>handlePin(String(d))} style={btnBase}>{d}</button>
+                      ))}
+                      <div/>
+                      <button onClick={()=>handlePin("0")} style={btnBase}>0</button>
+                      <button onClick={handleDel} style={{...btnBase,
+                        background:"rgba(255,255,255,.08)",
+                        border:"1px solid rgba(255,255,255,.1)",
+                        fontSize:20}}>⌫</button>
+                    </div>
+                  );
+                })()}
+                {error&&(
+                  <div style={{color:C.amber,fontSize:13,textAlign:"center",marginTop:16}}>
+                    ⚠ {error}
+                  </div>
+                )}
+                {loading&&(
+                  <div style={{color:"rgba(255,255,255,.5)",fontSize:13,
+                    textAlign:"center",marginTop:16}}>
+                    Vérification…
+                  </div>
+                )}
+              </>
+            ) : (
+              <>
+                <div style={{display:"flex",flexDirection:"column",gap:16,marginBottom:8}}>
+                  <div>
+                    <div style={{fontSize:13,color:"rgba(255,255,255,.65)",marginBottom:8,fontWeight:500}}>
+                      Identifiant
+                    </div>
+                    <input
+                      type="text"
+                      placeholder="Identifiant fourni par votre administrateur"
+                      value={entrepriseId}
+                      onChange={e=>setEntrepriseId(e.target.value)}
+                      style={{width:"100%",padding:"14px 16px",borderRadius:14,
+                        boxSizing:"border-box" as any,
+                        border:"1.5px solid rgba(255,255,255,.35)",
+                        background:"rgba(255,255,255,.1)",backdropFilter:"blur(6px)",
+                        color:"#fff",fontFamily:"inherit",fontSize:15,outline:"none"}}/>
+                  </div>
+                  <div>
+                    <div style={{fontSize:13,color:"rgba(255,255,255,.65)",marginBottom:8,fontWeight:500}}>
+                      Code d'accès
+                    </div>
+                    <input
+                      type="password"
+                      placeholder="Code fourni par votre administrateur"
+                      value={pin}
+                      onChange={e=>setPin(e.target.value)}
+                      style={{width:"100%",padding:"14px 16px",borderRadius:14,
+                        boxSizing:"border-box" as any,
+                        border:"1.5px solid rgba(255,255,255,.35)",
+                        background:"rgba(255,255,255,.1)",backdropFilter:"blur(6px)",
+                        color:"#fff",fontFamily:"inherit",fontSize:15,outline:"none"}}/>
+                  </div>
+                </div>
+                {error&&(
+                  <div style={{color:C.amber,fontSize:13,textAlign:"center",marginTop:4,marginBottom:8}}>
+                    ⚠ {error}
+                  </div>
+                )}
+                <button
+                  onClick={handleLogin}
+                  disabled={loading||!entrepriseId.trim()||!pin.trim()}
+                  style={{width:"100%",marginTop:16,padding:"16px 0",borderRadius:14,
+                    background: (!entrepriseId.trim()||!pin.trim())
+                      ? "rgba(255,255,255,.12)"
+                      : "rgba(29,158,117,.55)",
+                    border:"1.5px solid rgba(255,255,255,.4)",
+                    color:"#fff",fontFamily:"inherit",fontSize:15,fontWeight:700,
+                    cursor:(!entrepriseId.trim()||!pin.trim())?"not-allowed":"pointer",
+                    WebkitTapHighlightColor:"transparent" as any}}>
+                  {loading ? "Vérification…" : "Se connecter"}
+                </button>
+              </>
             )}
             <button onClick={()=>{ setPin(""); setError(""); setStep("home"); }} style={{
               width:"100%",marginTop:24,padding:12,
