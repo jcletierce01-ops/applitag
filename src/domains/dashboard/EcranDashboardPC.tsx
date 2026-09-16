@@ -14,7 +14,7 @@ import { SectionConformiteRED, SectionCoutReglementaire, SectionGES } from "./se
 import { SectionChantiers, SectionTransports, SectionAnalyses, SectionDocuments, SectionTerritoire, HubAlertes, SectionPlanning } from "./sections-logistique.jsx";
 import { DASHBOARD_NAV } from "./sections.constants.js";
 
-import { EcranCarte } from "../roles/RoleScreens.jsx";
+import { EcranCarte } from "../roles/RoleScreensEntreprise.jsx";
 import { STATUT_LOT } from "../screens/MobileScreens.constants.js";
 
 interface EcranDashboardPCProps {
