@@ -17,10 +17,11 @@ import { SectionPlanApprovisionnement, SectionParametres } from "./sections-conf
 import { SectionConformiteRED } from "./sections-reglementaire.jsx";
 import { SectionCoutReglementaire, SectionGES } from "./sections-reglementaire-ges.jsx";
 import { SectionChantiers, SectionTransports, SectionAnalyses } from "./sections-logistique.jsx";
-import { SectionDocuments, SectionTerritoire, HubAlertes, SectionPlanning } from "./sections-logistique-docs.jsx";
+import { SectionDocuments, SectionTerritoire } from "./sections-logistique-docs.jsx";
+import { HubAlertes, SectionPlanning } from "./sections-logistique-alertes.jsx";
 import { DASHBOARD_NAV } from "./sections.constants.js";
 
-import { EcranCarte } from "../roles/RoleScreensEntreprise.jsx";
+import { EcranCarte } from "../roles/RoleScreensEntrepriseGeo.jsx";
 import { STATUT_LOT } from "../screens/MobileScreens.constants.js";
 
 interface EcranDashboardPCProps {
