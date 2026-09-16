@@ -2532,24 +2532,18 @@ export const EcranAccueil = ({contacts, notifications, user, livraisons=[], tran
       <div style={{fontSize:13,fontWeight:700,color:C.tx2,marginBottom:8,fontFamily:FONT_TITLE}}>
         Stocks &amp; Conformité
       </div>
-      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:10,marginBottom:16}}>
-        <div style={{background:"#fff",borderRadius:14,padding:"12px 10px",border:`1px solid ${C.bd}`}}>
-          <div style={{fontSize:16,marginBottom:4}}>📥</div>
-          <div style={{fontSize:18,fontWeight:700,color:C.greenD,fontFamily:FONT_TITLE}}>{fmtNum(stockPlateformes)} t</div>
-          <div style={{fontSize:10,color:C.tx3,marginTop:2}}>Stock plateformes</div>
-        </div>
-        <div style={{background:"#fff",borderRadius:14,padding:"12px 10px",border:`1px solid ${C.bd}`}}>
-          <div style={{fontSize:16,marginBottom:4}}>🔥</div>
-          <div style={{fontSize:18,fontWeight:700,color:C.brown,fontFamily:FONT_TITLE}}>{fmtNum(stockChaufferies)} t</div>
-          <div style={{fontSize:10,color:C.tx3,marginTop:2}}>Stock chaufferies</div>
-        </div>
-        <div style={{background:"#fff",borderRadius:14,padding:"12px 10px",border:`1px solid ${C.bd}`}}>
-          <div style={{fontSize:16,marginBottom:4}}>✅</div>
-          <div style={{fontSize:18,fontWeight:700,color:C.green,fontFamily:FONT_TITLE}}>
-            {tauxConformite!=null?tauxConformite+" %":"—"}
+      <div style={{display:"flex",gap:10,marginBottom:16}}>
+        {[
+          {icon:"📥",label:"Stock plateformes",val:fmtNum(stockPlateformes)+" t",color:C.greenD},
+          {icon:"🔥",label:"Stock chaufferies",val:fmtNum(stockChaufferies)+" t",color:C.brown},
+          {icon:"✅",label:"Conformité CMR",val:tauxConformite!=null?tauxConformite+" %":"—",color:C.green},
+        ].map((k,i)=>(
+          <div key={i} style={{flex:"1 1 0",background:"#fff",borderRadius:14,padding:"12px 8px",border:`1px solid ${C.bd}`,minWidth:0}}>
+            <div style={{fontSize:16,marginBottom:4}}>{k.icon}</div>
+            <div style={{fontSize:16,fontWeight:700,color:k.color,fontFamily:FONT_TITLE,lineHeight:1.2}}>{k.val}</div>
+            <div style={{fontSize:10,color:C.tx3,marginTop:2,lineHeight:1.3}}>{k.label}</div>
           </div>
-          <div style={{fontSize:10,color:C.tx3,marginTop:2}}>Conformité CMR</div>
-        </div>
+        ))}
       </div>
 
       {/* ── Transports en cours ── */}
