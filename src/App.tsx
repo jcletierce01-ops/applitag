@@ -35,7 +35,8 @@ import { EcranAutoDeclarationRED, EcranCarte } from "./domains/roles/RoleScreens
 import { EcranRoleGestionnaire, EcranRoleScierie, EcranRoleCollectivite, EcranRoleBET } from "./domains/roles/RoleScreensSecondaires.jsx";
 import { EcranRoleETF, EcranRoleAssociation, EcranRoleInstitutionnel, EcranRoleFinanceur, EcranRoleLogistique } from "./domains/roles/RoleScreensSecondairesEtf.jsx";
 import { QrCodeAdmin, Fiche0 } from "./domains/screens/MobileScreensContacts.jsx";
-import { EcranReleves, Fiche0Edit } from "./domains/screens/MobileScreensContactsReleves.jsx";
+import { EcranReleves } from "./domains/screens/MobileScreensContactsReleves.jsx";
+import { Fiche0Edit } from "./domains/screens/MobileScreensFiche0Edit.jsx";
 import { EcranOperateur } from "./domains/screens/MobileScreensOperateur.jsx";
 import { EcranAccueil, EcranDelegations } from "./domains/screens/MobileScreensAccueil.jsx";
 import { GROUPES_MODULES } from "./domains/screens/mobile-modules.constants.js";
