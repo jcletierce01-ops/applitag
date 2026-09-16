@@ -33,7 +33,8 @@ import { QrCodeAdmin, Fiche0, EcranReleves, Fiche0Edit } from "./domains/screens
 import { EcranOperateur, EcranAccueil, EcranDelegations } from "./domains/screens/MobileScreensOperateur.jsx";
 import { GROUPES_MODULES } from "./domains/screens/mobile-modules.constants.js";
 import { FEATURE_FLAGS } from "./config/featureFlags.js";
-import { EcranLots, ModalDelegationVisite, ModalSuggestionETF, EcranValidationExploitation, EcranClotureExploitation, EcranBonCommande, EcranSaisiesAdmin } from "./domains/exploitation/ExploitationScreens.jsx";
+import { EcranLots, ModalDelegationVisite, ModalSuggestionETF, EcranValidationExploitation } from "./domains/exploitation/ExploitationScreens.jsx";
+import { EcranClotureExploitation, EcranBonCommande, EcranSaisiesAdmin } from "./domains/exploitation/ExploitationScreensOp.jsx";
 import { LoginScreen } from "./domains/auth/LoginScreen.jsx";
 import { EcranProfilEntreprise } from "./domains/entreprise/EcranProfilEntreprise.jsx";
 
