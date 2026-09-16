@@ -430,7 +430,7 @@ export const LoginScreen = ({onLogin, onLoginOperateur, onLoginDemo}: any) => {
   return (
     <div style={{display:"flex",flexDirection:"column",height:"100%",
       position:"relative",
-      background:"#040908",
+      background:"#0F3C22",
       color:"#fff",fontFamily:"Inter,system-ui,-apple-system,sans-serif"}}>
       {/* Fond d'écran */}
       <WallpaperBg/>
@@ -463,19 +463,36 @@ export const LoginScreen = ({onLogin, onLoginOperateur, onLoginDemo}: any) => {
               ))}
             </div>
             <div style={{width:"100%",display:"flex",flexDirection:"column",gap:10,marginBottom:20}}>
+              {/* Se connecter — en premier */}
+              <button onClick={()=>{ setError(""); setStep("home"); }}
+                style={{width:"100%",padding:"16px 20px",borderRadius:18,
+                  background:"rgba(255,255,255,.18)",border:"1.5px solid rgba(255,255,255,.6)",
+                  backdropFilter:"blur(8px)",
+                  color:"#fff",fontFamily:"inherit",fontSize:15,fontWeight:600,cursor:"pointer",
+                  WebkitTapHighlightColor:"transparent",
+                  display:"flex",alignItems:"center",gap:14}}>
+                <div style={{width:44,height:44,borderRadius:12,background:"rgba(255,255,255,.2)",
+                  display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,fontSize:22}}>🔑</div>
+                <div>
+                  <div style={{fontWeight:700}}>Se connecter</div>
+                  <div style={{fontSize:12,color:"rgba(255,255,255,.7)",fontWeight:400,marginTop:2}}>
+                    Lire un code · Scanner un QR code
+                  </div>
+                </div>
+              </button>
               {/* Proposer du bois */}
               <button onClick={()=>{ resetAnnonce(); setAnnonceType("gisement"); setStep("annonce"); }}
                 style={{width:"100%",padding:"16px 20px",borderRadius:18,
                   background:"linear-gradient(135deg,rgba(34,85,34,.75),rgba(16,50,20,.85))",
-                  border:"1.5px solid rgba(80,200,80,.3)",backdropFilter:"blur(8px)",
+                  border:"1.5px solid rgba(255,255,255,.5)",backdropFilter:"blur(8px)",
                   color:"#fff",fontFamily:"inherit",fontSize:15,fontWeight:600,cursor:"pointer",
                   WebkitTapHighlightColor:"transparent",
                   display:"flex",alignItems:"center",gap:14}}>
-                <div style={{width:44,height:44,borderRadius:12,background:"rgba(80,200,80,.2)",
+                <div style={{width:44,height:44,borderRadius:12,background:"rgba(80,200,80,.25)",
                   display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,fontSize:22}}>🪵</div>
                 <div>
                   <div style={{fontWeight:700}}>Proposer du bois</div>
-                  <div style={{fontSize:12,color:"rgba(255,255,255,.6)",fontWeight:400,marginTop:2}}>
+                  <div style={{fontSize:12,color:"rgba(255,255,255,.7)",fontWeight:400,marginTop:2}}>
                     Déposer un gisement · APPLITAG Connect
                   </div>
                 </div>
@@ -484,33 +501,16 @@ export const LoginScreen = ({onLogin, onLoginOperateur, onLoginDemo}: any) => {
               <button onClick={()=>{ resetAnnonce(); setAnnonceType("service"); setStep("annonce"); }}
                 style={{width:"100%",padding:"16px 20px",borderRadius:18,
                   background:"linear-gradient(135deg,rgba(20,60,100,.75),rgba(10,35,70,.85))",
-                  border:"1.5px solid rgba(80,160,255,.3)",backdropFilter:"blur(8px)",
+                  border:"1.5px solid rgba(255,255,255,.5)",backdropFilter:"blur(8px)",
                   color:"#fff",fontFamily:"inherit",fontSize:15,fontWeight:600,cursor:"pointer",
                   WebkitTapHighlightColor:"transparent",
                   display:"flex",alignItems:"center",gap:14}}>
-                <div style={{width:44,height:44,borderRadius:12,background:"rgba(80,160,255,.2)",
+                <div style={{width:44,height:44,borderRadius:12,background:"rgba(80,160,255,.25)",
                   display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,fontSize:22}}>🛠️</div>
                 <div>
                   <div style={{fontWeight:700}}>Proposer un service</div>
-                  <div style={{fontSize:12,color:"rgba(255,255,255,.6)",fontWeight:400,marginTop:2}}>
+                  <div style={{fontSize:12,color:"rgba(255,255,255,.7)",fontWeight:400,marginTop:2}}>
                     Offre ETF, prestataire · APPLITAG Connect
-                  </div>
-                </div>
-              </button>
-              {/* Se connecter */}
-              <button onClick={()=>{ setError(""); setStep("home"); }}
-                style={{width:"100%",padding:"16px 20px",borderRadius:18,
-                  background:"rgba(255,255,255,.13)",border:"1.5px solid rgba(255,255,255,.28)",
-                  backdropFilter:"blur(8px)",
-                  color:"#fff",fontFamily:"inherit",fontSize:15,fontWeight:600,cursor:"pointer",
-                  WebkitTapHighlightColor:"transparent",
-                  display:"flex",alignItems:"center",gap:14}}>
-                <div style={{width:44,height:44,borderRadius:12,background:"rgba(255,255,255,.15)",
-                  display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,fontSize:22}}>🔑</div>
-                <div>
-                  <div style={{fontWeight:700}}>Se connecter</div>
-                  <div style={{fontSize:12,color:"rgba(255,255,255,.6)",fontWeight:400,marginTop:2}}>
-                    Lire un code · Scanner un QR code
                   </div>
                 </div>
               </button>
@@ -518,8 +518,8 @@ export const LoginScreen = ({onLogin, onLoginOperateur, onLoginDemo}: any) => {
               <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
                 <button onClick={()=>window.open("https://www.applitag.fr","_blank","noopener noreferrer")}
                   style={{padding:"14px 12px",borderRadius:14,
-                    background:"rgba(255,255,255,.08)",border:"1px solid rgba(255,255,255,.18)",
-                    color:"rgba(255,255,255,.85)",fontFamily:"inherit",fontSize:13,fontWeight:500,
+                    background:"rgba(255,255,255,.1)",border:"1px solid rgba(255,255,255,.45)",
+                    color:"rgba(255,255,255,.9)",fontFamily:"inherit",fontSize:13,fontWeight:500,
                     cursor:"pointer",WebkitTapHighlightColor:"transparent",
                     display:"flex",flexDirection:"column",alignItems:"center",gap:6}}>
                   <span style={{fontSize:20}}>🌐</span>
@@ -527,8 +527,8 @@ export const LoginScreen = ({onLogin, onLoginOperateur, onLoginDemo}: any) => {
                 </button>
                 <button onClick={()=>{ resetAnnonce(); setAnnonceType("demo"); setStep("annonce"); }}
                   style={{padding:"14px 12px",borderRadius:14,
-                    background:"rgba(255,255,255,.08)",border:"1px solid rgba(255,255,255,.18)",
-                    color:"rgba(255,255,255,.85)",fontFamily:"inherit",fontSize:13,fontWeight:500,
+                    background:"rgba(255,255,255,.1)",border:"1px solid rgba(255,255,255,.45)",
+                    color:"rgba(255,255,255,.9)",fontFamily:"inherit",fontSize:13,fontWeight:500,
                     cursor:"pointer",WebkitTapHighlightColor:"transparent",
                     display:"flex",flexDirection:"column",alignItems:"center",gap:6}}>
                   <span style={{fontSize:20}}>📋</span>
@@ -536,14 +536,6 @@ export const LoginScreen = ({onLogin, onLoginOperateur, onLoginDemo}: any) => {
                 </button>
               </div>
             </div>
-            {/* Mode démo (conservé, discret) */}
-            <button onClick={()=>setStep("demo")}
-              style={{background:"none",border:"none",color:"rgba(255,255,255,.35)",
-                fontFamily:"inherit",fontSize:12,cursor:"pointer",
-                WebkitTapHighlightColor:"transparent",
-                display:"flex",alignItems:"center",gap:6,marginBottom:4}}>
-              🎭 <span style={{textDecoration:"underline"}}>Mode démonstration</span>
-            </button>
           </div>
         )}
 

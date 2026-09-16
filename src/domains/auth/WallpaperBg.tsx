@@ -14,14 +14,14 @@ export const WallpaperBg = () => (
         .wbg-f2{animation:chainSlow 9s linear infinite}
       `}</style>
       <linearGradient id="wbg-bg" x1="0%" y1="0%" x2="0%" y2="100%">
-        <stop offset="0%"   stopColor="#1E5038"/>
-        <stop offset="28%"  stopColor="#163C2A"/>
-        <stop offset="55%"  stopColor="#0C2018"/>
-        <stop offset="100%" stopColor="#040908"/>
+        <stop offset="0%"   stopColor="#6DC49A"/>
+        <stop offset="28%"  stopColor="#3D9B68"/>
+        <stop offset="55%"  stopColor="#1E6A42"/>
+        <stop offset="100%" stopColor="#0F3C22"/>
       </linearGradient>
       <radialGradient id="wbg-moon" cx="50%" cy="15%" r="38%">
-        <stop offset="0%"   stopColor="#3A8060" stopOpacity=".55"/>
-        <stop offset="60%"  stopColor="#1E5038" stopOpacity=".20"/>
+        <stop offset="0%"   stopColor="#A8E8C8" stopOpacity=".65"/>
+        <stop offset="60%"  stopColor="#5DB887" stopOpacity=".30"/>
         <stop offset="100%" stopColor="transparent"/>
       </radialGradient>
       <linearGradient id="wbg-chain" x1="0%" y1="100%" x2="100%" y2="0%">
@@ -32,7 +32,7 @@ export const WallpaperBg = () => (
       </linearGradient>
       <radialGradient id="wbg-vig" cx="50%" cy="50%" r="72%">
         <stop offset="40%" stopColor="transparent"/>
-        <stop offset="100%" stopColor="#020504" stopOpacity=".80"/>
+        <stop offset="100%" stopColor="#020504" stopOpacity=".35"/>
       </radialGradient>
       <filter id="wbg-nglow" x="-120%" y="-120%" width="340%" height="340%">
         <feGaussianBlur stdDeviation="12" result="blur"/>
@@ -60,14 +60,14 @@ export const WallpaperBg = () => (
     </g>
 
     {/* Arbres gauche */}
-    <path d="M 55,310 L 88,555 L 77,555 L 118,800 L 105,800 L 148,1045 L 133,1045 L 172,1920 L -62,1920 L -28,1045 L -13,1045 L 17,800 L 30,800 L 58,555 L 47,555 Z" fill="#07100A"/>
-    <path d="M 140,175 L 185,455 L 169,455 L 228,735 L 210,735 L 271,1015 L 251,1015 L 314,1295 L 292,1295 L 352,1920 L -72,1920 L -34,1295 L -12,1295 L 29,1015 L 49,1015 L 92,735 L 110,735 L 151,455 L 135,455 Z" fill="#060E09"/>
-    <path d="M 310,680 L 341,875 L 331,875 L 367,1070 L 356,1070 L 393,1265 L 381,1265 L 414,1920 L 206,1920 L 227,1265 L 239,1265 L 253,1070 L 264,1070 L 279,875 L 289,875 Z" fill="#070F0A"/>
+    <path d="M 55,310 L 88,555 L 77,555 L 118,800 L 105,800 L 148,1045 L 133,1045 L 172,1920 L -62,1920 L -28,1045 L -13,1045 L 17,800 L 30,800 L 58,555 L 47,555 Z" fill="#1A5E30"/>
+    <path d="M 140,175 L 185,455 L 169,455 L 228,735 L 210,735 L 271,1015 L 251,1015 L 314,1295 L 292,1295 L 352,1920 L -72,1920 L -34,1295 L -12,1295 L 29,1015 L 49,1015 L 92,735 L 110,735 L 151,455 L 135,455 Z" fill="#14502A"/>
+    <path d="M 310,680 L 341,875 L 331,875 L 367,1070 L 356,1070 L 393,1265 L 381,1265 L 414,1920 L 206,1920 L 227,1265 L 239,1265 L 253,1070 L 264,1070 L 279,875 L 289,875 Z" fill="#1A5E30"/>
 
     {/* Arbres droite */}
-    <path d="M 1025,310 L 1058,555 L 1047,555 L 1088,800 L 1075,800 L 1118,1045 L 1103,1045 L 1142,1920 L 908,1920 L 942,1045 L 957,1045 L 987,800 L 1000,800 L 997,555 L 986,555 Z" fill="#07100A"/>
-    <path d="M 940,175 L 985,455 L 969,455 L 1028,735 L 1010,735 L 1071,1015 L 1051,1015 L 1114,1295 L 1092,1295 L 1152,1920 L 728,1920 L 766,1295 L 788,1295 L 829,1015 L 849,1015 L 892,735 L 910,735 L 951,455 L 935,455 Z" fill="#060E09"/>
-    <path d="M 770,680 L 801,875 L 791,875 L 827,1070 L 816,1070 L 853,1265 L 841,1265 L 874,1920 L 666,1920 L 687,1265 L 699,1265 L 713,1070 L 724,1070 L 739,875 L 749,875 Z" fill="#070F0A"/>
+    <path d="M 1025,310 L 1058,555 L 1047,555 L 1088,800 L 1075,800 L 1118,1045 L 1103,1045 L 1142,1920 L 908,1920 L 942,1045 L 957,1045 L 987,800 L 1000,800 L 997,555 L 986,555 Z" fill="#1A5E30"/>
+    <path d="M 940,175 L 985,455 L 969,455 L 1028,735 L 1010,735 L 1071,1015 L 1051,1015 L 1114,1295 L 1092,1295 L 1152,1920 L 728,1920 L 766,1295 L 788,1295 L 829,1015 L 849,1015 L 892,735 L 910,735 L 951,455 L 935,455 Z" fill="#14502A"/>
+    <path d="M 770,680 L 801,875 L 791,875 L 827,1070 L 816,1070 L 853,1265 L 841,1265 L 874,1920 L 666,1920 L 687,1265 L 699,1265 L 713,1070 L 724,1070 L 739,875 L 749,875 Z" fill="#1A5E30"/>
 
     {/* Grumes */}
     <g transform="translate(295,1820) rotate(-9)" filter="url(#wbg-lglow)" opacity=".82">
