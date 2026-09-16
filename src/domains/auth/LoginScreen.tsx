@@ -550,118 +550,53 @@ export const LoginScreen = ({onLogin, onLoginOperateur, onLoginDemo}: any) => {
           </div>
         )}
 
-        {/* ── HOME — menu connexion professionnelle ── */}
+        {/* ── HOME — connexion ── */}
         {step==="home"&&(
           <div>
             <button onClick={()=>setStep("bienvenue")}
               style={{background:"none",border:"none",color:"rgba(255,255,255,.55)",
-                fontFamily:"inherit",fontSize:13,cursor:"pointer",marginBottom:16,
+                fontFamily:"inherit",fontSize:13,cursor:"pointer",marginBottom:24,
                 display:"flex",alignItems:"center",gap:6,WebkitTapHighlightColor:"transparent"}}>
               {"< "} Retour
             </button>
-            <div style={{fontSize:14,color:"rgba(255,255,255,.7)",
-              textAlign:"center",marginBottom:28,lineHeight:1.6}}>
-              Choisissez votre mode de connexion
+            <div style={{fontSize:22,color:"#fff",fontWeight:800,
+              textAlign:"center",marginBottom:8,letterSpacing:".06em",
+              textTransform:"uppercase"}}>Connexion</div>
+            <div style={{fontSize:13,color:"rgba(255,255,255,.55)",
+              textAlign:"center",marginBottom:32,lineHeight:1.5}}>
+              Utilisez les codes fournis par votre administrateur
             </div>
-            <div style={{display:"flex",flexDirection:"column",gap:12}}>
+            <div style={{display:"flex",flexDirection:"column",gap:14}}>
+              <button onClick={()=>{ setError(""); setStep("scan"); }}
+                style={{width:"100%",padding:"20px 22px",borderRadius:18,
+                  background:"rgba(255,255,255,.18)",border:"1.5px solid rgba(255,255,255,.6)",
+                  backdropFilter:"blur(8px)",
+                  color:"#fff",fontFamily:"inherit",fontSize:15,fontWeight:600,
+                  cursor:"pointer",WebkitTapHighlightColor:"transparent",
+                  display:"flex",alignItems:"center",justifyContent:"center",gap:16}}>
+                <span style={{fontSize:30,flexShrink:0}}>📷</span>
+                <div style={{flex:1,textAlign:"center"}}>
+                  <div style={{fontWeight:700}}>Scanner mon QR code</div>
+                  <div style={{fontSize:12,color:"rgba(255,255,255,.65)",fontWeight:400,marginTop:3}}>
+                    Code QR fourni par votre administrateur
+                  </div>
+                </div>
+              </button>
               <button onClick={()=>{
-                setEntrepriseId("c1b035b8-c2d5-4b84-a07e-2a3d503fb96c");
-                setEntrepriseNom("APPLITAG");
-                setStep("pin");
-              }} style={{width:"100%",padding:18,borderRadius:14,
-                background:"rgba(29,158,117,.25)",border:"1.5px solid rgba(29,158,117,.6)",
-                color:"#fff",fontFamily:"inherit",fontSize:15,fontWeight:600,
-                cursor:"pointer",WebkitTapHighlightColor:"transparent",
-                display:"flex",alignItems:"center",gap:14,textAlign:"left"}}>
-                <span style={{fontSize:28}}>🔑</span>
-                <div>
-                  <div>Connexion administrateur</div>
-                  <div style={{fontSize:11,opacity:.6,fontWeight:400,marginTop:2}}>
-                    Code PIN à 4 chiffres
-                  </div>
-                </div>
-              </button>
-              <button onClick={()=>{ setError(""); setStep("scan"); }} style={{
-                width:"100%",padding:18,borderRadius:14,
-                background:"rgba(255,255,255,.08)",border:"1px solid rgba(255,255,255,.2)",
-                color:"rgba(255,255,255,.8)",fontFamily:"inherit",fontSize:15,fontWeight:500,
-                cursor:"pointer",WebkitTapHighlightColor:"transparent",
-                display:"flex",alignItems:"center",gap:14,textAlign:"left"}}>
-                <span style={{fontSize:28}}>📷</span>
-                <div>
-                  <div>Scanner le QR code</div>
-                  <div style={{fontSize:11,opacity:.6,fontWeight:400,marginTop:2}}>
-                    QR fourni par l'administrateur
-                  </div>
-                </div>
-              </button>
-              <button onClick={()=>{ setError(""); setStep("operateur"); }} style={{
-                width:"100%",padding:18,borderRadius:14,
-                background:"rgba(29,158,117,.12)",border:"1px solid rgba(29,158,117,.3)",
-                color:"rgba(255,255,255,.8)",fontFamily:"inherit",fontSize:15,fontWeight:500,
-                cursor:"pointer",WebkitTapHighlightColor:"transparent",
-                display:"flex",alignItems:"center",gap:14,textAlign:"left"}}>
-                <span style={{fontSize:28}}>👷</span>
-                <div>
-                  <div>Connexion opérateur terrain</div>
-                  <div style={{fontSize:11,opacity:.6,fontWeight:400,marginTop:2}}>
-                    Code opérateur ETF
-                  </div>
-                </div>
-              </button>
-              <button onClick={()=>{ setOrdreCode(""); setOrdreTrouve(null); setOrdreErreur(""); setStep("ordre"); }} style={{
-                width:"100%",padding:18,borderRadius:14,
-                background:"rgba(166,106,46,.15)",border:"1px solid rgba(166,106,46,.4)",
-                color:"rgba(255,255,255,.8)",fontFamily:"inherit",fontSize:15,fontWeight:500,
-                cursor:"pointer",WebkitTapHighlightColor:"transparent",
-                display:"flex",alignItems:"center",gap:14,textAlign:"left"}}>
-                <span style={{fontSize:28}}>📄</span>
-                <div>
-                  <div>Valider un ordre d'exploitation</div>
-                  <div style={{fontSize:11,opacity:.6,fontWeight:400,marginTop:2}}>
-                    Sous-traitant — code reçu de l'administrateur
-                  </div>
-                </div>
-              </button>
-              <button onClick={()=>{ resetAnnonce(); setError(""); setStep("annonce"); }} style={{
-                width:"100%",padding:18,borderRadius:14,
-                background:"rgba(76,175,80,.15)",border:"1px solid rgba(76,175,80,.4)",
-                color:"rgba(255,255,255,.8)",fontFamily:"inherit",fontSize:15,fontWeight:500,
-                cursor:"pointer",WebkitTapHighlightColor:"transparent",
-                display:"flex",alignItems:"center",gap:14,textAlign:"left"}}>
-                <span style={{fontSize:28}}>📢</span>
-                <div>
-                  <div>Signaler / Proposer une annonce</div>
-                  <div style={{fontSize:11,opacity:.6,fontWeight:400,marginTop:2}}>
-                    Gisement, prestation ou demande de plaquettes
-                  </div>
-                </div>
-              </button>
-              <button onClick={()=>{ setCompteErreur(""); setCompteVue(compteSession?"espace":"choix"); setStep("compte"); }} style={{
-                width:"100%",padding:18,borderRadius:14,
-                background:"rgba(76,175,80,.15)",border:"1px solid rgba(76,175,80,.4)",
-                color:"rgba(255,255,255,.8)",fontFamily:"inherit",fontSize:15,fontWeight:500,
-                cursor:"pointer",WebkitTapHighlightColor:"transparent",
-                display:"flex",alignItems:"center",gap:14,textAlign:"left"}}>
-                <span style={{fontSize:28}}>👤</span>
-                <div>
-                  <div>{compteSession?`Mon compte (${compteSession.nom})`:"Mon compte APPLITAG Connect"}</div>
-                  <div style={{fontSize:11,opacity:.6,fontWeight:400,marginTop:2}}>
-                    Accès gratuit — suivez vos propositions
-                  </div>
-                </div>
-              </button>
-              <button onClick={()=>setStep("demo")} style={{
-                width:"100%",padding:18,borderRadius:14,
-                background:"rgba(255,200,0,.1)",border:"1px solid rgba(255,200,0,.25)",
-                color:"rgba(255,200,0,.9)",fontFamily:"inherit",fontSize:15,fontWeight:500,
-                cursor:"pointer",WebkitTapHighlightColor:"transparent",
-                display:"flex",alignItems:"center",gap:14,textAlign:"left"}}>
-                <span style={{fontSize:28}}>🎭</span>
-                <div>
-                  <div>Mode démonstration</div>
-                  <div style={{fontSize:11,opacity:.6,fontWeight:400,marginTop:2}}>
-                    6 rôles disponibles, données fictives
+                  setEntrepriseId(""); setEntrepriseNom(""); setPin(""); setError("");
+                  setStep("pin");
+                }}
+                style={{width:"100%",padding:"20px 22px",borderRadius:18,
+                  background:"rgba(255,255,255,.1)",border:"1.5px solid rgba(255,255,255,.4)",
+                  backdropFilter:"blur(8px)",
+                  color:"#fff",fontFamily:"inherit",fontSize:15,fontWeight:600,
+                  cursor:"pointer",WebkitTapHighlightColor:"transparent",
+                  display:"flex",alignItems:"center",justifyContent:"center",gap:16}}>
+                <span style={{fontSize:30,flexShrink:0}}>🔑</span>
+                <div style={{flex:1,textAlign:"center"}}>
+                  <div style={{fontWeight:700}}>Saisir mes identifiants</div>
+                  <div style={{fontSize:12,color:"rgba(255,255,255,.65)",fontWeight:400,marginTop:3}}>
+                    Identifiant et code d'accès fournis
                   </div>
                 </div>
               </button>
@@ -1693,17 +1628,34 @@ export const LoginScreen = ({onLogin, onLoginOperateur, onLoginDemo}: any) => {
 
         {step==="pin"&&(
           <div>
-            <div style={{textAlign:"center",marginBottom:24}}>
-              <div style={{fontSize:13,color:"rgba(255,255,255,.5)",marginBottom:4}}>
-                Entreprise
+            <button onClick={()=>{ setPin(""); setError(""); setStep("home"); }}
+              style={{background:"none",border:"none",color:"rgba(255,255,255,.55)",
+                fontFamily:"inherit",fontSize:13,cursor:"pointer",marginBottom:20,
+                display:"flex",alignItems:"center",gap:6,WebkitTapHighlightColor:"transparent"}}>
+              {"< "} Retour
+            </button>
+            {entrepriseNom ? (
+              <div style={{textAlign:"center",marginBottom:24}}>
+                <div style={{fontSize:13,color:"rgba(255,255,255,.5)",marginBottom:4}}>Entreprise</div>
+                <div style={{fontSize:18,fontWeight:700,color:C.green}}>{entrepriseNom}</div>
               </div>
-              <div style={{fontSize:18,fontWeight:700,color:C.green}}>
-                {entrepriseNom}
+            ) : (
+              <div style={{marginBottom:20}}>
+                <div style={{fontSize:13,color:"rgba(255,255,255,.6)",marginBottom:8}}>
+                  Identifiant d'entreprise
+                </div>
+                <input
+                  type="text" placeholder="Code fourni par votre administrateur"
+                  value={entrepriseId}
+                  onChange={e=>{ setEntrepriseId(e.target.value); setEntrepriseNom(""); }}
+                  style={{width:"100%",padding:"12px 16px",borderRadius:12,boxSizing:"border-box",
+                    border:"1.5px solid rgba(255,255,255,.35)",background:"rgba(255,255,255,.1)",
+                    color:"#fff",fontFamily:"inherit",fontSize:14,outline:"none"}}/>
               </div>
-            </div>
+            )}
             <div style={{fontSize:14,color:"rgba(255,255,255,.7)",
               textAlign:"center",marginBottom:24}}>
-              Entrez votre code PIN
+              Code d'accès
             </div>
             <div style={{display:"flex",justifyContent:"center",gap:16,marginBottom:32}}>
               {[0,1,2,3].map(i=>(
@@ -1751,12 +1703,12 @@ export const LoginScreen = ({onLogin, onLoginOperateur, onLoginDemo}: any) => {
                 Vérification…
               </div>
             )}
-            <button onClick={()=>setStep("scan")} style={{
+            <button onClick={()=>{ setPin(""); setError(""); setStep("home"); }} style={{
               width:"100%",marginTop:24,padding:12,
               background:"transparent",border:"none",
               color:"rgba(255,255,255,.4)",fontFamily:"inherit",
-              fontSize:13,cursor:"pointer"}}>
-              {"<"} Rescanner le QR code
+              fontSize:13,cursor:"pointer",WebkitTapHighlightColor:"transparent"}}>
+              {"<"} Retour
             </button>
           </div>
         )}
