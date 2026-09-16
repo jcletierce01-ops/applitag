@@ -470,10 +470,10 @@ export const LoginScreen = ({onLogin, onLoginOperateur, onLoginDemo}: any) => {
                   backdropFilter:"blur(8px)",
                   color:"#fff",fontFamily:"inherit",fontSize:15,fontWeight:600,cursor:"pointer",
                   WebkitTapHighlightColor:"transparent",
-                  display:"flex",alignItems:"center",justifyContent:"center",gap:14}}>
+                  display:"flex",alignItems:"center",gap:14}}>
                 <div style={{width:44,height:44,borderRadius:12,background:"rgba(255,255,255,.2)",
                   display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,fontSize:22}}>🔑</div>
-                <div style={{textAlign:"center"}}>
+                <div style={{flex:1,textAlign:"center"}}>
                   <div style={{fontWeight:700}}>Se connecter</div>
                   <div style={{fontSize:12,color:"rgba(255,255,255,.7)",fontWeight:400,marginTop:2}}>
                     Avec ses identifiants ou QR code
@@ -487,10 +487,10 @@ export const LoginScreen = ({onLogin, onLoginOperateur, onLoginDemo}: any) => {
                   border:"1.5px solid rgba(255,255,255,.5)",backdropFilter:"blur(8px)",
                   color:"#fff",fontFamily:"inherit",fontSize:15,fontWeight:600,cursor:"pointer",
                   WebkitTapHighlightColor:"transparent",
-                  display:"flex",alignItems:"center",justifyContent:"center",gap:14}}>
+                  display:"flex",alignItems:"center",gap:14}}>
                 <div style={{width:44,height:44,borderRadius:12,background:"rgba(80,200,80,.25)",
                   display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,fontSize:22}}>🌲</div>
-                <div style={{textAlign:"center"}}>
+                <div style={{flex:1,textAlign:"center"}}>
                   <div style={{fontWeight:700}}>Proposer du bois</div>
                   <div style={{fontSize:12,color:"rgba(255,255,255,.7)",fontWeight:400,marginTop:2}}>
                     Déposer un gisement · APPLITAG Connect
@@ -504,7 +504,7 @@ export const LoginScreen = ({onLogin, onLoginOperateur, onLoginDemo}: any) => {
                   border:"1.5px solid rgba(255,255,255,.5)",backdropFilter:"blur(8px)",
                   color:"#fff",fontFamily:"inherit",fontSize:15,fontWeight:600,cursor:"pointer",
                   WebkitTapHighlightColor:"transparent",
-                  display:"flex",alignItems:"center",justifyContent:"center",gap:14}}>
+                  display:"flex",alignItems:"center",gap:14}}>
                 <div style={{width:44,height:44,borderRadius:12,background:"rgba(80,160,255,.25)",
                   display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
                   <svg width="28" height="22" viewBox="0 0 28 22" fill="white" xmlns="http://www.w3.org/2000/svg">
@@ -518,7 +518,7 @@ export const LoginScreen = ({onLogin, onLoginOperateur, onLoginDemo}: any) => {
                     <rect x="24" y="0" width="1.5" height="4" rx="0.75"/>
                   </svg>
                 </div>
-                <div style={{textAlign:"center"}}>
+                <div style={{flex:1,textAlign:"center"}}>
                   <div style={{fontWeight:700}}>Proposer une prestation</div>
                   <div style={{fontSize:12,color:"rgba(255,255,255,.7)",fontWeight:400,marginTop:2}}>
                     Offre ETF, prestataire · APPLITAG Connect
