@@ -489,7 +489,7 @@ export const LoginScreen = ({onLogin, onLoginOperateur, onLoginDemo}: any) => {
                   WebkitTapHighlightColor:"transparent",
                   display:"flex",alignItems:"center",gap:14}}>
                 <div style={{width:44,height:44,borderRadius:12,background:"rgba(80,200,80,.25)",
-                  display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,fontSize:22}}>🪵</div>
+                  display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,fontSize:22}}>🌲</div>
                 <div>
                   <div style={{fontWeight:700}}>Proposer du bois</div>
                   <div style={{fontSize:12,color:"rgba(255,255,255,.7)",fontWeight:400,marginTop:2}}>
@@ -508,7 +508,7 @@ export const LoginScreen = ({onLogin, onLoginOperateur, onLoginDemo}: any) => {
                 <div style={{width:44,height:44,borderRadius:12,background:"rgba(80,160,255,.25)",
                   display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,fontSize:22}}>🛠️</div>
                 <div>
-                  <div style={{fontWeight:700}}>Proposer un service</div>
+                  <div style={{fontWeight:700}}>Proposer une prestation</div>
                   <div style={{fontSize:12,color:"rgba(255,255,255,.7)",fontWeight:400,marginTop:2}}>
                     Offre ETF, prestataire · APPLITAG Connect
                   </div>

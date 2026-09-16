@@ -95,37 +95,38 @@ export const WallpaperBg = () => (
       <ellipse rx="7"  ry="5"  fill="#182E22"/>
     </g>
 
-    {/* Chaîne traçabilité */}
-    <path className="wbg-f1" d="M 320,1500 C 540,1260 540,1260 760,600" fill="none" stroke="#3EE878" strokeWidth="18" opacity=".06"/>
-    <path className="wbg-f1" d="M 320,1500 C 540,1260 540,1260 760,600" fill="none" stroke="url(#wbg-chain)" strokeWidth="2.2" strokeDasharray="12,10"/>
-    <path className="wbg-f2" d="M 325,1502 C 544,1262 544,1262 764,602" fill="none" stroke="#28C860" strokeWidth="1.0" strokeDasharray="4,20" opacity=".35"/>
+    {/* Chaîne traçabilité — sens Forêt (haut) → Bord route → Chaufferie (bas) */}
+    <path className="wbg-f1" d="M 340,380 C 440,670 540,960 720,1580" fill="none" stroke="#3EE878" strokeWidth="18" opacity=".06"/>
+    <path className="wbg-f1" d="M 340,380 C 440,670 540,960 720,1580" fill="none" stroke="url(#wbg-chain)" strokeWidth="2.2" strokeDasharray="12,10"/>
+    <path className="wbg-f2" d="M 345,382 C 445,672 545,962 725,1582" fill="none" stroke="#28C860" strokeWidth="1.0" strokeDasharray="4,20" opacity=".35"/>
 
-    {/* Nœud Forêt */}
+    {/* Nœud Forêt — haut */}
     <g className="wbg-n1">
-      <circle cx="320" cy="1500" r="18" fill="#154530" filter="url(#wbg-nglow)"/>
-      <circle cx="320" cy="1500" r="10" fill="#3EE878"/>
-      <circle cx="320" cy="1500" r="25" fill="none" stroke="#3EE878" strokeWidth="1.6" opacity=".55"/>
-      <circle cx="320" cy="1500" r="40" fill="none" stroke="#3EE878" strokeWidth="0.7" opacity=".22"/>
+      <circle cx="340" cy="380" r="18" fill="#154530" filter="url(#wbg-nglow)"/>
+      <circle cx="340" cy="380" r="10" fill="#3EE878"/>
+      <circle cx="340" cy="380" r="25" fill="none" stroke="#3EE878" strokeWidth="1.6" opacity=".55"/>
+      <circle cx="340" cy="380" r="40" fill="none" stroke="#3EE878" strokeWidth="0.7" opacity=".22"/>
     </g>
-    <text x="352" y="1496" fontFamily="'Courier New',monospace" fontSize="16" fill="#80EAB0" letterSpacing="3" opacity=".80">FORÊT</text>
+    <text x="372" y="376" fontFamily="'Courier New',monospace" fontSize="16" fill="#80EAB0" letterSpacing="3" opacity=".88">FORÊT</text>
 
-    {/* Nœud Bord route */}
+    {/* Nœud Bord route — centre, renforcé */}
     <g className="wbg-n2">
-      <circle cx="540" cy="1200" r="16" fill="#154530" filter="url(#wbg-nglow)"/>
-      <circle cx="540" cy="1200" r="9"  fill="#3EE878"/>
-      <circle cx="540" cy="1200" r="22" fill="none" stroke="#3EE878" strokeWidth="1.5" opacity=".55"/>
-      <circle cx="540" cy="1200" r="36" fill="none" stroke="#3EE878" strokeWidth="0.6" opacity=".22"/>
+      <circle cx="540" cy="960" r="22" fill="#154530" filter="url(#wbg-nglow)"/>
+      <circle cx="540" cy="960" r="13" fill="#3EE878"/>
+      <circle cx="540" cy="960" r="30" fill="none" stroke="#3EE878" strokeWidth="2.0" opacity=".65"/>
+      <circle cx="540" cy="960" r="50" fill="none" stroke="#3EE878" strokeWidth="0.9" opacity=".28"/>
     </g>
-    <text x="572" y="1196" fontFamily="'Courier New',monospace" fontSize="15" fill="#80EAB0" letterSpacing="3" opacity=".78">BORD ROUTE</text>
+    <rect x="562" y="941" width="272" height="28" rx="5" fill="#0B2E18" opacity=".55"/>
+    <text x="572" y="959" fontFamily="'Courier New',monospace" fontSize="15" fill="#A8F0C8" letterSpacing="3" opacity=".92">BORD ROUTE</text>
 
-    {/* Nœud Chaufferie */}
+    {/* Nœud Chaufferie — bas */}
     <g className="wbg-n3">
-      <circle cx="760" cy="600" r="16" fill="#154530" filter="url(#wbg-nglow)"/>
-      <circle cx="760" cy="600" r="9"  fill="#3EE878"/>
-      <circle cx="760" cy="600" r="22" fill="none" stroke="#3EE878" strokeWidth="1.5" opacity=".55"/>
-      <circle cx="760" cy="600" r="36" fill="none" stroke="#3EE878" strokeWidth="0.6" opacity=".22"/>
+      <circle cx="720" cy="1580" r="16" fill="#154530" filter="url(#wbg-nglow)"/>
+      <circle cx="720" cy="1580" r="9"  fill="#3EE878"/>
+      <circle cx="720" cy="1580" r="22" fill="none" stroke="#3EE878" strokeWidth="1.5" opacity=".55"/>
+      <circle cx="720" cy="1580" r="36" fill="none" stroke="#3EE878" strokeWidth="0.6" opacity=".22"/>
     </g>
-    <text x="792" y="596" fontFamily="'Courier New',monospace" fontSize="15" fill="#80EAB0" letterSpacing="3" opacity=".78">CHAUFFERIE</text>
+    <text x="752" y="1576" fontFamily="'Courier New',monospace" fontSize="15" fill="#80EAB0" letterSpacing="3" opacity=".88">CHAUFFERIE</text>
 
     <rect width="1080" height="1920" fill="url(#wbg-dots)"/>
     <rect width="1080" height="1920" fill="url(#wbg-vig)"/>
