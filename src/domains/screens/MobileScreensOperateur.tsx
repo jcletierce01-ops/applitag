@@ -808,21 +808,6 @@ export const EcranAccueil = ({contacts, notifications, user, livraisons=[], tran
           Bonjour {user?.prenom||user?.nom} 👋
         </div>
       </div>
-      {alertes.length>0&&(
-        <div onClick={onGoAlertes} style={{background:C.redL,borderRadius:14,padding:16,
-          marginBottom:12,border:`1.5px solid ${C.red}`,cursor:"pointer",
-          WebkitTapHighlightColor:"transparent"}}>
-          <div style={{display:"flex",alignItems:"center",gap:10}}>
-            <span style={{fontSize:24}}>🔴</span>
-            <div>
-              <div style={{fontSize:15,fontWeight:700,color:C.red}}>
-                {alertes.length} alerte{alertes.length>1?"s":""} active{alertes.length>1?"s":""}
-              </div>
-              <div style={{fontSize:12,color:C.red,opacity:.8}}>Appuyer pour voir</div>
-            </div>
-          </div>
-        </div>
-      )}
       {(user?.role==="admin"||user?.role==="manager")&&comptes.length>0&&(
         <div onClick={()=>setShowInscrits(true)} style={{background:"#E8F5E9",borderRadius:14,padding:16,
           marginBottom:12,border:`1.5px solid ${C.green}`,cursor:"pointer",
@@ -853,19 +838,6 @@ export const EcranAccueil = ({contacts, notifications, user, livraisons=[], tran
             </div>
           </div>
           <span style={{fontSize:18,color:"#E65100"}}>›</span>
-        </div>
-      )}
-      {(user?.role==="admin"||user?.role==="manager")&&(
-        <div onClick={onGoDelegations} style={{background:C.purpleL,borderRadius:14,padding:16,
-          marginBottom:12,border:`1.5px solid ${C.purple}`,cursor:"pointer",
-          display:"flex",alignItems:"center",gap:10,
-          WebkitTapHighlightColor:"transparent"}}>
-          <span style={{fontSize:24}}>🏢</span>
-          <div style={{flex:1}}>
-            <div style={{fontSize:15,fontWeight:700,color:C.purpleD}}>Délégations entreprises</div>
-            <div style={{fontSize:12,color:C.purpleD,opacity:.8}}>Créer une entreprise et missionner sur un lot</div>
-          </div>
-          <span style={{fontSize:18,color:C.purpleD}}>›</span>
         </div>
       )}
       {showInscrits&&(
@@ -1008,13 +980,14 @@ export const EcranAccueil = ({contacts, notifications, user, livraisons=[], tran
           {icon:"📦",label:"Bord de route",count:contacts.filter((c: any)=>c.statutLot==="BORD_ROUTE").length,color:C.brown,bg:C.brownL,action:()=>onGoLots("BORD_ROUTE")},
           {icon:"🚛",label:"Transports",count:contacts.filter((c: any)=>c.statutLot==="EN_LIVRAISON").length,color:C.purple,bg:C.purpleL,action:()=>onGoLots("EN_LIVRAISON")},
           {icon:"✅",label:"Livraisons",count:contacts.filter((c: any)=>c.statutLot==="LIVRE_CHAUFFERIE").length,color:C.green,bg:C.greenL,action:()=>onGoLots("LIVRE_CHAUFFERIE")},
-          {icon:"⚠️",label:"Alertes critiques",count:alertes.length,color:C.red,bg:C.redL,action:onGoAlertes},
-        ].map((card,i)=>(
+          {icon:"⚠️",label:"Alertes",count:alertes.length,color:C.red,bg:C.redL,action:onGoAlertes},
+          {icon:"🏢",label:"Délégations",count:null,color:C.purpleD,bg:C.purpleL,action:onGoDelegations},
+        ].filter(card=>card.icon!=="🏢"||(user?.role==="admin"||user?.role==="manager")).map((card,i)=>(
           <div key={i} onClick={card.action} style={{
             background:card.bg,borderRadius:14,padding:"14px 10px",cursor:"pointer",
             WebkitTapHighlightColor:"transparent"}}>
             <div style={{fontSize:22,marginBottom:6}}>{card.icon}</div>
-            <div style={{fontSize:22,fontWeight:700,color:card.color,fontFamily:FONT_TITLE}}>{card.count}</div>
+            <div style={{fontSize:22,fontWeight:700,color:card.color,fontFamily:FONT_TITLE}}>{card.count??""}</div>
             <div style={{fontSize:11,color:C.tx2,marginTop:2}}>{card.label}</div>
           </div>
         ))}
@@ -1084,18 +1057,18 @@ export const EcranAccueil = ({contacts, notifications, user, livraisons=[], tran
         </>
       )}
 
-      {/* ── Alertes récentes ── */}
-      {notifications.slice(0,3).length>0&&(
+      {/* ── Alertes non lues ── */}
+      {alertes.slice(0,2).length>0&&(
         <>
           <div style={{fontSize:13,fontWeight:700,color:C.tx2,marginBottom:8,fontFamily:FONT_TITLE}}>
-            🔔 Alertes récentes
+            🔔 Alertes non lues
           </div>
           <div style={{background:"#fff",borderRadius:14,border:`1px solid ${C.bd}`,padding:"0 14px",marginBottom:16}}>
-            {notifications.slice(0,3).map((n: any,i: number)=>(
+            {alertes.slice(0,2).map((n: any,i: number)=>(
               <div key={n.id||i} onClick={onGoAlertes} style={{display:"flex",gap:10,
                 padding:"12px 0",cursor:"pointer",WebkitTapHighlightColor:"transparent",
-                borderBottom:i<Math.min(notifications.length,3)-1?`1px solid ${C.bd}`:"none"}}>
-                <span style={{fontSize:16,flexShrink:0}}>{n.lu?"✅":"⚠️"}</span>
+                borderBottom:i<Math.min(alertes.length,2)-1?`1px solid ${C.bd}`:"none"}}>
+                <span style={{fontSize:16,flexShrink:0}}>⚠️</span>
                 <div style={{flex:1}}>
                   <div style={{fontSize:12,color:C.tx,lineHeight:1.4}}>{n.message||n.titre||"—"}</div>
                   <div style={{fontSize:10,color:C.tx3,marginTop:2}}>
