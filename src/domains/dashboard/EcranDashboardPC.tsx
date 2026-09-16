@@ -10,7 +10,8 @@ import { SectionCoproduits, SectionProjetFinance, SectionParcelleTravaux } from 
 import { SectionRegistreIA, SectionBoisCrise, SectionFicheCombustible, SectionVeilleReglementaire } from "./sections-veille.jsx";
 import { SectionLivraisons, SectionFacturationElec, SectionChaufferies } from "./sections-energie.jsx";
 import { SectionRapports, SectionReseau, SectionPlanApprovisionnement, SectionParametres } from "./sections-config.jsx";
-import { SectionConformiteRED, SectionCoutReglementaire, SectionGES } from "./sections-reglementaire.jsx";
+import { SectionConformiteRED } from "./sections-reglementaire.jsx";
+import { SectionCoutReglementaire, SectionGES } from "./sections-reglementaire-ges.jsx";
 import { SectionChantiers, SectionTransports, SectionAnalyses } from "./sections-logistique.jsx";
 import { SectionDocuments, SectionTerritoire, HubAlertes, SectionPlanning } from "./sections-logistique-docs.jsx";
 import { DASHBOARD_NAV } from "./sections.constants.js";
