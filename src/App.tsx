@@ -2,7 +2,7 @@
 // APPLITAG MOBILE — Auth QR + PIN + Multi-tenant
 // ============================================================
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { IS_DEMO_BUILD } from "./config/env.js";
 import {
   DEMO_ENTREPRISE_ID,
@@ -50,7 +50,28 @@ import { EcranProfilEntreprise } from "./domains/entreprise/EcranProfilEntrepris
 export default function App() {
   const [user,      setUser]      = useState<any>(()=>getUser());
   const [operateur, setOperateur] = useState<any>(()=>{ try { return JSON.parse(localStorage.getItem("applitag_operateur")||"null"); } catch { return null; } });
-  const [screen,    setScreen]    = useState("accueil");
+  const [screen,    _setScreen]   = useState("accueil");
+  const [navHistory, setNavHistory] = useState<string[]>([]);
+  const screenRef = useRef("accueil");
+  const TOP_LEVEL_SCREENS = ["accueil","lots","carte","alertes","saisies","delegations","profil","connexion"];
+  const setScreen = (newScreen: string) => {
+    if (TOP_LEVEL_SCREENS.includes(newScreen)) {
+      setNavHistory([]);
+    } else {
+      setNavHistory(prev => [...prev.slice(-9), screenRef.current]);
+    }
+    screenRef.current = newScreen;
+    _setScreen(newScreen);
+  };
+  const goBack = () => {
+    setNavHistory(prev => {
+      if (prev.length === 0) { setScreen("accueil"); return prev; }
+      const target = prev[prev.length - 1];
+      screenRef.current = target;
+      _setScreen(target);
+      return prev.slice(0, -1);
+    });
+  };
   const [menuOpen,  setMenuOpen]  = useState(false);
   const [fiche0Prefill, setFiche0Prefill] = useState<any>(null);
   const [roleChoisi, setRoleChoisi] = useState<any>(null);
@@ -607,11 +628,19 @@ export default function App() {
       {!isFullPage&&(
         <div style={{background:C.sb,color:"#fff",flexShrink:0,padding:"12px 16px 10px"}}>
           <div style={{display:"flex",alignItems:"center",gap:12}}>
-            <button onClick={()=>setMenuOpen(true)} style={{
-              background:"rgba(255,255,255,.12)",border:"none",color:"#fff",
-              width:36,height:36,borderRadius:9,fontSize:18,cursor:"pointer",
-              display:"flex",alignItems:"center",justifyContent:"center",
-              WebkitTapHighlightColor:"transparent",flexShrink:0}}>☰</button>
+            {navHistory.length > 0 ? (
+              <button onClick={goBack} style={{
+                background:"rgba(255,255,255,.12)",border:"none",color:"#fff",
+                height:36,borderRadius:9,fontSize:13,cursor:"pointer",fontWeight:600,
+                display:"flex",alignItems:"center",justifyContent:"center",padding:"0 10px",
+                WebkitTapHighlightColor:"transparent",flexShrink:0,gap:4}}>‹ Retour</button>
+            ) : (
+              <button onClick={()=>setMenuOpen(true)} style={{
+                background:"rgba(255,255,255,.12)",border:"none",color:"#fff",
+                width:36,height:36,borderRadius:9,fontSize:18,cursor:"pointer",
+                display:"flex",alignItems:"center",justifyContent:"center",
+                WebkitTapHighlightColor:"transparent",flexShrink:0}}>☰</button>
+            )}
             <img src="/logo.png" alt="APPLITAG" style={{width:32,height:32,objectFit:"contain"}}/>
             <div style={{flex:1}}>
               <div style={{fontSize:16,fontWeight:600,fontFamily:FONT_TITLE}}>{SCREEN_TITLES[screen]||"APPLITAG"}</div>
@@ -998,7 +1027,7 @@ export default function App() {
                     marginBottom:8,padding:"0 4px"}}>{groupe.label}</div>
                   <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:6}}>
                     {groupe.items.map((mod: any)=>{
-                      const featureOn = !mod.flag || FEATURE_FLAGS[mod.flag as keyof typeof FEATURE_FLAGS] !== false;
+                      const featureOn = !mod.flag || user?.role === 'admin' || FEATURE_FLAGS[mod.flag as keyof typeof FEATURE_FLAGS] !== false;
                       const roleOk    = hasPermission(user?.role as string, mod.id);
                       const active    = featureOn && roleOk;
                       return (
@@ -1035,6 +1064,10 @@ export default function App() {
               ))}
               <div style={{fontSize:10,color:C.tx3,textAlign:"center",marginTop:4,padding:"0 4px"}}>
                 🔒 Module non inclus dans votre abonnement
+              </div>
+              <div style={{fontSize:9,color:C.tx3,textAlign:"center",marginTop:8,
+                padding:"6px 4px 0",borderTop:`1px solid ${C.bd}`}}>
+                © Jean-Christophe LETIERCE — Tous droits réservés
               </div>
             </div>
           </div>
