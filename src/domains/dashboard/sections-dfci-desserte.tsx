@@ -3,6 +3,58 @@ import { useState, useRef } from "react";
 import { C, FONT_TITLE, BTN_H, INPUT_H, FONT_INPUT } from "../../design-system/tokens.js";
 import { DEMO_TRONCONS, PORTANCE_OPTS, ACCES_INCENDIE_OPTS, STATUT_TRONCON, TYPES_ANOMALIE, URGENCES, SOURCES_PROFIL } from "./sections-terrain-op.constants.js";
 
+const PRATICABILITE_OPTS = [
+  {id:"praticable",   icon:"🟢",label:"Praticable",        col:"#065F46",bg:"#D1FAE5"},
+  {id:"difficile",    icon:"🟡",label:"Difficile",         col:"#92400E",bg:"#FEF3C7"},
+  {id:"impraticable", icon:"🔴",label:"Impraticable",      col:"#991B1B",bg:"#FEE2E2"},
+  {id:"a_evaluer",    icon:"🔵",label:"À évaluer",         col:"#1E40AF",bg:"#DBEAFE"},
+  {id:"inconnu",      icon:"⚪",label:"Non renseigné",      col:"#6B7280",bg:"#F3F4F6"},
+];
+
+const OBSTACLES_TYPES = [
+  "Ornières / nids-de-poule","Ravinement","Arbre tombé","Végétation envahissante",
+  "Pont/buse dégradé","Largeur insuffisante","Fossé bouché","Affaissement de chaussée",
+  "Glissement de terrain","Barrière bloquée","Signalisation manquante","Traces d'incendie",
+];
+
+const DEMO_DIAGNOSTICS = [
+  {id:"DIAG-001",tronconId:"TRC-001",date:"15/07/2026",validePar:"J.C. LETIERCE",
+   praticabilite:"praticable",obstacles:[],commentaire:"Piste en bon état — entretien courant suffisant.",photos:2},
+  {id:"DIAG-002",tronconId:"TRC-002",date:"20/06/2026",validePar:"L. Bonnet",
+   praticabilite:"difficile",obstacles:["Ornières / nids-de-poule","Végétation envahissante"],
+   commentaire:"Fraisage et élagage nécessaires avant mobilisation.",photos:4},
+  {id:"DIAG-003",tronconId:"TRC-003",date:"01/07/2026",validePar:"J.C. LETIERCE",
+   praticabilite:"praticable",obstacles:["Fossé bouché"],
+   commentaire:"Fossé sud à curer — accès correct sinon.",photos:1},
+];
+
+const DEMO_POINTS_DFCI = [
+  {id:"DFCI-001",type:"citerne",nom:"Citerne DFCI — TRC-001 nord",etat:"ok",capacite:60,coordGPS:"46.51 / 2.89",dateVisite:"10/05/2026"},
+  {id:"DFCI-002",type:"borne",  nom:"Borne incendie — Corniche",  etat:"degrade",capacite:null,coordGPS:"46.49 / 2.91",dateVisite:"20/04/2026"},
+  {id:"DFCI-003",type:"poteau", nom:"Poteau signalisation D145",  etat:"ok",capacite:null,coordGPS:"46.50 / 2.90",dateVisite:"15/05/2026"},
+];
+
+const DFCI_TYPE_INFO = {
+  citerne:   {icon:"🚒",label:"Citerne",            col:"#0369A1",bg:"#DBEAFE"},
+  borne:     {icon:"🔵",label:"Borne incendie",     col:"#7C3AED",bg:"#EDE9FE"},
+  poteau:    {icon:"🪧",label:"Poteau signalisation",col:"#B45309",bg:"#FEF3C7"},
+  point_eau: {icon:"💧",label:"Point d'eau",         col:"#065F46",bg:"#D1FAE5"},
+};
+
+const calcPriorite = (t, diag) => {
+  let s = 0;
+  if (t.accesIncendie?.includes("Non — à créer")) s += 3;
+  else if (t.accesIncendie?.includes("améliorer")) s += 1;
+  if (t.largeur < 3) s += 2; else if (t.largeur < 3.5) s += 1;
+  if (t.pentePct > 12) s += 1;
+  if (diag?.praticabilite === "impraticable") s += 3;
+  else if (diag?.praticabilite === "difficile") s += 2;
+  else if (diag?.praticabilite === "a_evaluer") s += 1;
+  if ((diag?.obstacles?.length||0) > 1) s += 1;
+  if (t.tonnageMobilisable > 200) s += 1;
+  return Math.min(10, s);
+};
+
 export const SectionDesserte = () => {
   const [tab,    setTab]    = useState("liste");
   const [sel,    setSel]    = useState(null);
