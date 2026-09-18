@@ -87,6 +87,22 @@ td{padding:5px 8px;border-bottom:1px solid #E5E7EB}tr:nth-child(even) td{backgro
 </body></html>`;
 };
 
+const buildDemoRecents = () => RAPPORTS_RECENTS.map(r => {
+  const rpt = RAPPORTS_TYPES.find(t => t.id === r.type);
+  if (!rpt) return r;
+  const now = new Date(r.date);
+  const numRapport = `RPT-${r.date.replace(/-/g,"").slice(0,8)}-DEMO`;
+  const hasHtml = !r.format.startsWith("Excel");
+  const hasCsv  = r.format.includes("Excel");
+  const htmlContent = hasHtml
+    ? buildHtmlReport(rpt, r.label, "", numRapport, now, [], [])
+    : null;
+  const csvContent = hasCsv
+    ? `"APPLITAG — ${rpt.label}"\r\n"${r.label}"\r\n"Rapport n° : ${numRapport}"\r\n"Données de démonstration — aucun enregistrement réel"\r\n\r\n"Référence","Date","Client","Tonnage","Statut"\r\n`
+    : null;
+  return { ...r, filename: numRapport, htmlContent, csvContent };
+});
+
 export const SectionRapports = () => {
   const [activeRpt, setActiveRpt] = useState(null);
   const [periode, setPeriode]     = useState("2026-05");
@@ -94,7 +110,7 @@ export const SectionRapports = () => {
   const [format, setFormat]       = useState("PDF");
   const [generating, setGenerating] = useState(false);
   const [genStatus, setGenStatus]   = useState(null);
-  const [recents, setRecents]       = useState(RAPPORTS_RECENTS);
+  const [recents, setRecents]       = useState(buildDemoRecents);
 
   const rpt = activeRpt ? RAPPORTS_TYPES.find(r=>r.id===activeRpt) : null;
 
