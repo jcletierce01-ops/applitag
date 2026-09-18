@@ -3,7 +3,7 @@ import { useState } from "react";
 import { C } from "../../design-system/tokens.js";
 
 const CHANTIERS_DATA = [
-  {id:"CH-2026-14",label:"Forêt de Tronçais — Parcelle 18",
+  {id:"CH-2026-14-demo",label:"Forêt de Tronçais — Parcelle 18",
    proprietaire:"M. Gallet Bernard",commune:"Tronçais (03360)",surface:8.4,
    typeIntervention:"Coupe de taillis sous futaie",essences:"Chêne/Charme",
    entreprise:"SARL Forestry Allier",responsable:"L. Bonnet",
@@ -14,7 +14,7 @@ const CHANTIERS_DATA = [
    acces:"Route D145 + piste forestière — accès PL possible",
    contraintes:"Zone humide en bordure sud — pas d'engin < 15 t",
    photos:2,docs:3,alertes:0},
-  {id:"CH-2026-12",label:"Bocage Nord — Haies et lisières",
+  {id:"CH-2026-12-demo",label:"Bocage Nord — Haies et lisières",
    proprietaire:"Mme Renard Claire",commune:"Cérilly (03350)",surface:3.1,
    typeIntervention:"Broyage de haies bocagères",essences:"Charme/Noisetier",
    entreprise:"Entreprise Bocage 03",responsable:"P. Aubert",
@@ -25,7 +25,7 @@ const CHANTIERS_DATA = [
    acces:"Accès chemin agricole — tracteur seul",
    contraintes:"Période de nidification — vérification avant démarrage",
    photos:8,docs:5,alertes:0},
-  {id:"CH-2026-11",label:"Parcelle Ternant — Éclaircie résineuse",
+  {id:"CH-2026-11-demo",label:"Parcelle Ternant — Éclaircie résineuse",
    proprietaire:"GFA Ternant",commune:"Ternant (58)",surface:5.7,
    typeIntervention:"Éclaircie mécanique — Douglas",essences:"Douglas",
    entreprise:"SARL Forestry Allier",responsable:"L. Bonnet",
@@ -36,7 +36,7 @@ const CHANTIERS_DATA = [
    acces:"RD 977 + chemin communal — accès PL avec autorisation mairie",
    contraintes:"Câbles téléphoniques en bordure parcelle nord",
    photos:5,docs:4,alertes:1},
-  {id:"CH-2026-09",label:"Tronçais Sud — Coupe rase pin sylvestre",
+  {id:"CH-2026-09-demo",label:"Tronçais Sud — Coupe rase pin sylvestre",
    proprietaire:"M. Dubois René",commune:"Tronçais (03360)",surface:12.2,
    typeIntervention:"Coupe rase avec replantation prévue",essences:"Pin sylvestre",
    entreprise:"ForêtPro Bourbonnais",responsable:"A. Martel",
@@ -69,7 +69,7 @@ const STATUT_ALERTE = {
 };
 
 const ALERTES_INIT = [
-  {id:"ALT-001",chantierId:"CH-2026-11",
+  {id:"ALT-001-demo",chantierId:"CH-2026-11-demo",
    dateCreation:"2026-07-01",dateMaj:"2026-07-14",
    titre:"Câbles téléphoniques — zone nord non délimitée",
    description:"Câbles Orange en bordure parcelle nord non balisés. Risque de contact lors des abattages. Arrêt des travaux dans la zone nord jusqu'à délimitation officielle.",
@@ -83,19 +83,19 @@ const ALERTES_INIT = [
 ];
 
 const TAS_DATA = [
-  {id:"TAS-001",chantierId:"CH-2026-11",label:"Tas D1 — Bord piste nord",
+  {id:"TAS-001-demo",chantierId:"CH-2026-11-demo",label:"Tas D1 — Bord piste nord",
    volumeEstime:60,volumeReel:null,essence:"Douglas",humidite:38,
    statut:"mesure_en_cours",dateMise:"2026-07-03",datePrévEnlèvement:"2026-07-25",
    coordGPS:"46.4512 / 3.1874",notes:"Accessible porteur"},
-  {id:"TAS-002",chantierId:"CH-2026-11",label:"Tas D2 — Clairière centrale",
+  {id:"TAS-002-demo",chantierId:"CH-2026-11-demo",label:"Tas D2 — Clairière centrale",
    volumeEstime:85,volumeReel:82,essence:"Douglas",humidite:42,
    statut:"prêt_à_enlever",dateMise:"2026-07-05",datePrévEnlèvement:"2026-07-22",
    coordGPS:"46.4519 / 3.1891",notes:"Pesée réalisée"},
-  {id:"TAS-003",chantierId:"CH-2026-14",label:"Tas T1 — Route D145",
+  {id:"TAS-003-demo",chantierId:"CH-2026-14-demo",label:"Tas T1 — Route D145",
    volumeEstime:120,volumeReel:null,essence:"Chêne",humidite:null,
    statut:"constitué",dateMise:"2026-07-23",datePrévEnlèvement:"2026-08-15",
    coordGPS:"46.5201 / 2.9847",notes:"En attente pesée"},
-  {id:"TAS-004",chantierId:"CH-2026-09",label:"Tas P1 — Aire de stockage",
+  {id:"TAS-004-demo",chantierId:"CH-2026-09-demo",label:"Tas P1 — Aire de stockage",
    volumeEstime:200,volumeReel:195,essence:"Pin sylvestre",humidite:28,
    statut:"enlevé",dateMise:"2026-06-15",datePrévEnlèvement:"2026-06-29",
    coordGPS:"46.5180 / 2.9722",notes:"Livré chaufferie Moulins"},
