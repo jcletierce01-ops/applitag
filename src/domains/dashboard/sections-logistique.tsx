@@ -56,6 +56,32 @@ const STATUT_CHANTIER = {
   annulé:    {label:"Annulé",    icon:"❌",col:"#991B1B",bg:"#FEE2E2"},
 };
 
+const PRIORITE_ALERTE = {
+  critique: {label:"Critique", col:"#7F1D1D", bg:"#FEE2E2", icon:"🔴"},
+  haute:    {label:"Haute",    col:"#991B1B", bg:"#FEE2E2", icon:"🟠"},
+  moyenne:  {label:"Moyenne",  col:"#92400E", bg:"#FEF3C7", icon:"🟡"},
+  basse:    {label:"Basse",    col:"#065F46", bg:"#D1FAE5", icon:"🟢"},
+};
+const STATUT_ALERTE = {
+  ouverte:       {label:"Ouverte",        col:"#991B1B", bg:"#FEE2E2"},
+  en_traitement: {label:"En traitement",  col:"#92400E", bg:"#FEF3C7"},
+  résolue:       {label:"Résolue",        col:"#065F46", bg:"#D1FAE5"},
+};
+
+const ALERTES_DATA = [
+  {id:"ALT-001",chantierId:"CH-2026-11",
+   dateCreation:"2026-07-01",dateMaj:"2026-07-14",
+   titre:"Câbles téléphoniques — zone nord non délimitée",
+   description:"Câbles Orange en bordure parcelle nord non balisés. Risque de contact lors des abattages. Arrêt des travaux dans la zone nord jusqu'à délimitation officielle.",
+   statut:"en_traitement",priorite:"haute",responsable:"L. Bonnet",
+   actions:[
+     {date:"2026-07-01",auteur:"L. Bonnet",texte:"Alerte créée — câbles identifiés lors de la visite de démarrage chantier."},
+     {date:"2026-07-05",auteur:"L. Bonnet",texte:"Demande de délimitation envoyée à Orange (réf. DR-2026-0812). Accusé de réception reçu."},
+     {date:"2026-07-12",auteur:"J.C. LETIERCE",texte:"Relance téléphonique Orange. Intervention prévue semaine du 21 juillet."},
+     {date:"2026-07-14",auteur:"L. Bonnet",texte:"Travaux zone nord suspendus en attendant délimitation. Abattage poursuivi zones sud et centrale."},
+   ]},
+];
+
 const TAS_DATA = [
   {id:"TAS-001",chantierId:"CH-2026-11",label:"Tas D1 — Bord piste nord",
    volumeEstime:60,volumeReel:null,essence:"Douglas",humidite:38,
@@ -96,7 +122,7 @@ export const SectionChantiers = () => {
   const totSurface = CHANTIERS_DATA.reduce((s,c)=>s+c.surface,0);
   const totBudget  = CHANTIERS_DATA.reduce((s,c)=>s+c.budget,0);
   const enCours    = CHANTIERS_DATA.filter(c=>c.statut==="en cours").length;
-  const alertes    = CHANTIERS_DATA.reduce((s,c)=>s+c.alertes,0);
+  const alertes    = ALERTES_DATA.filter(a=>a.statut!=="résolue").length;
 
   return (
     <div style={{maxWidth:1000,margin:"0 auto"}}>
@@ -144,10 +170,11 @@ export const SectionChantiers = () => {
           {chantiers.map(c=>{
             const st = STATUT_CHANTIER[c.statut]||STATUT_CHANTIER.planifié;
             const isSelected = selected===c.id;
+            const nbAlt = ALERTES_DATA.filter(a=>a.chantierId===c.id&&a.statut!=="résolue").length;
             return (
               <div key={c.id} onClick={()=>setSelected(isSelected?null:c.id)}
                 style={{background:"#fff",borderRadius:12,padding:"12px 14px",cursor:"pointer",
-                  border:`2px solid ${isSelected?"#1E5B3A":c.alertes>0?"#FCA5A5":C.bd}`,
+                  border:`2px solid ${isSelected?"#1E5B3A":nbAlt>0?"#FCA5A5":C.bd}`,
                   boxShadow:isSelected?"0 0 0 3px #1E5B3A22":"none"}}>
                 <div style={{display:"flex",gap:10,alignItems:"flex-start"}}>
                   <div style={{flex:1}}>
@@ -155,8 +182,8 @@ export const SectionChantiers = () => {
                       <span style={{fontSize:12,fontWeight:800,color:C.tx}}>{c.label}</span>
                       <span style={{fontSize:9,fontWeight:700,padding:"2px 7px",borderRadius:20,
                         background:st.bg,color:st.col}}>{st.icon} {st.label}</span>
-                      {c.alertes>0&&<span style={{fontSize:9,fontWeight:700,padding:"2px 7px",
-                        borderRadius:20,background:"#FEE2E2",color:"#991B1B"}}>⚠️ {c.alertes} alerte</span>}
+                      {nbAlt>0&&<span style={{fontSize:9,fontWeight:700,padding:"2px 7px",
+                        borderRadius:20,background:"#FEE2E2",color:"#991B1B"}}>⚠️ {nbAlt} alerte</span>}
                     </div>
                     <div style={{fontSize:11,color:C.tx2}}>{c.typeIntervention} · {c.essences}</div>
                     <div style={{display:"flex",gap:12,marginTop:5,fontSize:10,color:C.tx3,flexWrap:"wrap"}}>
@@ -195,16 +222,17 @@ export const SectionChantiers = () => {
               </div>
 
               {/* Onglets fiche */}
-              <div style={{display:"flex",gap:4,marginBottom:12,borderBottom:`1px solid ${C.bd}`,paddingBottom:8}}>
-                {[["infos","📋 Infos"],["terrain","⛰️ Terrain"],["machines","🚜 Machines"],["tas","🪵 Tas"]].map(([v,l])=>(
+              <div style={{display:"flex",gap:4,marginBottom:12,borderBottom:`1px solid ${C.bd}`,paddingBottom:8,flexWrap:"wrap"}}>
+                {(()=>{const nbAlt=ALERTES_DATA.filter(a=>a.chantierId===ch.id&&a.statut!=="résolue").length;
+                return [["infos","📋 Infos"],["terrain","⛰️ Terrain"],["machines","🚜 Machines"],["tas","🪵 Tas"],["alertes",`⚠️ Alertes${nbAlt>0?" ("+nbAlt+")":""}`]].map(([v,l])=>(
                   <button key={v} onClick={()=>setOngletFiche(v)}
                     style={{padding:"4px 10px",borderRadius:6,fontSize:10,fontWeight:700,cursor:"pointer",
                       fontFamily:"inherit",border:"none",
                       background:ongletFiche===v?"#1E5B3A":"transparent",
-                      color:ongletFiche===v?"#fff":C.tx3}}>
+                      color:ongletFiche===v?"#fff":v==="alertes"&&nbAlt>0?"#991B1B":C.tx3}}>
                     {l}
                   </button>
-                ))}
+                ));}})()}
               </div>
 
               {ongletFiche==="infos"&&(
@@ -306,6 +334,86 @@ export const SectionChantiers = () => {
                 );
               })()}
 
+              {ongletFiche==="alertes"&&(()=>{
+                const alertesChantier = ALERTES_DATA.filter(a=>a.chantierId===ch.id);
+                return (
+                  <div style={{display:"flex",flexDirection:"column",gap:10}}>
+                    {alertesChantier.length===0?(
+                      <div style={{padding:"20px",textAlign:"center",background:"#F0FDF4",borderRadius:10,
+                        border:"1px solid #BBF7D0",color:"#065F46",fontSize:12}}>
+                        ✅ Aucune alerte active sur ce chantier.
+                      </div>
+                    ):alertesChantier.map(alt=>{
+                      const pr = PRIORITE_ALERTE[alt.priorite]||PRIORITE_ALERTE.moyenne;
+                      const st = STATUT_ALERTE[alt.statut]||STATUT_ALERTE.ouverte;
+                      return (
+                        <div key={alt.id} style={{background:"#FFF",borderRadius:10,
+                          border:`1px solid ${pr.col}55`,padding:"10px 12px"}}>
+                          <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:6}}>
+                            <div style={{flex:1}}>
+                              <div style={{display:"flex",gap:6,alignItems:"center",flexWrap:"wrap",marginBottom:3}}>
+                                <span style={{fontSize:11,fontWeight:800,color:C.tx}}>{pr.icon} {alt.titre}</span>
+                              </div>
+                              <div style={{display:"flex",gap:5,flexWrap:"wrap"}}>
+                                <span style={{fontSize:9,fontWeight:700,padding:"2px 7px",borderRadius:20,
+                                  background:pr.bg,color:pr.col}}>{pr.label}</span>
+                                <span style={{fontSize:9,fontWeight:700,padding:"2px 7px",borderRadius:20,
+                                  background:st.bg,color:st.col}}>{st.label}</span>
+                              </div>
+                            </div>
+                          </div>
+                          <div style={{fontSize:10,color:C.tx2,lineHeight:1.5,marginBottom:8,
+                            background:"#F9FAFB",borderRadius:6,padding:"6px 8px"}}>
+                            {alt.description}
+                          </div>
+                          <div style={{display:"flex",justifyContent:"space-between",fontSize:9,color:C.tx3,marginBottom:8}}>
+                            <span>👤 Responsable : {alt.responsable}</span>
+                            <span>Créée le {new Date(alt.dateCreation).toLocaleDateString("fr-FR")}</span>
+                          </div>
+                          {/* Chronologie des mises à jour */}
+                          <div style={{borderTop:`1px solid ${C.bd}`,paddingTop:8}}>
+                            <div style={{fontSize:9,fontWeight:700,color:C.tx3,marginBottom:6,textTransform:"uppercase",letterSpacing:.5}}>
+                              Suivi — dernière mise à jour le {new Date(alt.dateMaj).toLocaleDateString("fr-FR")}
+                            </div>
+                            <div style={{display:"flex",flexDirection:"column",gap:5}}>
+                              {[...alt.actions].reverse().map((a,i)=>(
+                                <div key={i} style={{display:"flex",gap:8,fontSize:9,alignItems:"flex-start"}}>
+                                  <div style={{flexShrink:0,color:C.tx3,minWidth:60}}>
+                                    {new Date(a.date).toLocaleDateString("fr-FR",{day:"2-digit",month:"2-digit"})}
+                                  </div>
+                                  <div style={{flexShrink:0,color:"#1E40AF",fontWeight:600,minWidth:90}}>{a.auteur}</div>
+                                  <div style={{color:C.tx2,lineHeight:1.4}}>{a.texte}</div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                          <div style={{display:"flex",gap:5,marginTop:8}}>
+                            <button onClick={()=>alert("Mise à jour de l'alerte "+alt.id+" — fonctionnalité disponible en mode connecté.")}
+                              style={{flex:1,padding:"5px",borderRadius:6,fontSize:9,fontWeight:700,
+                                cursor:"pointer",fontFamily:"inherit",background:"#1E3A5F",border:"none",color:"#fff"}}>
+                              ✏️ Ajouter une mise à jour
+                            </button>
+                            {alt.statut!=="résolue"&&(
+                              <button onClick={()=>alert("Alerte "+alt.id+" marquée résolue.")}
+                                style={{flex:1,padding:"5px",borderRadius:6,fontSize:9,fontWeight:700,
+                                  cursor:"pointer",fontFamily:"inherit",background:"#059669",border:"none",color:"#fff"}}>
+                                ✅ Marquer résolue
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                    <button onClick={()=>alert("Nouvelle alerte — formulaire disponible en mode connecté.")}
+                      style={{padding:"7px",borderRadius:8,fontSize:10,fontWeight:700,
+                        cursor:"pointer",fontFamily:"inherit",background:"transparent",
+                        border:`1px dashed #991B1B`,color:"#991B1B"}}>
+                      + Signaler une alerte
+                    </button>
+                  </div>
+                );
+              })()}
+
               {/* Actions */}
               <div style={{display:"flex",gap:6,marginTop:14,flexWrap:"wrap"}}>
                 <button style={{flex:1,padding:"7px",borderRadius:8,fontSize:11,fontWeight:700,
@@ -365,8 +473,25 @@ body{font-family:'Segoe UI',Arial,sans-serif;margin:0;color:#1a1a1a;font-size:10
   <div class="sec"><h2>Documents et photos</h2>
   <div class="row"><span class="lbl">Photos terrain</span><span class="val">${ch.photos||0} photo${(ch.photos||0)!==1?"s":""}</span></div>
   <div class="row"><span class="lbl">Documents</span><span class="val">${ch.docs||0} document${(ch.docs||0)!==1?"s":""}</span></div>
-  ${ch.alertes>0?`<div class="row"><span class="lbl">⚠️ Alertes</span><span class="val" style="color:#991B1B">${ch.alertes} alerte${ch.alertes>1?"s":""} active${ch.alertes>1?"s":""}</span></div>`:""}
   </div>
+  ${(()=>{const alts2=ALERTES_DATA.filter(a=>a.chantierId===ch.id);return alts2.length>0?`<div class="sec"><h2>Alertes actives (${alts2.filter(a=>a.statut!=="résolue").length}/${alts2.length})</h2>
+  ${alts2.map(alt=>{const pr2=PRIORITE_ALERTE[alt.priorite]||PRIORITE_ALERTE.moyenne;const st3=STATUT_ALERTE[alt.statut]||STATUT_ALERTE.ouverte;return`<div class="tas">
+    <div style="display:flex;justify-content:space-between;margin-bottom:5px">
+      <strong style="color:${pr2.col}">${pr2.icon} ${alt.titre}</strong>
+      <span style="font-size:8pt;font-weight:700;color:${st3.col}">${st3.label}</span>
+    </div>
+    <div style="font-size:9pt;color:#555;margin-bottom:6px">${alt.description}</div>
+    <div style="font-size:8pt;color:#777;margin-bottom:6px">👤 ${alt.responsable} · Créée le ${new Date(alt.dateCreation).toLocaleDateString("fr-FR")} · Mise à jour le ${new Date(alt.dateMaj).toLocaleDateString("fr-FR")}</div>
+    <div style="background:#F9FAFB;border-left:3px solid ${pr2.col};padding:6px 10px">
+      ${[...alt.actions].reverse().map(a=>`<div style="display:flex;gap:10px;font-size:8pt;margin-bottom:3px;color:#333">
+        <span style="color:#777;min-width:40px">${new Date(a.date).toLocaleDateString("fr-FR",{day:"2-digit",month:"2-digit"})}</span>
+        <span style="font-weight:700;min-width:90px">${a.auteur}</span>
+        <span>${a.texte}</span>
+      </div>`).join("")}
+    </div>
+  </div>`;}).join("")}
+  </div>`:"";})()}
+  <div class="sec">
 </div>
 <div class="ftr"><div>APPLITAG by ALTEGAD SAS · Jean-Christophe LETIERCE</div><div>Rapport ${ch.id} · ${now.toLocaleDateString("fr-FR")}</div></div>
 </body></html>`;
