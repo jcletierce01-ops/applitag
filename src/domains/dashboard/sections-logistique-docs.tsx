@@ -81,14 +81,14 @@ const DOC_CATS = [
 
 // Historique de documents générés (simulé)
 const DOCS_HISTORIQUE = [
-  {id:"d001",type:"rapport_visite",    ref:"Visite — Forêt Ternant (58)",   date:"2026-07-17",auteur:"M. Boivin",taille:"148 Ko",statut:"signé"},
-  {id:"d002",type:"bon_livraison",     ref:"BL-2026-0234 — Chaufferie Moulins",date:"2026-07-16",auteur:"Système",taille:"42 Ko",statut:"validé"},
-  {id:"d003",type:"lettre_voiture",    ref:"TRP-2026-0891 — Vichy Agglo",   date:"2026-07-16",auteur:"Système",taille:"28 Ko",statut:"émis"},
-  {id:"d004",type:"convention_proprio",ref:"Convention — M. Gallet (03)",   date:"2026-07-14",auteur:"M. Boivin",taille:"204 Ko",statut:"signé"},
-  {id:"d005",type:"snapshot_regl",     ref:"Snapshot — Dossier Ternant",    date:"2026-07-14",auteur:"M. Boivin",taille:"96 Ko",statut:"archivé"},
-  {id:"d006",type:"fiche_lot",         ref:"LOT-2026-044 — Forêt Tronçais", date:"2026-07-13",auteur:"Système",taille:"64 Ko",statut:"validé"},
-  {id:"d007",type:"rapport_chantier",  ref:"Chantier CH-2026-12 — Cérilly", date:"2026-07-10",auteur:"M. Boivin",taille:"312 Ko",statut:"signé"},
-  {id:"d008",type:"autorisation_coupe",ref:"Autorisation — Mme Renard",     date:"2026-07-08",auteur:"M. Boivin",taille:"88 Ko",statut:"signé"},
+  {id:"d001-demo",type:"rapport_visite",    ref:"Visite — Forêt Ternant (58)",   date:"2026-07-17",auteur:"M. Boivin",taille:"148 Ko",statut:"signé"},
+  {id:"d002-demo",type:"bon_livraison",     ref:"BL-2026-0234 — Chaufferie Moulins",date:"2026-07-16",auteur:"Système",taille:"42 Ko",statut:"validé"},
+  {id:"d003-demo",type:"lettre_voiture",    ref:"TRP-2026-0891-demo — Vichy Agglo",   date:"2026-07-16",auteur:"Système",taille:"28 Ko",statut:"émis"},
+  {id:"d004-demo",type:"convention_proprio",ref:"Convention — M. Gallet (03)",   date:"2026-07-14",auteur:"M. Boivin",taille:"204 Ko",statut:"signé"},
+  {id:"d005-demo",type:"snapshot_regl",     ref:"Snapshot — Dossier Ternant",    date:"2026-07-14",auteur:"M. Boivin",taille:"96 Ko",statut:"archivé"},
+  {id:"d006-demo",type:"fiche_lot",         ref:"LOT-2026-044-demo — Forêt Tronçais", date:"2026-07-13",auteur:"Système",taille:"64 Ko",statut:"validé"},
+  {id:"d007-demo",type:"rapport_chantier",  ref:"Chantier CH-2026-12-demo — Cérilly", date:"2026-07-10",auteur:"M. Boivin",taille:"312 Ko",statut:"signé"},
+  {id:"d008-demo",type:"autorisation_coupe",ref:"Autorisation — Mme Renard",     date:"2026-07-08",auteur:"M. Boivin",taille:"88 Ko",statut:"signé"},
 ];
 
 const STATUT_DOC = {
