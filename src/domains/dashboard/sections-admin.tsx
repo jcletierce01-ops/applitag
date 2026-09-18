@@ -264,6 +264,59 @@ export const SectionAcces = ({_isDemo=false}) => {
       region:"",departement:"",ville:"",codePostal:"",zoneGeo:"Département",perms:[],nomEntreprise:""});
   };
 
+  const exportCsv = () => {
+    const header = `"Nom","Prénom","Rôle","Code","Email","Téléphone","Entreprise","Département","Région"\r\n`;
+    const rows = utilisateursFiltres.map(u => {
+      const rd = rolesDef[u.role]||{label:u.role||""};
+      return `"${u.nom||""}","${u.prenom||""}","${rd.label}","${u.codeGenere||""}","${u.email||""}","${u.telephone||""}","${u.nomEntreprise||""}","${u.departement||""}","${u.region||""}"`;
+    }).join("\r\n");
+    const now = new Date();
+    const csv = `"APPLITAG — Utilisateurs"\r\n"Exporté le : ${now.toLocaleDateString("fr-FR")}"\r\n"Filtre actif : ${recherche||"aucun"}"\r\n\r\n${header}${rows}`;
+    const blob = new Blob(["﻿"+csv],{type:"text/csv;charset=utf-8"});
+    const a = document.createElement("a"); a.href=URL.createObjectURL(blob); a.download=`APPLITAG-Utilisateurs-${now.toISOString().slice(0,10)}.csv`; a.click();
+  };
+
+  const exportPdf = () => {
+    const now = new Date();
+    const tableRows = utilisateursFiltres.map((u,i) => {
+      const rd = rolesDef[u.role]||{icon:"👤",label:u.role||"",color:"#555"};
+      return `<tr style="background:${i%2===0?"#fff":"#F9FAFB"}">
+        <td>${u.prenom?`${u.prenom} ${u.nom}`:u.nom||u.nomEntreprise||"—"}</td>
+        <td><span style="background:${rd.color}18;color:${rd.color};padding:2px 7px;border-radius:4px;font-size:8pt;font-weight:700">${rd.icon||""} ${rd.label}</span></td>
+        <td style="font-family:monospace;font-size:8pt;color:#444">${u.codeGenere||"—"}</td>
+        <td>${u.email||"—"}</td>
+        <td>${u.telephone||"—"}</td>
+        <td>${u.departement||u.region||"—"}</td>
+      </tr>`;
+    }).join("");
+    const html = `<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"><title>Utilisateurs APPLITAG</title>
+<style>body{font-family:'Segoe UI',Arial,sans-serif;margin:0;color:#1a1a1a;font-size:10pt}
+.hdr{background:#1E3A5F;color:#fff;padding:18px 28px;display:flex;justify-content:space-between;align-items:center}
+.hdr h1{margin:0;font-size:14pt}.meta{text-align:right;font-size:9pt;opacity:.85}
+.body{padding:18px 28px}
+table{width:100%;border-collapse:collapse;font-size:9pt}
+th{background:#1E3A5F;color:#fff;padding:6px 10px;text-align:left}
+td{padding:5px 10px;border-bottom:1px solid #E5E7EB}
+.ftr{padding:12px 28px;border-top:1px solid #E5E7EB;display:flex;justify-content:space-between;font-size:8pt;color:#666}
+@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}</style>
+</head><body>
+<div class="hdr">
+  <div><div style="font-size:9pt;opacity:.7;margin-bottom:3px">🌿 APPLITAG by ALTEGAD SAS</div>
+  <h1>👥 Liste des utilisateurs</h1>
+  ${recherche?`<div style="font-size:9pt;margin-top:4px;opacity:.8">Filtre : « ${recherche} »</div>`:""}</div>
+  <div class="meta"><div>${now.toLocaleDateString("fr-FR")} à ${now.toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"})}</div>
+  <div style="margin-top:4px">${utilisateursFiltres.length} utilisateur${utilisateursFiltres.length!==1?"s":""} affiché${utilisateursFiltres.length!==1?"s":""} / ${utilisateurs.length} total</div></div>
+</div>
+<div class="body">
+<table><thead><tr><th>Nom / Entreprise</th><th>Rôle</th><th>Code accès</th><th>Email</th><th>Téléphone</th><th>Zone</th></tr></thead>
+<tbody>${tableRows}</tbody></table>
+</div>
+<div class="ftr"><div>APPLITAG by ALTEGAD SAS · Jean-Christophe LETIERCE — Administrateur</div><div>${utilisateursFiltres.length} / ${utilisateurs.length} utilisateurs</div></div>
+</body></html>`;
+    const win = window.open("","_blank","width=1050,height=760");
+    if (win) { win.document.write(html); win.document.close(); setTimeout(()=>win.print(),700); }
+  };
+
   const renderOrgNode = (userId, depth=0) => {
     const u = utilisateurs.find(x=>x.id===userId);
     if (!u) return null;
@@ -323,8 +376,18 @@ export const SectionAcces = ({_isDemo=false}) => {
               {l}
             </button>
           ))}
-          <div style={{flex:1,display:"flex",alignItems:"center",justifyContent:"flex-end",paddingRight:4}}>
+          <div style={{flex:1,display:"flex",alignItems:"center",justifyContent:"flex-end",gap:6,paddingRight:4}}>
             <span style={{fontSize:11,color:C.tx3}}>{utilisateursFiltres.length}/{utilisateurs.length}</span>
+            <button onClick={exportCsv} title="Exporter CSV"
+              style={{background:"none",border:`1px solid ${C.bd}`,borderRadius:5,padding:"3px 8px",
+                fontSize:10,cursor:"pointer",fontFamily:"inherit",color:C.tx2,display:"flex",alignItems:"center",gap:3}}>
+              ⬇️ CSV
+            </button>
+            <button onClick={exportPdf} title="Exporter PDF"
+              style={{background:"none",border:`1px solid ${C.bd}`,borderRadius:5,padding:"3px 8px",
+                fontSize:10,cursor:"pointer",fontFamily:"inherit",color:C.tx2,display:"flex",alignItems:"center",gap:3}}>
+              🖨️ PDF
+            </button>
           </div>
         </div>
 
