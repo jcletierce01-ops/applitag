@@ -208,6 +208,8 @@ export const SectionChantiers = () => {
         {/* Fiche détail */}
         {ch&&(()=>{
           const st = STATUT_CHANTIER[ch.statut]||STATUT_CHANTIER.planifié;
+          const nbAlt = ALERTES_DATA.filter(a=>a.chantierId===ch.id&&a.statut!=="résolue").length;
+          const onglets = [["infos","📋 Infos"],["terrain","⛰️ Terrain"],["machines","🚜 Machines"],["tas","🪵 Tas"],["alertes","⚠️ Alertes"+(nbAlt>0?" ("+nbAlt+")":"")]];
           return (
             <div style={{background:"#fff",borderRadius:14,border:`2px solid #1E5B3A`,
               padding:16,position:"sticky",top:0}}>
@@ -223,8 +225,7 @@ export const SectionChantiers = () => {
 
               {/* Onglets fiche */}
               <div style={{display:"flex",gap:4,marginBottom:12,borderBottom:`1px solid ${C.bd}`,paddingBottom:8,flexWrap:"wrap"}}>
-                {(()=>{const nbAlt=ALERTES_DATA.filter(a=>a.chantierId===ch.id&&a.statut!=="résolue").length;
-                return [["infos","📋 Infos"],["terrain","⛰️ Terrain"],["machines","🚜 Machines"],["tas","🪵 Tas"],["alertes",`⚠️ Alertes${nbAlt>0?" ("+nbAlt+")":""}`]].map(([v,l])=>(
+                {onglets.map(([v,l])=>(
                   <button key={v} onClick={()=>setOngletFiche(v)}
                     style={{padding:"4px 10px",borderRadius:6,fontSize:10,fontWeight:700,cursor:"pointer",
                       fontFamily:"inherit",border:"none",
@@ -232,7 +233,7 @@ export const SectionChantiers = () => {
                       color:ongletFiche===v?"#fff":v==="alertes"&&nbAlt>0?"#991B1B":C.tx3}}>
                     {l}
                   </button>
-                ));}})()}
+                ))}
               </div>
 
               {ongletFiche==="infos"&&(
