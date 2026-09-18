@@ -138,7 +138,8 @@ export const SectionRapports = () => {
         htmlContent = html;
         const blob = new Blob([html],{type:"text/html;charset=utf-8"});
         taille = `~${Math.max(1,Math.round(blob.size/1024))} Ko`;
-        dlBlob(html,"text/html;charset=utf-8",`${numRapport}.html`);
+        const win = window.open("","_blank","width=920,height=740");
+        if (win) { win.document.write(html); win.document.close(); setTimeout(()=>win.print(),700); }
         if (format === "PDF + Excel") {
           let csv2 = `"APPLITAG — ${rpt.label}"\r\n"Période : ${periodeLabel}"\r\n\r\n"Référence","Date","Client","Tonnage","Statut"\r\n`;
           livraisons.slice(0,50).forEach(l=>{ csv2+=`"${l.reference||l.id||""}","${(l.date||l.createdAt||"").slice(0,10)}","${l.client||l.contactNom||""}","${l.tonnage||l.volume||""}","${l.statut||""}"\r\n`; });
@@ -203,7 +204,7 @@ export const SectionRapports = () => {
                   </div>
                   <button onClick={()=>{
                     if (!r.htmlContent && !r.csvContent) return;
-                    if (r.htmlContent) { const b=new Blob([r.htmlContent],{type:"text/html;charset=utf-8"}); const a=document.createElement("a"); a.href=URL.createObjectURL(b); a.download=`${r.filename||"rapport"}.html`; a.click(); }
+                    if (r.htmlContent) { const w=window.open("","_blank","width=920,height=740"); if(w){w.document.write(r.htmlContent);w.document.close();setTimeout(()=>w.print(),700);} }
                     if (r.csvContent) { const b=new Blob(["﻿"+r.csvContent],{type:"text/csv;charset=utf-8"}); const a=document.createElement("a"); a.href=URL.createObjectURL(b); a.download=`${r.filename||"rapport"}.csv`; a.click(); }
                   }} style={{padding:"4px 10px",borderRadius:6,fontSize:10,fontWeight:600,
                     cursor:(r.htmlContent||r.csvContent)?"pointer":"default",fontFamily:"inherit",
@@ -309,7 +310,7 @@ export const SectionRapports = () => {
                 {generating?"⏳ Génération en cours…":"⚡ Générer le rapport"}
               </button>
               <div style={{fontSize:9,color:C.tx3,textAlign:"center",marginTop:5}}>
-                {format==="PDF"?"Télécharge un fichier HTML (ouvrir dans navigateur)":format==="Excel"?"Télécharge un fichier CSV":"HTML + CSV téléchargés directement"}
+                {format==="PDF"?"Ouvre l'aperçu impression → Enregistrer en PDF":format==="Excel"?"Télécharge un fichier CSV":"Aperçu impression PDF + CSV téléchargé"}
               </div>
             </>
           )}
