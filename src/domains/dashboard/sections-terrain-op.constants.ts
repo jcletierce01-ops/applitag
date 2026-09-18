@@ -10,7 +10,7 @@ export const STATUT_FOURN_RED = {
 
 export const DEMO_TRONCONS = [
   {
-    id:"TRC-001", nom:"Chemin des Battets — section nord",
+    id:"TRC-001-demo", nom:"Chemin des Battets — section nord",
     type:"existant", proprietaire:"Commune de Tronçais",
     parcelles:["B 112","B 113","B 114"], surface:12.5,
     portance:"renforcee", largeur:4.5, pentePct:8,
