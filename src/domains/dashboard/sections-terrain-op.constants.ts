@@ -21,7 +21,7 @@ export const DEMO_TRONCONS = [
     lat:46.51, lng:2.89,
   },
   {
-    id:"TRC-002", nom:"Piste de la Corniche — prolongement",
+    id:"TRC-002-demo", nom:"Piste de la Corniche — prolongement",
     type:"a_creer", proprietaire:"Syndicat forestier Allier",
     parcelles:["C 218","C 219"], surface:8.2,
     portance:"normale", largeur:3.5, pentePct:14,
@@ -32,7 +32,7 @@ export const DEMO_TRONCONS = [
     lat:46.49, lng:2.91,
   },
   {
-    id:"TRC-003", nom:"Route de la Biche — section sud",
+    id:"TRC-003-demo", nom:"Route de la Biche — section sud",
     type:"existant", proprietaire:"Propriétaire privé",
     parcelles:["A 034"], surface:3.8,
     portance:"legere", largeur:2.8, pentePct:6,
