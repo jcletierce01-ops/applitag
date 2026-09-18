@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { C, PADDING, FONT_TITLE, BTN_H, INPUT_H, FONT_INPUT } from "../../design-system/tokens.js";
 import { todayS, uid } from "../../shared/utils.js";
-import { STATUT_FOURN_RED, DEMO_TRONCONS, NIVEAUX_RESTRICTION } from "./sections-terrain-op.constants.js";
+import { STATUT_FOURN_RED, DEMO_TRONCONS, NIVEAUX_RESTRICTION, PORTANCE_OPTS, ACCES_INCENDIE_OPTS, STATUT_TRONCON, TYPES_ANOMALIE, URGENCES, SOURCES_PROFIL } from "./sections-terrain-op.constants.js";
 
 const PERIMETRE_RED_OPTS = [
   {id:"bois_forestier", label:"Bois forestier"},
@@ -30,49 +30,15 @@ const CHAINE_ETAPES = [
 /* ═══════════════════════════════════════════════════════════════
    MODULE DESSERTE FORESTIÈRE
 ═══════════════════════════════════════════════════════════════ */
-const PORTANCE_OPTS = [
-  {v:"legere",  l:"Légère (< 10 t)", col:"#065F46", bg:"#D1FAE5"},
-  {v:"normale", l:"Normale (10–19 t)",col:"#1E40AF", bg:"#DBEAFE"},
-  {v:"renforcee",l:"Renforcée (≥ 19 t)",col:"#7C3AED",bg:"#EDE9FE"},
-];
-const ACCES_INCENDIE_OPTS = ["Oui — accès DFCI conforme","Oui — à améliorer","Non — hors périmètre","Non — à créer"];
-// DEMO_TRONCONS importé depuis sections-terrain-op.constants.js
-const STATUT_TRONCON = {
-  operationnel:  {l:"Opérationnel",   col:"#065F46", bg:"#D1FAE5", icon:"✅"},
-  a_ameliorer:   {l:"À améliorer",    col:"#B45309", bg:"#FEF3C7", icon:"⚠️"},
-  projet:        {l:"Projet",         col:"#7C3AED", bg:"#EDE9FE", icon:"📐"},
-  ferme:         {l:"Fermé / interdit",col:"#991B1B",bg:"#FEE2E2", icon:"🚫"},
-};
+// PORTANCE_OPTS, ACCES_INCENDIE_OPTS, STATUT_TRONCON, DEMO_TRONCONS importés depuis sections-terrain-op.constants.js
 
 // ── APPLITAG DATA — SIGNALEMENTS ANOMALIES DESSERTES ─────────────
 const SIGNALEMENTS_KEY = "applitag_signalements_desserte";
 const signalementsGet = () => { try { return JSON.parse(localStorage.getItem(SIGNALEMENTS_KEY)||"[]"); } catch { return []; } };
 const signalementsSet = (arr) => { try { localStorage.setItem(SIGNALEMENTS_KEY, JSON.stringify(arr)); } catch { /* noop */ } };
 
-const TYPES_ANOMALIE = [
-  {id:"orniere",     label:"Ornières / nids-de-poule",  icon:"🕳️", urgence:"orange"},
-  {id:"ravinement",  label:"Ravinement",                icon:"🌊", urgence:"orange"},
-  {id:"arbre_tombe", label:"Arbre tombé",               icon:"🌳", urgence:"rouge"},
-  {id:"vegetation",  label:"Végétation envahissante",   icon:"🌿", urgence:"jaune"},
-  {id:"pont_buse",   label:"Pont / buse dégradé",       icon:"🌉", urgence:"rouge"},
-  {id:"largeur",     label:"Largeur insuffisante",      icon:"↔️", urgence:"orange"},
-  {id:"fosse",       label:"Fossé bouché / débordement",icon:"💧", urgence:"orange"},
-  {id:"affaissement",label:"Affaissement de chaussée",  icon:"⬇️", urgence:"rouge"},
-  {id:"glissement",  label:"Glissement de terrain",     icon:"⛰️", urgence:"rouge"},
-  {id:"barriere",    label:"Barrière bloquée / cassée", icon:"🚧", urgence:"orange"},
-  {id:"signalisation",label:"Signalisation manquante",  icon:"🪧", urgence:"jaune"},
-  {id:"incendie",    label:"Traces d'incendie",         icon:"🔥", urgence:"rouge"},
-  {id:"autre",       label:"Autre",                     icon:"❓", urgence:"jaune"},
-];
-const URGENCES = {
-  rouge:  {label:"Urgent — accès bloqué",   col:"#991B1B", bg:"#FEE2E2", icon:"🔴"},
-  orange: {label:"Dégradation notable",     col:"#C2410C", bg:"#FFEDD5", icon:"🟠"},
-  jaune:  {label:"Signalement préventif",   col:"#92400E", bg:"#FEF3C7", icon:"🟡"},
-};
-const SOURCES_PROFIL = [
-  "Opérateur terrain","Propriétaire forestier","ETF","Expert forestier","Mandataire",
-  "Conducteur de travaux","Chauffeur transport","Collectivité","Administration","Autre",
-];
+// TYPES_ANOMALIE, URGENCES importés depuis sections-terrain-op.constants.js
+// SOURCES_PROFIL importé depuis sections-terrain-op.constants.js
 
 const DEMO_SIGNALEMENTS = [
   {id:"sg1",createdAt:"2026-08-05T07:12:00Z",auteur:"Martin Dupont",profil:"Opérateur terrain",
