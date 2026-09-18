@@ -1,6 +1,6 @@
 ﻿// @ts-nocheck
 import { useState, useEffect, useMemo } from "react";
-import { C } from "../../design-system/tokens.js";
+import { C, PADDING, FONT_TITLE, BTN_H, INPUT_H, FONT_INPUT } from "../../design-system/tokens.js";
 import { TEXTES_REGL } from "./sections.constants.js";
 import { todayS, nowISO, uid } from "../../shared/utils.js";
 import { apiGet } from "../../services/api.service.js";

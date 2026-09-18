@@ -1,8 +1,8 @@
 ﻿// @ts-nocheck
 import { useState, useRef } from "react";
-import { C } from "../../design-system/tokens.js";
+import { C, PADDING, FONT_TITLE, BTN_H, INPUT_H, FONT_INPUT } from "../../design-system/tokens.js";
 import { todayS, nowISO, uid } from "../../shared/utils.js";
-import { NIVEAUX_RESTRICTION } from "./sections-terrain-op.js";
+import { NIVEAUX_RESTRICTION } from "./sections-terrain-op.constants.js";
 
 const ACTIVITES_CONCERNEES = [
   "Exploitation forestière","Débardage","Broyage","Chargement","Déchiquetage",
