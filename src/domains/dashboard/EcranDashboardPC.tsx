@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { C, FONT_TITLE, FONT_BODY } from "../../design-system/tokens.js";
 import { fmtNum } from "../../shared/format.js";
 import { MiniBarChart } from "../../shared/ui.jsx";
@@ -47,6 +47,15 @@ interface EcranDashboardPCProps {
 export const EcranDashboardPC = ({user, contacts, visites, notifications, transports=[], livraisons=[], dechiquetages=[], pendingSyncCount=0, onLogout}: EcranDashboardPCProps) => {
   const [section, setSection] = useState("dashboard");
   const [lotDetail, setLotDetail] = useState<any>(null);
+  const [majTimestamp, setMajTimestamp] = useState(() => {
+    const n = new Date();
+    return `${n.toLocaleDateString("fr-FR")} à ${n.toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"})}`;
+  });
+
+  useEffect(() => {
+    const n = new Date();
+    setMajTimestamp(`${n.toLocaleDateString("fr-FR")} à ${n.toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"})}`);
+  }, [section]);
 
   const lots = contacts.filter(c=>c.lotNumero);
   const moisCourant = new Date().toISOString().slice(0,7);
@@ -163,8 +172,11 @@ export const EcranDashboardPC = ({user, contacts, visites, notifications, transp
       {/* Contenu principal */}
       <div style={{flex:1,overflowY:"auto",padding:24}}>
         <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:20}}>
-          <div style={{fontSize:20,fontWeight:700,fontFamily:FONT_TITLE,color:C.tx}}>
-            {DASHBOARD_NAV.find((n: any)=>n.id===section)?.label||"Tableau de bord"}
+          <div>
+            <div style={{fontSize:20,fontWeight:700,fontFamily:FONT_TITLE,color:C.tx}}>
+              {DASHBOARD_NAV.find((n: any)=>n.id===section)?.label||"Tableau de bord"}
+            </div>
+            <div style={{fontSize:11,color:C.tx3,marginTop:2}}>Mis à jour le {majTimestamp}</div>
           </div>
           <div style={{display:"flex",alignItems:"center",gap:10}}>
             {pendingSyncCount>0&&(
