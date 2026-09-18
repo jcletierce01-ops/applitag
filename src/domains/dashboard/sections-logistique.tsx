@@ -312,7 +312,67 @@ export const SectionChantiers = () => {
                   cursor:"pointer",fontFamily:"inherit",background:"#1E5B3A",border:"none",color:"#fff"}}>
                   ✏️ Modifier
                 </button>
-                <button style={{flex:1,padding:"7px",borderRadius:8,fontSize:11,fontWeight:700,
+                <button onClick={()=>{
+                  const tasChantier2 = TAS_DATA.filter(t=>t.chantierId===ch.id);
+                  const st2 = STATUT_CHANTIER[ch.statut]||{icon:"?",label:ch.statut,col:"#555"};
+                  const now = new Date();
+                  const html = `<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"><title>Chantier ${ch.id}</title>
+<style>
+body{font-family:'Segoe UI',Arial,sans-serif;margin:0;color:#1a1a1a;font-size:10pt}
+.hdr{background:#1E3A5F;color:#fff;padding:20px 28px;display:flex;justify-content:space-between;align-items:flex-start}
+.hdr h1{margin:0;font-size:14pt;line-height:1.3}.meta{text-align:right;font-size:9pt;opacity:.85}
+.badge{background:${st2.col};color:#fff;padding:2px 9px;border-radius:4px;font-size:9pt;font-weight:700;display:inline-block;margin-top:5px}
+.body{padding:20px 28px}.sec{margin-bottom:18px}
+.sec h2{font-size:11pt;color:#1E3A5F;border-bottom:2px solid #1E3A5F;padding-bottom:3px;margin-bottom:10px}
+.row{display:flex;gap:8px;padding:4px 0;border-bottom:1px solid #F3F4F6}
+.lbl{color:#666;width:170px;flex-shrink:0;font-size:9pt}.val{color:#111;font-weight:600;font-size:9pt}
+.tas{background:#F9FAFB;border:1px solid #E5E7EB;border-radius:8px;padding:10px 12px;margin-bottom:8px}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:3px 16px;font-size:9pt}
+.ftr{padding:12px 28px;border-top:1px solid #E5E7EB;display:flex;justify-content:space-between;font-size:8pt;color:#666}
+@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}
+</style></head><body>
+<div class="hdr">
+  <div><div style="font-size:9pt;opacity:.7;margin-bottom:3px">🌿 APPLITAG by ALTEGAD SAS — Chantiers forestiers</div>
+  <h1>🌲 ${ch.label}</h1><span class="badge">${st2.icon} ${st2.label}</span></div>
+  <div class="meta"><div><strong>${ch.id}</strong></div>
+  <div>Généré le ${now.toLocaleDateString("fr-FR")} à ${now.toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"})}</div>
+  <div style="margin-top:5px;font-size:8pt">Jean-Christophe LETIERCE — Administrateur</div></div>
+</div>
+<div class="body">
+  <div class="sec"><h2>Informations générales</h2>
+  ${[["Propriétaire",ch.proprietaire],["Commune",ch.commune],["Type d'intervention",ch.typeIntervention],
+    ["Essences",ch.essences],["Surface",ch.surface+" ha"],["Volume prévu",ch.volPrévu+" m³"],
+    ["Budget",ch.budget.toLocaleString("fr-FR")+" €"],["Entreprise",ch.entreprise],
+    ["Responsable",ch.responsable],["Période",new Date(ch.dateDebut).toLocaleDateString("fr-FR")+" — "+new Date(ch.dateFin).toLocaleDateString("fr-FR")],
+  ].map(([l,v])=>`<div class="row"><span class="lbl">${l}</span><span class="val">${v||"—"}</span></div>`).join("")}
+  </div>
+  <div class="sec"><h2>Accès et contraintes</h2>
+  <div class="row"><span class="lbl">Accès</span><span class="val">${ch.acces||"—"}</span></div>
+  <div class="row"><span class="lbl">Contraintes</span><span class="val">${ch.contraintes||"Aucune"}</span></div>
+  </div>
+  <div class="sec"><h2>Engins mobilisés</h2>
+  ${(ch.machines||[]).length>0?(ch.machines||[]).map(m=>`<div class="row"><span style="color:#B45309;margin-right:6px">🚜</span><span class="val">${m}</span></div>`).join("")
+    :`<div style="color:#9CA3AF;font-size:9pt">Aucun engin renseigné</div>`}
+  </div>
+  ${tasChantier2.length>0?`<div class="sec"><h2>Tas intermédiaires (${tasChantier2.length})</h2>
+  ${tasChantier2.map(t=>{const s=STATUT_TAS[t.statut]||{label:t.statut,col:"#555"};return`<div class="tas">
+    <div style="display:flex;justify-content:space-between;margin-bottom:5px"><strong>${t.label}</strong>
+    <span style="font-size:8pt;font-weight:700;color:${s.col}">${s.label}</span></div>
+    <div class="g2"><span>🌲 ${t.essence}</span><span>📦 ${t.volumeEstime} m³ estimé${t.volumeReel?" · "+t.volumeReel+" m³ réel":""}</span>
+    ${t.humidite?`<span>💧 H = ${t.humidite}%</span>`:""}${t.coordGPS?`<span>📍 ${t.coordGPS}</span>`:""}</div>
+    ${t.notes?`<div style="margin-top:4px;font-size:9pt;color:#92400E;background:#FEF3C7;padding:3px 7px;border-radius:4px">${t.notes}</div>`:""}</div>`;}).join("")}
+  </div>`:""}
+  <div class="sec"><h2>Documents et photos</h2>
+  <div class="row"><span class="lbl">Photos terrain</span><span class="val">${ch.photos||0} photo${(ch.photos||0)!==1?"s":""}</span></div>
+  <div class="row"><span class="lbl">Documents</span><span class="val">${ch.docs||0} document${(ch.docs||0)!==1?"s":""}</span></div>
+  ${ch.alertes>0?`<div class="row"><span class="lbl">⚠️ Alertes</span><span class="val" style="color:#991B1B">${ch.alertes} alerte${ch.alertes>1?"s":""} active${ch.alertes>1?"s":""}</span></div>`:""}
+  </div>
+</div>
+<div class="ftr"><div>APPLITAG by ALTEGAD SAS · Jean-Christophe LETIERCE</div><div>Rapport ${ch.id} · ${now.toLocaleDateString("fr-FR")}</div></div>
+</body></html>`;
+                  const win = window.open("","_blank","width=1000,height=760");
+                  if(win){win.document.write(html);win.document.close();setTimeout(()=>win.print(),700);}
+                }} style={{flex:1,padding:"7px",borderRadius:8,fontSize:11,fontWeight:700,
                   cursor:"pointer",fontFamily:"inherit",background:"transparent",
                   border:`1px solid ${C.bd}`,color:C.tx2}}>
                   📄 Rapport PDF
