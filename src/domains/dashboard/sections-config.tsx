@@ -115,6 +115,13 @@ export const SectionRapports = () => {
       const now = new Date();
       const numRapport = `RPT-${now.getFullYear()}${String(now.getMonth()+1).padStart(2,"0")}${String(now.getDate()).padStart(2,"0")}-${String(now.getHours()).padStart(2,"0")}${String(now.getMinutes()).padStart(2,"0")}`;
       let taille = "";
+      let htmlContent = "";
+      let csvContent = "";
+
+      const dlBlob = (content:string, mime:string, filename:string) => {
+        const b = new Blob([content],{type:mime});
+        const a = document.createElement("a"); a.href=URL.createObjectURL(b); a.download=filename; a.click();
+      };
 
       if (format === "Excel") {
         let csv = `"APPLITAG — ${rpt.label}"\r\n"Période : ${periodeLabel}"\r\n"Rapport n° : ${numRapport}"\r\n"Généré le : ${now.toLocaleString("fr-FR")}"\r\n\r\n`;
@@ -122,26 +129,25 @@ export const SectionRapports = () => {
         if (livraisons.length>0) {
           livraisons.slice(0,50).forEach(l=>{ csv+=`"${l.reference||l.id||""}","${(l.date||l.createdAt||"").slice(0,10)}","${l.client||l.contactNom||""}","${l.tonnage||l.volume||""}","${l.statut||""}"\r\n`; });
         } else { csv += `"Aucune données pour cette période"\r\n`; }
+        csvContent = csv;
         const blob = new Blob(["﻿"+csv],{type:"text/csv;charset=utf-8"});
         taille = `${Math.max(1,Math.round(blob.size/1024))} Ko`;
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement("a"); a.href=url; a.download=`${numRapport}.csv`; a.click();
-        URL.revokeObjectURL(url);
+        dlBlob("﻿"+csv,"text/csv;charset=utf-8",`${numRapport}.csv`);
       } else {
         const html = buildHtmlReport(rpt, periodeLabel, axeInfo, numRapport, now, livraisons, visites);
-        const blob = new Blob([html],{type:"text/html"});
+        htmlContent = html;
+        const blob = new Blob([html],{type:"text/html;charset=utf-8"});
         taille = `~${Math.max(1,Math.round(blob.size/1024))} Ko`;
-        const win = window.open("","_blank","width=900,height=720");
-        if (win) { win.document.write(html); win.document.close(); setTimeout(()=>win.print(),700); }
+        dlBlob(html,"text/html;charset=utf-8",`${numRapport}.html`);
         if (format === "PDF + Excel") {
-          let csv = `"APPLITAG — ${rpt.label}"\r\n"Période : ${periodeLabel}"\r\n\r\n"Référence","Date","Client","Tonnage","Statut"\r\n`;
-          livraisons.slice(0,50).forEach(l=>{ csv+=`"${l.reference||l.id||""}","${(l.date||l.createdAt||"").slice(0,10)}","${l.client||l.contactNom||""}","${l.tonnage||l.volume||""}","${l.statut||""}"\r\n`; });
-          const b2 = new Blob(["﻿"+csv],{type:"text/csv;charset=utf-8"});
-          const a2 = document.createElement("a"); a2.href=URL.createObjectURL(b2); a2.download=`${numRapport}.csv`; a2.click();
+          let csv2 = `"APPLITAG — ${rpt.label}"\r\n"Période : ${periodeLabel}"\r\n\r\n"Référence","Date","Client","Tonnage","Statut"\r\n`;
+          livraisons.slice(0,50).forEach(l=>{ csv2+=`"${l.reference||l.id||""}","${(l.date||l.createdAt||"").slice(0,10)}","${l.client||l.contactNom||""}","${l.tonnage||l.volume||""}","${l.statut||""}"\r\n`; });
+          csvContent = csv2;
+          dlBlob("﻿"+csv2,"text/csv;charset=utf-8",`${numRapport}.csv`);
         }
       }
 
-      setRecents(prev=>[{type:rpt.id, label:`${rpt.label} — ${periodeLabel}${axeInfo}`, date:now.toISOString().slice(0,10), format, taille}, ...prev.slice(0,9)]);
+      setRecents(prev=>[{type:rpt.id, label:`${rpt.label} — ${periodeLabel}${axeInfo}`, date:now.toISOString().slice(0,10), format, taille, filename:numRapport, htmlContent:htmlContent||null, csvContent:csvContent||null}, ...prev.slice(0,9)]);
       setGenStatus("ok");
       setTimeout(()=>setGenStatus(null),4000);
     } catch {
@@ -195,9 +201,15 @@ export const SectionRapports = () => {
                     <div style={{fontSize:11,fontWeight:700,color:C.tx}}>{r.label}</div>
                     <div style={{fontSize:10,color:C.tx3}}>{new Date(r.date).toLocaleDateString("fr-FR")} · {r.format} · {r.taille}</div>
                   </div>
-                  <button style={{padding:"4px 10px",borderRadius:6,fontSize:10,fontWeight:600,
-                    cursor:"pointer",fontFamily:"inherit",border:`1px solid ${C.bd}`,
-                    background:"transparent",color:C.tx2}}>⬇️ Télécharger</button>
+                  <button onClick={()=>{
+                    if (!r.htmlContent && !r.csvContent) return;
+                    if (r.htmlContent) { const b=new Blob([r.htmlContent],{type:"text/html;charset=utf-8"}); const a=document.createElement("a"); a.href=URL.createObjectURL(b); a.download=`${r.filename||"rapport"}.html`; a.click(); }
+                    if (r.csvContent) { const b=new Blob(["﻿"+r.csvContent],{type:"text/csv;charset=utf-8"}); const a=document.createElement("a"); a.href=URL.createObjectURL(b); a.download=`${r.filename||"rapport"}.csv`; a.click(); }
+                  }} style={{padding:"4px 10px",borderRadius:6,fontSize:10,fontWeight:600,
+                    cursor:(r.htmlContent||r.csvContent)?"pointer":"default",fontFamily:"inherit",
+                    border:`1px solid ${C.bd}`,background:"transparent",
+                    color:(r.htmlContent||r.csvContent)?C.tx2:C.tx3,
+                    opacity:(r.htmlContent||r.csvContent)?1:0.4}}>⬇️ Télécharger</button>
                 </div>
               );
             })}
@@ -297,7 +309,7 @@ export const SectionRapports = () => {
                 {generating?"⏳ Génération en cours…":"⚡ Générer le rapport"}
               </button>
               <div style={{fontSize:9,color:C.tx3,textAlign:"center",marginTop:5}}>
-                {format==="PDF"?"Ouvre une fenêtre d'impression PDF":format==="Excel"?"Télécharge un fichier CSV":"PDF (impression) + CSV téléchargé"}
+                {format==="PDF"?"Télécharge un fichier HTML (ouvrir dans navigateur)":format==="Excel"?"Télécharge un fichier CSV":"HTML + CSV téléchargés directement"}
               </div>
             </>
           )}
