@@ -18,20 +18,20 @@ const OBSTACLES_TYPES = [
 ];
 
 const DEMO_DIAGNOSTICS = [
-  {id:"DIAG-001",tronconId:"TRC-001",date:"15/07/2026",validePar:"J.C. LETIERCE",
+  {id:"DIAG-001-demo",tronconId:"TRC-001-demo",date:"15/07/2026",validePar:"J.C. LETIERCE",
    praticabilite:"praticable",obstacles:[],commentaire:"Piste en bon état — entretien courant suffisant.",photos:2},
-  {id:"DIAG-002",tronconId:"TRC-002",date:"20/06/2026",validePar:"L. Bonnet",
+  {id:"DIAG-002-demo",tronconId:"TRC-002-demo",date:"20/06/2026",validePar:"L. Bonnet",
    praticabilite:"difficile",obstacles:["Ornières / nids-de-poule","Végétation envahissante"],
    commentaire:"Fraisage et élagage nécessaires avant mobilisation.",photos:4},
-  {id:"DIAG-003",tronconId:"TRC-003",date:"01/07/2026",validePar:"J.C. LETIERCE",
+  {id:"DIAG-003-demo",tronconId:"TRC-003-demo",date:"01/07/2026",validePar:"J.C. LETIERCE",
    praticabilite:"praticable",obstacles:["Fossé bouché"],
    commentaire:"Fossé sud à curer — accès correct sinon.",photos:1},
 ];
 
 const DEMO_POINTS_DFCI = [
-  {id:"DFCI-001",type:"citerne",nom:"Citerne DFCI — TRC-001 nord",etat:"ok",capacite:60,coordGPS:"46.51 / 2.89",dateVisite:"10/05/2026"},
-  {id:"DFCI-002",type:"borne",  nom:"Borne incendie — Corniche",  etat:"degrade",capacite:null,coordGPS:"46.49 / 2.91",dateVisite:"20/04/2026"},
-  {id:"DFCI-003",type:"poteau", nom:"Poteau signalisation D145",  etat:"ok",capacite:null,coordGPS:"46.50 / 2.90",dateVisite:"15/05/2026"},
+  {id:"DFCI-001-demo",type:"citerne",nom:"Citerne DFCI — Battets nord",etat:"ok",capacite:60,coordGPS:"46.51 / 2.89",dateVisite:"10/05/2026"},
+  {id:"DFCI-002-demo",type:"borne",  nom:"Borne incendie — Corniche",  etat:"degrade",capacite:null,coordGPS:"46.49 / 2.91",dateVisite:"20/04/2026"},
+  {id:"DFCI-003-demo",type:"poteau", nom:"Poteau signalisation D145",  etat:"ok",capacite:null,coordGPS:"46.50 / 2.90",dateVisite:"15/05/2026"},
 ];
 
 const DFCI_TYPE_INFO = {

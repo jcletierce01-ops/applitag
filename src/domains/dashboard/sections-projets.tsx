@@ -21,19 +21,19 @@ const DESTINATION_COPRODS = [
   {v:"stock",          "l":"Stocké — destination à définir"},
 ];
 const DEMO_STOCKS_COPRODS = [
-  {id:"SC-001",scierie:"Scierie Moreau — Moulins",cat:"plaquettes",humidite:28,
+  {id:"SC-001-demo",scierie:"Scierie Moreau — Moulins",cat:"plaquettes",humidite:28,
    stockTonnes:145,qualite:"P31",destination:"vente_energie",
    enlevement:"2026-08-15",prixTonne:38,margeTonne:12,saisonnel:false},
-  {id:"SC-002",scierie:"Scierie Moreau — Moulins",cat:"sciures",humidite:45,
+  {id:"SC-002-demo",scierie:"Scierie Moreau — Moulins",cat:"sciures",humidite:45,
    stockTonnes:62,qualite:"vrac",destination:"energie_interne",
    enlevement:null,prixTonne:0,margeTonne:0,saisonnel:true},
-  {id:"SC-003",scierie:"Scierie du Morvan — Château-Chinon",cat:"ecorces",humidite:52,
+  {id:"SC-003-demo",scierie:"Scierie du Morvan — Château-Chinon",cat:"ecorces",humidite:52,
    stockTonnes:89,qualite:"mélange",destination:"compostage",
    enlevement:"2026-09-01",prixTonne:8,margeTonne:2,saisonnel:false},
-  {id:"SC-004",scierie:"Scierie du Morvan — Château-Chinon",cat:"dosses",humidite:35,
+  {id:"SC-004-demo",scierie:"Scierie du Morvan — Château-Chinon",cat:"dosses",humidite:35,
    stockTonnes:34,qualite:"hêtre/chêne",destination:"vente_matiere",
    enlevement:"2026-08-01",prixTonne:55,margeTonne:18,saisonnel:false},
-  {id:"SC-005",scierie:"Scierie Lefebvre — Clamecy",cat:"plaquettes",humidite:30,
+  {id:"SC-005-demo",scierie:"Scierie Lefebvre — Clamecy",cat:"plaquettes",humidite:30,
    stockTonnes:210,qualite:"P45",destination:"vente_energie",
    enlevement:"2026-07-30",prixTonne:42,margeTonne:15,saisonnel:false},
 ];
@@ -410,7 +410,7 @@ const ETAPES_PROJET = [
 ];
 const DEMO_PROJETS_FINANCES = [
   {
-    id:"PRJ-2026-001",
+    id:"PRJ-2026-001-demo",
     nom:"Desserte parcelles Battet Nord",
     dispositif:"FEADER – Développement rural Grand Est",
     dateLimite:"2026-12-31",
@@ -429,7 +429,7 @@ const DEMO_PROJETS_FINANCES = [
     piecesManquantes:["Attestation assurance maîtrise d'ouvrage","PV de réception travaux"],
   },
   {
-    id:"PRJ-2026-002",
+    id:"PRJ-2026-002-demo",
     nom:"Traçabilité coproduits scierie Moreau",
     dispositif:"FEADER – Première transformation Grand Est",
     dateLimite:"2026-12-31",

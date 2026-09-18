@@ -42,17 +42,17 @@ const signalementsSet = (arr) => { try { localStorage.setItem(SIGNALEMENTS_KEY, 
 
 const DEMO_SIGNALEMENTS = [
   {id:"sg1",createdAt:"2026-08-05T07:12:00Z",auteur:"Martin Dupont",profil:"Opérateur terrain",
-   tronconId:"TRC-003",tronconNom:"Route de la Biche — section sud",
+   tronconId:"TRC-003-demo",tronconNom:"Route de la Biche — section sud",
    type:"arbre_tombe",urgence:"rouge",commentaire:"Chêne traversant la piste sur 50 m, passage impossible.",
    gps:{lat:46.495,lng:2.883},photos:2,statut:"ouvert",commune:"Saint-Bonnet-Tronçais",
    validePar:null,traitePar:null,dateTraitement:null},
   {id:"sg2",createdAt:"2026-08-04T14:30:00Z",auteur:"Claire Laurent",profil:"Mandataire",
-   tronconId:"TRC-001",tronconNom:"Chemin des Battets — section nord",
+   tronconId:"TRC-001-demo",tronconNom:"Chemin des Battets — section nord",
    type:"fosse",urgence:"orange",commentaire:"Fossé nord bouché sur 30 m après la pluie du 3 août. Eau sur chaussée.",
    gps:{lat:46.512,lng:2.891},photos:1,statut:"ouvert",commune:"Saint-Bonnet-Tronçais",
    validePar:null,traitePar:null,dateTraitement:null},
   {id:"sg3",createdAt:"2026-07-28T09:00:00Z",auteur:"Commune de Tronçais",profil:"Collectivité",
-   tronconId:"TRC-002",tronconNom:"Piste de la Corniche",
+   tronconId:"TRC-002-demo",tronconNom:"Piste de la Corniche",
    type:"vegetation",urgence:"jaune",commentaire:"Végétation envahissante sur 200 m côté amont. Réduction de la largeur visible.",
    gps:{lat:46.491,lng:2.912},photos:0,statut:"traite",commune:"Tronçais",
    validePar:"Admin APPLITAG",traitePar:"Sylviculture Allier",dateTraitement:"2026-08-01"},
@@ -215,22 +215,22 @@ const OBSTACLES_TYPES = [
   "Pont / buse dégradé","Largeur insuffisante","Fossé bouché","Affaissement de chaussée","Glissement de terrain",
 ];
 const DEMO_DIAGNOSTICS = [
-  {id:"d1",tronconId:"TRC-001",date:"2026-07-15",praticabilite:"praticable",
+  {id:"d1",tronconId:"TRC-001-demo",date:"2026-07-15",praticabilite:"praticable",
    obstacles:[],commentaire:"RAS — entretien fossés réalisé en juin.",
    photos:2,validePar:"J. Dupont",dernierPassage:"2026-07-15"},
-  {id:"d2",tronconId:"TRC-003",date:"2026-07-20",praticabilite:"degradee",
+  {id:"d2",tronconId:"TRC-003-demo",date:"2026-07-20",praticabilite:"degradee",
    obstacles:["Ornières profondes","Végétation envahissante"],
    commentaire:"Ornières sur 80 m en sortie de coude. Passage tracteur limité.",
    photos:3,validePar:"M. Laurent",dernierPassage:"2026-07-20"},
 ];
 const DEMO_POINTS_DFCI = [
-  {id:"dfci1",type:"citerne",nom:"Citerne DFCI — Battets",tronconId:"TRC-001",
+  {id:"dfci1",type:"citerne",nom:"Citerne DFCI — Battets",tronconId:"TRC-001-demo",
    capacite:"60 m³",gps:{lat:46.511,lng:2.892},acces:"Accès direct piste TRC-001",
    etat:"ok",dernierControle:"2026-05-10",responsable:"ONF Allier"},
-  {id:"dfci2",type:"point_eau",nom:"Mare du Bois Rond",tronconId:"TRC-003",
+  {id:"dfci2",type:"point_eau",nom:"Mare du Bois Rond",tronconId:"TRC-003-demo",
    capacite:"Naturel",gps:{lat:46.498,lng:2.889},acces:"150 m depuis TRC-003",
    etat:"a_verifier",dernierControle:"2025-10-15",responsable:"Commune"},
-  {id:"dfci3",type:"retournement",nom:"Aire de retournement Nord",tronconId:"TRC-001",
+  {id:"dfci3",type:"retournement",nom:"Aire de retournement Nord",tronconId:"TRC-001-demo",
    capacite:"Camion 10 t",gps:{lat:46.513,lng:2.890},acces:"Fin de TRC-001",
    etat:"ok",dernierControle:"2026-07-15",responsable:"Commune de Tronçais"},
 ];
@@ -281,15 +281,15 @@ const TYPES_COPRODUIT = [
 const DESTINATIONS_COPRODUIT = ["Chaufferie","Particulier","Agriculteur","Pépiniériste","Plateforme bois énergie","Compostage","Interne / non valorisé"];
 
 const DEMO_GRUMES = [
-  {id:"g1",date:"2026-07-28",fournisseur:"Forêt Bernard",essence:"Chêne",qualite:"A (grume d'œuvre)",volume:18.5,prix:95,origine:"Tronçais (03)",ref:"GR-2026-001"},
-  {id:"g2",date:"2026-07-30",fournisseur:"CUMA Bois Est",essence:"Douglas",qualite:"A (grume d'œuvre)",volume:32.0,prix:68,origine:"Vosges (88)",ref:"GR-2026-002"},
-  {id:"g3",date:"2026-08-01",fournisseur:"Prop. Martin",essence:"Hêtre",qualite:"B (bois d'industrie)",volume:11.2,prix:55,origine:"Haute-Marne (52)",ref:"GR-2026-003"},
+  {id:"g1",date:"2026-07-28",fournisseur:"Forêt Bernard",essence:"Chêne",qualite:"A (grume d'œuvre)",volume:18.5,prix:95,origine:"Tronçais (03)",ref:"GR-2026-001-demo"},
+  {id:"g2",date:"2026-07-30",fournisseur:"CUMA Bois Est",essence:"Douglas",qualite:"A (grume d'œuvre)",volume:32.0,prix:68,origine:"Vosges (88)",ref:"GR-2026-002-demo"},
+  {id:"g3",date:"2026-08-01",fournisseur:"Prop. Martin",essence:"Hêtre",qualite:"B (bois d'industrie)",volume:11.2,prix:55,origine:"Haute-Marne (52)",ref:"GR-2026-003-demo"},
 ];
 const DEMO_COPRODUITS = [
-  {id:"cp1",grumeRef:"GR-2026-001",type:"sciure",qte:2.8,humidite:18,destination:"Chaufferie",prix:0,statut:"disponible"},
-  {id:"cp2",grumeRef:"GR-2026-001",type:"ecorce",qte:1.4,humidite:42,destination:"Compostage",prix:0,statut:"disponible"},
-  {id:"cp3",grumeRef:"GR-2026-002",type:"plaquette",qte:6.5,humidite:25,destination:"Chaufferie",prix:28,statut:"vendu"},
-  {id:"cp4",grumeRef:"GR-2026-002",type:"dosses",qte:4.2,humidite:20,destination:"Particulier",prix:15,statut:"disponible"},
+  {id:"cp1",grumeRef:"GR-2026-001-demo",type:"sciure",qte:2.8,humidite:18,destination:"Chaufferie",prix:0,statut:"disponible"},
+  {id:"cp2",grumeRef:"GR-2026-001-demo",type:"ecorce",qte:1.4,humidite:42,destination:"Compostage",prix:0,statut:"disponible"},
+  {id:"cp3",grumeRef:"GR-2026-002-demo",type:"plaquette",qte:6.5,humidite:25,destination:"Chaufferie",prix:28,statut:"vendu"},
+  {id:"cp4",grumeRef:"GR-2026-002-demo",type:"dosses",qte:4.2,humidite:20,destination:"Particulier",prix:15,statut:"disponible"},
 ];
 const DEMO_ENLEVEMENTS = [
   {id:"e1",date:"2026-08-02",client:"Chaufferie Communale Épinal",coproduitType:"plaquette",qte:6.5,prix:28,transporteur:"Camion Rossi",statut:"livré"},
