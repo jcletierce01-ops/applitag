@@ -1,6 +1,7 @@
 ﻿// @ts-nocheck
 import { useState, useRef } from "react";
 import { C } from "../../design-system/tokens.js";
+import { DEMO_TRONCONS } from "./sections-terrain-op.js";
 
 export const SectionDesserte = () => {
   const [tab,    setTab]    = useState("liste");

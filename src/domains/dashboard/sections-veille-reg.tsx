@@ -1,7 +1,7 @@
 ﻿// @ts-nocheck
 import { useState } from "react";
 import { C } from "../../design-system/tokens.js";
-import { TEXTES_REGL } from "./sections.constants.js";
+import { TEXTES_REGL, STATUT_REGL } from "./sections.constants.js";
 
 // Duplique depuis sections-veille.tsx — utilise par SectionVeilleReglementaire
 export const CLAUSE_RESERVE = "Projet techniquement préparé, sous réserve du cadre réglementaire et de l'ouverture effective du dispositif au jour du dépôt.";

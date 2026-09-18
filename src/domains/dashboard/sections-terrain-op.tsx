@@ -5,7 +5,7 @@ import { todayS, uid } from "../../shared/utils.js";
 
 
 // ── CONFORMITÉ RED — DONNÉES & HELPERS ─────────────────────────
-const STATUT_FOURN_RED = {
+export const STATUT_FOURN_RED = {
   valide:    {label:"Valide",     color:"#065F46", bg:"#D1FAE5", icon:"✅"},
   expire:    {label:"Expiré",    color:"#991B1B", bg:"#FEE2E2", icon:"❌"},
   incomplet: {label:"Incomplet", color:"#92400E", bg:"#FEF3C7", icon:"⚠️"},
@@ -44,7 +44,7 @@ const PORTANCE_OPTS = [
   {v:"renforcee",l:"Renforcée (≥ 19 t)",col:"#7C3AED",bg:"#EDE9FE"},
 ];
 const ACCES_INCENDIE_OPTS = ["Oui — accès DFCI conforme","Oui — à améliorer","Non — hors périmètre","Non — à créer"];
-const DEMO_TRONCONS = [
+export const DEMO_TRONCONS = [
   {
     id:"TRC-001", nom:"Chemin des Battets — section nord",
     type:"existant", proprietaire:"Commune de Tronçais",
@@ -331,7 +331,7 @@ const calcPriorite = (t, diag) => {
 };
 
 // ── PERMIS QUOTIDIEN DE CHANTIER — INCENDIE FORÊT ───────────────
-const NIVEAUX_RESTRICTION = [
+export const NIVEAUX_RESTRICTION = [
   {id:"aucune",  label:"Aucune restriction",     icon:"🟢", couleur:"#065F46", bg:"#D1FAE5"},
   {id:"faible",  label:"Niveau faible",          icon:"🟡", couleur:"#92400E", bg:"#FEF3C7"},
   {id:"eleve",   label:"Niveau élevé",           icon:"🟠", couleur:"#C2410C", bg:"#FFEDD5"},

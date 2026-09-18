@@ -1,6 +1,7 @@
 // @ts-nocheck
 import { useState } from "react";
 import { C } from "../../design-system/tokens.js";
+import { apiGet } from "../../services/api.service.js";
 // ── PARAMÈTRES ───────────────────────────────────────────────────
 
 export const SectionParametres = () => {
@@ -16,8 +17,47 @@ export const SectionParametres = () => {
   const [seuilStockAlerte, setSeuilStockAlerte] = useState(20);
   const [delaiRelance, setDelaiRelance] = useState(7);
   const [saved, setSaved] = useState(false);
+  const [exporting, setExporting] = useState(false);
+  const [exportStatus, setExportStatus] = useState<"idle"|"ok"|"error">("idle");
 
   const save = () => { setSaved(true); setTimeout(()=>setSaved(false),2500); };
+
+  const handleExport = async () => {
+    setExporting(true);
+    setExportStatus("idle");
+    try {
+      const [contacts, visites, livraisons, relevesAbatteur, relevesDebardeur] = await Promise.allSettled([
+        apiGet("/contacts"),
+        apiGet("/visites"),
+        apiGet("/livraisons"),
+        apiGet("/releves-abatteur"),
+        apiGet("/releves-debardeur"),
+      ]);
+      const extract = (r: PromiseSettledResult<unknown>) => r.status === "fulfilled" ? r.value : [];
+      const data = {
+        exported_at: new Date().toISOString(),
+        contacts:          extract(contacts),
+        visites:           extract(visites),
+        livraisons:        extract(livraisons),
+        releves_abatteur:  extract(relevesAbatteur),
+        releves_debardeur: extract(relevesDebardeur),
+      };
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `applitag-export-${new Date().toISOString().slice(0,10)}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+      setExportStatus("ok");
+      setTimeout(() => setExportStatus("idle"), 4000);
+    } catch {
+      setExportStatus("error");
+      setTimeout(() => setExportStatus("idle"), 4000);
+    } finally {
+      setExporting(false);
+    }
+  };
 
   return (
     <div style={{maxWidth:800,margin:"0 auto"}}>
@@ -152,7 +192,6 @@ export const SectionParametres = () => {
         <div style={{display:"flex",flexDirection:"column",gap:10}}>
           {[
             {ico:"💾",label:"Sauvegarde des données",desc:"Dernière sauvegarde : aujourd'hui à 03h00",action:"Sauvegarder maintenant",col:"#1E5B3A"},
-            {ico:"📤",label:"Export global",desc:"Exporter toutes les données APPLITAG en JSON/Excel",action:"Exporter",col:"#0369A1"},
             {ico:"🔄",label:"Synchronisation",desc:"État : à jour — dernière synchro il y a 4 min",action:"Forcer synchro",col:"#7C3AED"},
             {ico:"🔍",label:"Journal des erreurs",desc:"0 erreur détectée dans les 7 derniers jours",action:"Voir le journal",col:"#6B7280"},
           ].map(s=>(
@@ -170,6 +209,28 @@ export const SectionParametres = () => {
               </button>
             </div>
           ))}
+
+          {/* Export global — fonctionnel */}
+          <div style={{background:"#fff",borderRadius:10,border:`1px solid ${C.bd}`,
+            padding:"12px 14px",display:"flex",gap:12,alignItems:"center"}}>
+            <span style={{fontSize:24}}>📤</span>
+            <div style={{flex:1}}>
+              <div style={{fontSize:12,fontWeight:700,color:C.tx}}>Export global</div>
+              <div style={{fontSize:10,color:C.tx2}}>
+                {exportStatus==="ok"  ? "✅ Fichier téléchargé" :
+                 exportStatus==="error"? "❌ Erreur lors de l'export" :
+                 "Exporter toutes les données APPLITAG en JSON"}
+              </div>
+            </div>
+            <button onClick={handleExport} disabled={exporting}
+              style={{padding:"6px 14px",borderRadius:7,fontSize:11,fontWeight:700,
+                cursor:exporting?"wait":"pointer",fontFamily:"inherit",
+                border:"1px solid #0369A1",
+                background:exporting?"#EFF6FF":"transparent",
+                color:"#0369A1",opacity:exporting?0.7:1}}>
+              {exporting ? "Export…" : "Exporter"}
+            </button>
+          </div>
         </div>
       )}
 

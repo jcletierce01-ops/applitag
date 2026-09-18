@@ -2,6 +2,7 @@
 import { useState, useRef } from "react";
 import { C } from "../../design-system/tokens.js";
 import { todayS, nowISO, uid } from "../../shared/utils.js";
+import { NIVEAUX_RESTRICTION } from "./sections-terrain-op.js";
 
 const ACTIVITES_CONCERNEES = [
   "Exploitation forestière","Débardage","Broyage","Chargement","Déchiquetage",

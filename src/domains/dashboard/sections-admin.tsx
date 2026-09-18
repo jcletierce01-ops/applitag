@@ -229,8 +229,26 @@ export const SectionAcces = ({_isDemo=false}) => {
     zoneGeo:"Département",perms:[],nomEntreprise:"",
   });
   const [smsSimule, setSmsSimule] = useState(null);
+  const [recherche, setRecherche] = useState("");
 
   const rolesDef = Object.fromEntries(ROLES_DEF.map(r=>[r.id,r]));
+
+  const utilisateursFiltres = recherche.trim()
+    ? utilisateurs.filter(u => {
+        const q = recherche.toLowerCase();
+        return (
+          (u.nom||"").toLowerCase().includes(q) ||
+          (u.prenom||"").toLowerCase().includes(q) ||
+          (u.nomEntreprise||"").toLowerCase().includes(q) ||
+          (u.email||"").toLowerCase().includes(q) ||
+          (u.telephone||"").includes(q) ||
+          (u.codeGenere||"").toLowerCase().includes(q) ||
+          (u.role||"").toLowerCase().includes(q) ||
+          (u.departement||"").toLowerCase().includes(q) ||
+          (u.region||"").toLowerCase().includes(q)
+        );
+      })
+    : utilisateurs;
 
   const getChildren = (parentId) => utilisateurs.filter(u=>u.parentId===parentId);
 
@@ -306,14 +324,76 @@ export const SectionAcces = ({_isDemo=false}) => {
             </button>
           ))}
           <div style={{flex:1,display:"flex",alignItems:"center",justifyContent:"flex-end",paddingRight:4}}>
-            <span style={{fontSize:11,color:C.tx3}}>{utilisateurs.length} utilisateurs</span>
+            <span style={{fontSize:11,color:C.tx3}}>{utilisateursFiltres.length}/{utilisateurs.length}</span>
           </div>
+        </div>
+
+        {/* ── BARRE DE RECHERCHE ── */}
+        <div style={{padding:"8px 16px",borderBottom:`1px solid ${C.bd}`,background:C.bg2}}>
+          <div style={{position:"relative",display:"flex",alignItems:"center"}}>
+            <span style={{position:"absolute",left:8,fontSize:13,color:C.tx3,pointerEvents:"none"}}>🔍</span>
+            <input
+              type="text"
+              placeholder="Rechercher par nom, rôle, code, zone, téléphone…"
+              value={recherche}
+              onChange={e=>setRecherche(e.target.value)}
+              style={{width:"100%",padding:"7px 32px 7px 30px",fontSize:12,fontFamily:"inherit",
+                border:`1.5px solid ${recherche?C.green:C.bd}`,borderRadius:8,
+                background:"#fff",color:C.tx,outline:"none",boxSizing:"border-box",
+                transition:"border-color .15s"}}
+            />
+            {recherche&&(
+              <button onClick={()=>setRecherche("")}
+                style={{position:"absolute",right:8,background:"none",border:"none",
+                  cursor:"pointer",fontSize:14,color:C.tx3,padding:0,lineHeight:1}}>
+                ✕
+              </button>
+            )}
+          </div>
+          {recherche&&(
+            <div style={{fontSize:10,color:C.tx3,marginTop:4}}>
+              {utilisateursFiltres.length} résultat{utilisateursFiltres.length!==1?"s":""} pour « {recherche} »
+            </div>
+          )}
         </div>
 
         {/* ── VUE ORGANIGRAMME ── */}
         {vue==="organigramme"&&(
           <div data-scrollable="1" style={{flex:1,overflowY:"auto",padding:16}}>
-            {renderOrgNode("u-applitag")}
+            {recherche.trim() ? (
+              utilisateursFiltres.length===0
+                ? <div style={{textAlign:"center",color:C.tx3,padding:32,fontSize:13}}>Aucun utilisateur trouvé</div>
+                : utilisateursFiltres.map(u=>{
+                    const rd = rolesDef[u.role]||{icon:"👤",color:C.tx3,label:u.role};
+                    const isSelected = selectedUser?.id===u.id;
+                    return (
+                      <div key={u.id} onClick={()=>setSelectedUser(isSelected?null:u)}
+                        style={{display:"flex",alignItems:"center",gap:8,padding:"7px 10px",
+                          borderRadius:8,cursor:"pointer",marginBottom:4,
+                          border:`1.5px solid ${isSelected?rd.color:C.bd}`,
+                          background:isSelected?`${rd.color}18`:"#fff",
+                          boxShadow:isSelected?`0 0 0 2px ${rd.color}44`:"none",
+                          transition:"all .12s"}}>
+                        <span style={{fontSize:16,flexShrink:0}}>{rd.icon}</span>
+                        <div style={{flex:1,minWidth:0}}>
+                          <div style={{fontSize:12,fontWeight:700,color:C.tx,
+                            whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>
+                            {u.prenom?`${u.prenom} ${u.nom}`:u.nom||u.nomEntreprise}
+                          </div>
+                          <div style={{fontSize:10,color:rd.color,fontWeight:600}}>{rd.label}</div>
+                          {(u.departement||u.region)&&(
+                            <div style={{fontSize:9,color:C.tx3}}>{u.departement||u.region}</div>
+                          )}
+                        </div>
+                        {u.codeGenere&&(
+                          <span style={{fontSize:9,fontFamily:"monospace",background:C.bg2,
+                            color:C.tx3,borderRadius:4,padding:"2px 5px",flexShrink:0}}>{u.codeGenere}</span>
+                        )}
+                        {!u.actif&&<span style={{fontSize:9,color:C.red,flexShrink:0}}>⛔</span>}
+                      </div>
+                    );
+                  })
+            ) : renderOrgNode("u-applitag")}
           </div>
         )}
 
@@ -332,7 +412,12 @@ export const SectionAcces = ({_isDemo=false}) => {
                 </tr>
               </thead>
               <tbody>
-                {utilisateurs.map((u,i)=>{
+                {utilisateursFiltres.length===0&&(
+                  <tr><td colSpan={6} style={{textAlign:"center",color:C.tx3,padding:32,fontSize:13}}>
+                    Aucun utilisateur trouvé
+                  </td></tr>
+                )}
+                {utilisateursFiltres.map((u,i)=>{
                   const rd = rolesDef[u.role]||{icon:"👤",color:C.tx3,label:u.role};
                   return (
                     <tr key={u.id} onClick={()=>setSelectedUser(selectedUser?.id===u.id?null:u)}

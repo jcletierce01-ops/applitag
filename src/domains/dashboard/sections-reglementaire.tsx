@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { C } from "../../design-system/tokens.js";
 import { VSS_RECONNUS } from "./sections.constants.js";
+import { STATUT_FOURN_RED } from "./sections-terrain-op.js";
 
 const DEMO_FOURNISSEURS_RED = [
   {id:"fr1", nom:"BOIS MASSIF AUVERGNE", siret:"123 456 789 00012",
