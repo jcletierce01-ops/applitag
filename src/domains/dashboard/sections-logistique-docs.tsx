@@ -112,6 +112,72 @@ export const SectionDocuments = () => {
 
   const getDocType = id => DOC_TYPES.find(d=>d.id===id);
 
+  const ouvrirPdfDoc = (doc, refDoc = null) => {
+    const now = new Date();
+    const ref = refDoc || ("DOC-"+now.getFullYear()+"-"+String(Math.floor(Math.random()*9000)+1000));
+    const html = `<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8">
+<title>${doc.label}</title>
+<style>
+body{font-family:'Segoe UI',Arial,sans-serif;margin:0;color:#1a1a1a;font-size:10pt}
+.hdr{background:${doc.couleur};color:#fff;padding:18px 28px;display:flex;justify-content:space-between;align-items:flex-start}
+.hdr h1{margin:0;font-size:13pt;line-height:1.3}
+.meta{text-align:right;font-size:9pt;opacity:.85}
+.body{padding:20px 28px}
+.sec{margin-bottom:20px}
+.sec h2{font-size:11pt;color:${doc.couleur};border-bottom:2px solid ${doc.couleur};padding-bottom:3px;margin-bottom:10px}
+.row{display:flex;gap:8px;padding:5px 0;border-bottom:1px solid #F3F4F6}
+.lbl{color:#666;width:190px;flex-shrink:0;font-size:9pt}
+.val{color:#111;font-weight:600;font-size:9pt;flex:1}
+.notice{background:#FFFBEB;border:1px solid #F59E0B;border-radius:8px;padding:10px 14px;font-size:9pt;color:#92400E;margin-bottom:16px}
+.sign{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-top:24px}
+.sign-box{border:1px solid #D1D5DB;border-radius:6px;padding:12px;height:60px}
+.sign-lbl{font-size:9pt;color:#6B7280;margin-bottom:4px}
+.ftr{padding:12px 28px;border-top:1px solid #E5E7EB;display:flex;justify-content:space-between;font-size:8pt;color:#666}
+@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}
+</style></head><body>
+<div class="hdr">
+  <div>
+    <div style="font-size:9pt;opacity:.7;margin-bottom:3px">🌿 APPLITAG by ALTEGAD SAS</div>
+    <h1>${doc.icon} ${doc.label}</h1>
+    <div style="font-size:9pt;opacity:.8;margin-top:4px">Catégorie : ${doc.cat}</div>
+  </div>
+  <div class="meta">
+    <div><strong>Référence : ${ref}</strong></div>
+    <div>Généré le ${now.toLocaleDateString("fr-FR")} à ${now.toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"})}</div>
+    <div style="margin-top:4px">Jean-Christophe LETIERCE — Administrateur</div>
+  </div>
+</div>
+<div class="body">
+  <div class="notice">
+    ⚠️ Document généré en mode démonstration. Les champs ci-dessous sont à compléter avec les données réelles issues du dossier.
+  </div>
+  <div class="sec">
+    <h2>Champs du document</h2>
+    ${doc.champs.map((ch,i)=>`<div class="row"><span class="lbl">${ch}</span><span class="val">${i===0?"[Automatique depuis dossier]":i===1?"[Sélectionné]":"…………………………………"}</span></div>`).join("")}
+  </div>
+  <div class="sec">
+    <h2>Description</h2>
+    <div style="font-size:10pt;color:#374151;line-height:1.6;padding:10px;background:#F9FAFB;border-radius:6px">${doc.desc}</div>
+  </div>
+  <div class="sec">
+    <h2>Signatures</h2>
+    <div class="sign">
+      <div class="sign-box"><div class="sign-lbl">Établi par</div></div>
+      <div class="sign-box"><div class="sign-lbl">Lu et approuvé</div></div>
+    </div>
+  </div>
+</div>
+<div class="ftr">
+  <div>APPLITAG by ALTEGAD SAS · Jean-Christophe LETIERCE</div>
+  <div>${ref} · ${now.toLocaleDateString("fr-FR")} · Confidentiel</div>
+</div>
+</body></html>`;
+    const win = window.open("","_blank","width=1000,height=760");
+    win.document.write(html);
+    win.document.close();
+    setTimeout(()=>win.print(), 700);
+  };
+
   return (
     <div style={{maxWidth:1000,margin:"0 auto"}}>
       <div style={{marginBottom:16}}>
@@ -250,14 +316,18 @@ export const SectionDocuments = () => {
                   </div>
 
                   <div style={{marginTop:10,display:"flex",gap:6}}>
-                    <button style={{flex:1,padding:"8px",borderRadius:8,fontSize:11,fontWeight:700,
-                      cursor:"pointer",fontFamily:"inherit",border:"none",
-                      background:docPreview.couleur,color:"#fff"}}>
+                    <button
+                      onClick={()=>ouvrirPdfDoc(docPreview)}
+                      style={{flex:1,padding:"8px",borderRadius:8,fontSize:11,fontWeight:700,
+                        cursor:"pointer",fontFamily:"inherit",border:"none",
+                        background:docPreview.couleur,color:"#fff"}}>
                       ⬇️ Télécharger PDF
                     </button>
-                    <button style={{flex:1,padding:"8px",borderRadius:8,fontSize:11,fontWeight:700,
-                      cursor:"pointer",fontFamily:"inherit",background:"transparent",
-                      border:`1px solid ${C.bd}`,color:C.tx2}}>
+                    <button
+                      onClick={()=>alert("Envoi par mail disponible en mode connecté.")}
+                      style={{flex:1,padding:"8px",borderRadius:8,fontSize:11,fontWeight:700,
+                        cursor:"pointer",fontFamily:"inherit",background:"transparent",
+                        border:`1px solid ${C.bd}`,color:C.tx2}}>
                       ✉️ Envoyer par mail
                     </button>
                   </div>
@@ -308,9 +378,11 @@ export const SectionDocuments = () => {
                       background:st.bg,color:st.color}}>
                       {st.icon} {st.label}
                     </span>
-                    <button style={{padding:"4px 8px",borderRadius:6,fontSize:10,fontWeight:600,
-                      cursor:"pointer",fontFamily:"inherit",border:`1px solid ${C.bd}`,
-                      background:"transparent",color:C.tx2}}>
+                    <button
+                      onClick={()=>ouvrirPdfDoc(type||{id:doc.type,icon:"📄",label:doc.ref,cat:"—",desc:"Document archivé",champs:["Référence","Date","Auteur"],couleur:"#1E5B3A"},doc.id)}
+                      style={{padding:"4px 8px",borderRadius:6,fontSize:10,fontWeight:600,
+                        cursor:"pointer",fontFamily:"inherit",border:`1px solid ${C.bd}`,
+                        background:"transparent",color:C.tx2}}>
                       ⬇️
                     </button>
                   </div>
