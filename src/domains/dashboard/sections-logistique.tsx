@@ -68,7 +68,7 @@ const STATUT_ALERTE = {
   résolue:       {label:"Résolue",        col:"#065F46", bg:"#D1FAE5"},
 };
 
-const ALERTES_DATA = [
+const ALERTES_INIT = [
   {id:"ALT-001",chantierId:"CH-2026-11",
    dateCreation:"2026-07-01",dateMaj:"2026-07-14",
    titre:"Câbles téléphoniques — zone nord non délimitée",
@@ -112,6 +112,9 @@ export const SectionChantiers = () => {
   const [filtreStatut, setFiltreStatut] = useState("tous");
   const [selected, setSelected] = useState(null);
   const [ongletFiche, setOngletFiche] = useState("infos");
+  const [alertesData, setAlertesData] = useState(ALERTES_INIT);
+  const [formAjoutId, setFormAjoutId] = useState(null);
+  const [texteAjout, setTexteAjout] = useState("");
 
   const chantiers = filtreStatut==="tous"
     ? CHANTIERS_DATA
@@ -122,7 +125,7 @@ export const SectionChantiers = () => {
   const totSurface = CHANTIERS_DATA.reduce((s,c)=>s+c.surface,0);
   const totBudget  = CHANTIERS_DATA.reduce((s,c)=>s+c.budget,0);
   const enCours    = CHANTIERS_DATA.filter(c=>c.statut==="en cours").length;
-  const alertes    = ALERTES_DATA.filter(a=>a.statut!=="résolue").length;
+  const alertes    = alertesData.filter(a=>a.statut!=="résolue").length;
 
   return (
     <div style={{maxWidth:1000,margin:"0 auto"}}>
@@ -170,7 +173,7 @@ export const SectionChantiers = () => {
           {chantiers.map(c=>{
             const st = STATUT_CHANTIER[c.statut]||STATUT_CHANTIER.planifié;
             const isSelected = selected===c.id;
-            const nbAlt = ALERTES_DATA.filter(a=>a.chantierId===c.id&&a.statut!=="résolue").length;
+            const nbAlt = alertesData.filter(a=>a.chantierId===c.id&&a.statut!=="résolue").length;
             return (
               <div key={c.id} onClick={()=>setSelected(isSelected?null:c.id)}
                 style={{background:"#fff",borderRadius:12,padding:"12px 14px",cursor:"pointer",
@@ -208,7 +211,7 @@ export const SectionChantiers = () => {
         {/* Fiche détail */}
         {ch&&(()=>{
           const st = STATUT_CHANTIER[ch.statut]||STATUT_CHANTIER.planifié;
-          const nbAlt = ALERTES_DATA.filter(a=>a.chantierId===ch.id&&a.statut!=="résolue").length;
+          const nbAlt = alertesData.filter(a=>a.chantierId===ch.id&&a.statut!=="résolue").length;
           const onglets = [["infos","📋 Infos"],["terrain","⛰️ Terrain"],["machines","🚜 Machines"],["tas","🪵 Tas"],["alertes","⚠️ Alertes"+(nbAlt>0?" ("+nbAlt+")":"")]];
           return (
             <div style={{background:"#fff",borderRadius:14,border:`2px solid #1E5B3A`,
@@ -336,7 +339,7 @@ export const SectionChantiers = () => {
               })()}
 
               {ongletFiche==="alertes"&&(()=>{
-                const alertesChantier = ALERTES_DATA.filter(a=>a.chantierId===ch.id);
+                const alertesChantier = alertesData.filter(a=>a.chantierId===ch.id);
                 return (
                   <div style={{display:"flex",flexDirection:"column",gap:10}}>
                     {alertesChantier.length===0?(
@@ -388,20 +391,64 @@ export const SectionChantiers = () => {
                               ))}
                             </div>
                           </div>
-                          <div style={{display:"flex",gap:5,marginTop:8}}>
-                            <button onClick={()=>alert("Mise à jour de l'alerte "+alt.id+" — fonctionnalité disponible en mode connecté.")}
-                              style={{flex:1,padding:"5px",borderRadius:6,fontSize:9,fontWeight:700,
-                                cursor:"pointer",fontFamily:"inherit",background:"#1E3A5F",border:"none",color:"#fff"}}>
-                              ✏️ Ajouter une mise à jour
-                            </button>
-                            {alt.statut!=="résolue"&&(
-                              <button onClick={()=>alert("Alerte "+alt.id+" marquée résolue.")}
+                          {formAjoutId===alt.id?(
+                            <div style={{marginTop:8,background:"#F0F9FF",borderRadius:8,padding:"8px 10px",border:"1px solid #BAE6FD"}}>
+                              <div style={{fontSize:9,fontWeight:700,color:"#0369A1",marginBottom:5}}>✏️ Nouvelle mise à jour</div>
+                              <textarea
+                                value={texteAjout}
+                                onChange={e=>setTexteAjout(e.target.value)}
+                                placeholder="Décrivez l'action effectuée ou l'évolution de la situation…"
+                                style={{width:"100%",boxSizing:"border-box",height:60,borderRadius:6,
+                                  border:"1px solid #BAE6FD",fontFamily:"inherit",fontSize:9,
+                                  padding:"4px 7px",resize:"none",outline:"none"}}
+                              />
+                              <div style={{display:"flex",gap:5,marginTop:5}}>
+                                <button
+                                  onClick={()=>{
+                                    if(!texteAjout.trim()) return;
+                                    const today = new Date().toISOString().slice(0,10);
+                                    setAlertesData(prev=>prev.map(a=>a.id===alt.id?{
+                                      ...a, dateMaj:today,
+                                      actions:[...a.actions,{date:today,auteur:"J.C. LETIERCE",texte:texteAjout.trim()}]
+                                    }:a));
+                                    setTexteAjout("");
+                                    setFormAjoutId(null);
+                                  }}
+                                  style={{flex:1,padding:"4px",borderRadius:5,fontSize:9,fontWeight:700,
+                                    cursor:"pointer",fontFamily:"inherit",background:"#1E3A5F",border:"none",color:"#fff"}}>
+                                  Enregistrer
+                                </button>
+                                <button
+                                  onClick={()=>{setFormAjoutId(null);setTexteAjout("");}}
+                                  style={{padding:"4px 10px",borderRadius:5,fontSize:9,fontWeight:700,cursor:"pointer",
+                                    fontFamily:"inherit",background:"transparent",border:`1px solid ${C.bd}`,color:C.tx3}}>
+                                  Annuler
+                                </button>
+                              </div>
+                            </div>
+                          ):(
+                            <div style={{display:"flex",gap:5,marginTop:8}}>
+                              <button onClick={()=>{setFormAjoutId(alt.id);setTexteAjout("");}}
                                 style={{flex:1,padding:"5px",borderRadius:6,fontSize:9,fontWeight:700,
-                                  cursor:"pointer",fontFamily:"inherit",background:"#059669",border:"none",color:"#fff"}}>
-                                ✅ Marquer résolue
+                                  cursor:"pointer",fontFamily:"inherit",background:"#1E3A5F",border:"none",color:"#fff"}}>
+                                ✏️ Ajouter une mise à jour
                               </button>
-                            )}
-                          </div>
+                              {alt.statut!=="résolue"&&(
+                                <button
+                                  onClick={()=>{
+                                    const today = new Date().toISOString().slice(0,10);
+                                    setAlertesData(prev=>prev.map(a=>a.id===alt.id?{
+                                      ...a, statut:"résolue", dateMaj:today,
+                                      actions:[...a.actions,{date:today,auteur:"J.C. LETIERCE",texte:"Alerte marquée résolue."}]
+                                    }:a));
+                                  }}
+                                  style={{flex:1,padding:"5px",borderRadius:6,fontSize:9,fontWeight:700,
+                                    cursor:"pointer",fontFamily:"inherit",background:"#059669",border:"none",color:"#fff"}}>
+                                  ✅ Marquer résolue
+                                </button>
+                              )}
+                            </div>
+                          )}
                         </div>
                       );
                     })}
@@ -475,7 +522,7 @@ body{font-family:'Segoe UI',Arial,sans-serif;margin:0;color:#1a1a1a;font-size:10
   <div class="row"><span class="lbl">Photos terrain</span><span class="val">${ch.photos||0} photo${(ch.photos||0)!==1?"s":""}</span></div>
   <div class="row"><span class="lbl">Documents</span><span class="val">${ch.docs||0} document${(ch.docs||0)!==1?"s":""}</span></div>
   </div>
-  ${(()=>{const alts2=ALERTES_DATA.filter(a=>a.chantierId===ch.id);return alts2.length>0?`<div class="sec"><h2>Alertes actives (${alts2.filter(a=>a.statut!=="résolue").length}/${alts2.length})</h2>
+  ${(()=>{const alts2=alertesData.filter(a=>a.chantierId===ch.id);return alts2.length>0?`<div class="sec"><h2>Alertes actives (${alts2.filter(a=>a.statut!=="résolue").length}/${alts2.length})</h2>
   ${alts2.map(alt=>{const pr2=PRIORITE_ALERTE[alt.priorite]||PRIORITE_ALERTE.moyenne;const st3=STATUT_ALERTE[alt.statut]||STATUT_ALERTE.ouverte;return`<div class="tas">
     <div style="display:flex;justify-content:space-between;margin-bottom:5px">
       <strong style="color:${pr2.col}">${pr2.icon} ${alt.titre}</strong>
