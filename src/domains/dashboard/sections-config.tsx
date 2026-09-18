@@ -31,11 +31,126 @@ const RAPPORTS_RECENTS = [
   {type:"rpt_chantier", label:"CH-2026-12 — clôture", date:"2026-07-19", format:"PDF", taille:"1.2 Mo"},
 ];
 
+const PERIODE_LABELS = {
+  "2026-05":"Mai 2026","2026-04":"Avril 2026","2026-03":"Mars 2026",
+  "2026-T2":"T2 2026","2026-T1":"T1 2026","2026":"Année 2026",
+};
+
+const buildHtmlReport = (rpt, periodeLabel, axeInfo, numRapport, now, livraisons, visites) => {
+  const totalTonnage = livraisons.reduce((s,l)=>s+(parseFloat(l.tonnage||l.volume||0)||0),0);
+  const nbClients = new Set(livraisons.map(l=>l.client||l.contactNom||"").filter(Boolean)).size;
+  return `<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8">
+<title>${rpt.label} — ${periodeLabel}</title>
+<style>
+body{font-family:'Segoe UI',Arial,sans-serif;margin:0;padding:0;color:#1a1a1a;font-size:11pt}
+.hdr{background:#1E3A5F;color:#fff;padding:22px 32px;display:flex;justify-content:space-between;align-items:center}
+.hdr h1{margin:0;font-size:15pt}.hdr .meta{text-align:right;font-size:9pt;opacity:.85}
+.badge{background:${rpt.col};color:#fff;padding:2px 10px;border-radius:4px;font-size:9pt;font-weight:700;display:inline-block;margin-top:4px}
+.body{padding:22px 32px}.sec{margin-bottom:18px}
+.sec h2{font-size:12pt;color:${rpt.col};border-bottom:2px solid ${rpt.col};padding-bottom:3px;margin-bottom:10px}
+.stats{display:flex;gap:14px;margin-bottom:14px}
+.sbox{flex:1;background:#F0FDF4;border:1px solid #86EFAC;border-radius:8px;padding:10px 14px;text-align:center}
+.sbox .v{font-size:20pt;font-weight:800;color:${rpt.col}}.sbox .l{font-size:9pt;color:#555;margin-top:2px}
+table{width:100%;border-collapse:collapse;font-size:9pt}
+th{background:${rpt.col};color:#fff;padding:6px 8px;text-align:left}
+td{padding:5px 8px;border-bottom:1px solid #E5E7EB}tr:nth-child(even) td{background:#F9FAFB}
+.empty{background:#F9FAFB;border:1px dashed #D1D5DB;border-radius:6px;padding:14px;text-align:center;color:#9CA3AF;font-size:10pt}
+.ftr{margin-top:28px;padding:14px 32px;border-top:1px solid #E5E7EB;display:flex;justify-content:space-between;font-size:9pt;color:#666}
+@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}
+</style></head><body>
+<div class="hdr">
+  <div><div style="font-size:10pt;opacity:.7;margin-bottom:3px">🌿 APPLITAG by ALTEGAD SAS</div>
+  <h1>${rpt.icon} ${rpt.label}</h1>
+  <span class="badge">Période : ${periodeLabel}${axeInfo}</span></div>
+  <div class="meta"><div><strong>N° ${numRapport}</strong></div>
+  <div>Généré le ${now.toLocaleDateString("fr-FR")} à ${now.toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"})}</div>
+  <div style="margin-top:5px;font-size:8pt">Jean-Christophe LETIERCE — Administrateur</div></div>
+</div>
+<div class="body">
+  <div class="sec"><h2>Synthèse de la période</h2>
+  <div class="stats">
+    <div class="sbox"><div class="v">${totalTonnage>0?totalTonnage.toFixed(1):"—"}</div><div class="l">tonnes livrées</div></div>
+    <div class="sbox"><div class="v">${livraisons.length}</div><div class="l">livraisons</div></div>
+    <div class="sbox"><div class="v">${nbClients||"—"}</div><div class="l">clients actifs</div></div>
+    <div class="sbox"><div class="v">${visites.length}</div><div class="l">visites terrain</div></div>
+  </div></div>
+  ${livraisons.length>0?`<div class="sec"><h2>Détail des livraisons</h2>
+  <table><thead><tr><th>Référence</th><th>Date</th><th>Client / Contact</th><th>Tonnage</th><th>Statut</th></tr></thead><tbody>
+  ${livraisons.slice(0,25).map(l=>`<tr><td>${l.reference||l.id||"—"}</td><td>${(l.date||l.createdAt||"").slice(0,10)}</td><td>${l.client||l.contactNom||"—"}</td><td>${l.tonnage||l.volume||"—"} t</td><td>${l.statut||"—"}</td></tr>`).join("")}
+  </tbody></table>${livraisons.length>25?`<p style="font-size:9pt;color:#666">… et ${livraisons.length-25} autres livraisons</p>`:""}
+  </div>`:`<div class="sec"><h2>Données opérationnelles</h2>
+  <div class="empty">ℹ️ Aucune livraison enregistrée pour cette période.</div></div>`}
+  <div class="sec" style="margin-top:20px"><h2>Informations contractuelles</h2>
+  <p style="font-size:9pt;color:#444;line-height:1.6">Ce rapport est généré automatiquement par APPLITAG conformément aux exigences de traçabilité biomasse (RED II/III, Art. L. 211-4 C. énergie). Les données sont certifiées par signature numérique opérateur et archivées dans le système documentaire APPLITAG. Document à conserver 5 ans — Réf. ${numRapport}.</p></div>
+</div>
+<div class="ftr"><div>APPLITAG by ALTEGAD SAS · © Jean-Christophe LETIERCE — Tous droits réservés</div><div>Rapport ${numRapport} · ${now.toLocaleDateString("fr-FR")}</div></div>
+</body></html>`;
+};
+
 export const SectionRapports = () => {
   const [activeRpt, setActiveRpt] = useState(null);
   const [periode, setPeriode]     = useState("2026-05");
   const [axe, setAxe]             = useState("");
+  const [format, setFormat]       = useState("PDF");
+  const [generating, setGenerating] = useState(false);
+  const [genStatus, setGenStatus]   = useState(null);
+  const [recents, setRecents]       = useState(RAPPORTS_RECENTS);
+
   const rpt = activeRpt ? RAPPORTS_TYPES.find(r=>r.id===activeRpt) : null;
+
+  const handleGenerer = async () => {
+    if (!rpt || generating) return;
+    setGenerating(true);
+    setGenStatus(null);
+    try {
+      const [resLiv, resVis] = await Promise.allSettled([
+        apiGet("/livraisons"),
+        apiGet("/visites"),
+      ]);
+      const livraisons = resLiv.status==="fulfilled" ? (Array.isArray(resLiv.value)?resLiv.value:[]) : [];
+      const visites    = resVis.status==="fulfilled"  ? (Array.isArray(resVis.value)?resVis.value:[])  : [];
+
+      const periodeLabel = PERIODE_LABELS[periode] || periode;
+      const axeInfo = axe ? ` · ${axe}` : "";
+      const now = new Date();
+      const numRapport = `RPT-${now.getFullYear()}${String(now.getMonth()+1).padStart(2,"0")}${String(now.getDate()).padStart(2,"0")}-${String(now.getHours()).padStart(2,"0")}${String(now.getMinutes()).padStart(2,"0")}`;
+      let taille = "";
+
+      if (format === "Excel") {
+        let csv = `"APPLITAG — ${rpt.label}"\r\n"Période : ${periodeLabel}"\r\n"Rapport n° : ${numRapport}"\r\n"Généré le : ${now.toLocaleString("fr-FR")}"\r\n\r\n`;
+        csv += `"LIVRAISONS"\r\n"Référence","Date","Client","Tonnage","Statut"\r\n`;
+        if (livraisons.length>0) {
+          livraisons.slice(0,50).forEach(l=>{ csv+=`"${l.reference||l.id||""}","${(l.date||l.createdAt||"").slice(0,10)}","${l.client||l.contactNom||""}","${l.tonnage||l.volume||""}","${l.statut||""}"\r\n`; });
+        } else { csv += `"Aucune données pour cette période"\r\n`; }
+        const blob = new Blob(["﻿"+csv],{type:"text/csv;charset=utf-8"});
+        taille = `${Math.max(1,Math.round(blob.size/1024))} Ko`;
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a"); a.href=url; a.download=`${numRapport}.csv`; a.click();
+        URL.revokeObjectURL(url);
+      } else {
+        const html = buildHtmlReport(rpt, periodeLabel, axeInfo, numRapport, now, livraisons, visites);
+        const blob = new Blob([html],{type:"text/html"});
+        taille = `~${Math.max(1,Math.round(blob.size/1024))} Ko`;
+        const win = window.open("","_blank","width=900,height=720");
+        if (win) { win.document.write(html); win.document.close(); setTimeout(()=>win.print(),700); }
+        if (format === "PDF + Excel") {
+          let csv = `"APPLITAG — ${rpt.label}"\r\n"Période : ${periodeLabel}"\r\n\r\n"Référence","Date","Client","Tonnage","Statut"\r\n`;
+          livraisons.slice(0,50).forEach(l=>{ csv+=`"${l.reference||l.id||""}","${(l.date||l.createdAt||"").slice(0,10)}","${l.client||l.contactNom||""}","${l.tonnage||l.volume||""}","${l.statut||""}"\r\n`; });
+          const b2 = new Blob(["﻿"+csv],{type:"text/csv;charset=utf-8"});
+          const a2 = document.createElement("a"); a2.href=URL.createObjectURL(b2); a2.download=`${numRapport}.csv`; a2.click();
+        }
+      }
+
+      setRecents(prev=>[{type:rpt.id, label:`${rpt.label} — ${periodeLabel}${axeInfo}`, date:now.toISOString().slice(0,10), format, taille}, ...prev.slice(0,9)]);
+      setGenStatus("ok");
+      setTimeout(()=>setGenStatus(null),4000);
+    } catch {
+      setGenStatus("error");
+      setTimeout(()=>setGenStatus(null),4000);
+    } finally {
+      setGenerating(false);
+    }
+  };
 
   return (
     <div style={{maxWidth:1000,margin:"0 auto"}}>
@@ -46,7 +161,6 @@ export const SectionRapports = () => {
 
       <div style={{display:"grid",gridTemplateColumns:"1fr 300px",gap:14,alignItems:"start"}}>
         <div>
-          {/* Catalogue */}
           <div style={{fontSize:12,fontWeight:700,color:C.tx,marginBottom:8}}>📚 Catalogue des rapports disponibles</div>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:16}}>
             {RAPPORTS_TYPES.map(r=>(
@@ -63,21 +177,18 @@ export const SectionRapports = () => {
                   </div>
                 </div>
                 <div style={{fontSize:10,color:C.tx2,lineHeight:1.4}}>{r.desc}</div>
-                <div style={{marginTop:6,fontSize:9,color:C.tx3}}>
-                  Axes : {r.axes.join(" · ")}
-                </div>
+                <div style={{marginTop:6,fontSize:9,color:C.tx3}}>Axes : {r.axes.join(" · ")}</div>
               </div>
             ))}
           </div>
 
-          {/* Rapports récents */}
           <div style={{fontSize:12,fontWeight:700,color:C.tx,marginBottom:8}}>🕐 Rapports récents</div>
           <div style={{background:"#fff",borderRadius:12,border:`1px solid ${C.bd}`,overflow:"hidden"}}>
-            {RAPPORTS_RECENTS.map((r,i)=>{
+            {recents.map((r,i)=>{
               const type = RAPPORTS_TYPES.find(t=>t.id===r.type);
               return (
                 <div key={i} style={{display:"flex",gap:10,alignItems:"center",
-                  padding:"9px 14px",borderBottom:i<RAPPORTS_RECENTS.length-1?`1px solid ${C.bd}`:"none",
+                  padding:"9px 14px",borderBottom:i<recents.length-1?`1px solid ${C.bd}`:"none",
                   background:i%2===0?"#fff":"#FAFAFA"}}>
                   <span style={{fontSize:18}}>{type?.icon||"📄"}</span>
                   <div style={{flex:1}}>
@@ -141,22 +252,21 @@ export const SectionRapports = () => {
                   <div style={{display:"flex",gap:6}}>
                     {["PDF","Excel","PDF + Excel"].map(f=>(
                       <label key={f} style={{display:"flex",alignItems:"center",gap:4,fontSize:10,cursor:"pointer"}}>
-                        <input type="radio" name="fmt" defaultChecked={f==="PDF"}/> {f}
+                        <input type="radio" name="fmt" checked={format===f} onChange={()=>setFormat(f)}/> {f}
                       </label>
                     ))}
                   </div>
                 </div>
               </div>
 
-              {/* Aperçu contenu */}
               <div style={{background:"#F9FAFB",borderRadius:8,padding:10,
                 border:`1px solid ${C.bd}`,marginBottom:12,fontSize:10}}>
                 <div style={{fontWeight:700,color:C.tx,marginBottom:6}}>Contenu inclus :</div>
                 {[
                   "En-tête ALTEGAD + logo APPLITAG",
-                  `Période : ${periode}${axe?" · Axe : "+axe:""}`,
+                  `Période : ${PERIODE_LABELS[periode]||periode}${axe?" · Axe : "+axe:""}`,
                   "Données opérationnelles consolidées",
-                  "Graphiques et tableaux de synthèse",
+                  "Tableaux de synthèse et statistiques",
                   "Signature et cachet opérateur",
                   "Numéro de rapport + date de génération",
                 ].map((l,i)=>(
@@ -166,12 +276,28 @@ export const SectionRapports = () => {
                 ))}
               </div>
 
-              <button style={{width:"100%",padding:"9px",borderRadius:9,fontSize:12,fontWeight:800,
-                cursor:"pointer",fontFamily:"inherit",background:rpt.col,border:"none",color:"#fff"}}>
-                ⚡ Générer le rapport
+              {genStatus==="ok"&&(
+                <div style={{background:"#D1FAE5",border:"1px solid #6EE7B7",borderRadius:7,
+                  padding:"7px 10px",fontSize:11,color:"#065F46",marginBottom:8,textAlign:"center"}}>
+                  ✅ Rapport généré — ajouté aux rapports récents
+                </div>
+              )}
+              {genStatus==="error"&&(
+                <div style={{background:"#FEE2E2",border:"1px solid #FCA5A5",borderRadius:7,
+                  padding:"7px 10px",fontSize:11,color:"#991B1B",marginBottom:8,textAlign:"center"}}>
+                  ❌ Erreur lors de la génération
+                </div>
+              )}
+
+              <button onClick={handleGenerer} disabled={generating}
+                style={{width:"100%",padding:"9px",borderRadius:9,fontSize:12,fontWeight:800,
+                  cursor:generating?"wait":"pointer",fontFamily:"inherit",
+                  background:generating?"#9CA3AF":rpt.col,border:"none",color:"#fff",
+                  transition:"background .15s"}}>
+                {generating?"⏳ Génération en cours…":"⚡ Générer le rapport"}
               </button>
               <div style={{fontSize:9,color:C.tx3,textAlign:"center",marginTop:5}}>
-                Archivé automatiquement dans APPLITAG Documents
+                {format==="PDF"?"Ouvre une fenêtre d'impression PDF":format==="Excel"?"Télécharge un fichier CSV":"PDF (impression) + CSV téléchargé"}
               </div>
             </>
           )}
