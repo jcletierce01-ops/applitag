@@ -104,15 +104,26 @@ export const Fiche0 = ({onBack, onSaved, toast, entrepriseId, prefill=null, comp
     if (!validate()) { toast("Compléter les champs obligatoires","warn"); return; }
     setSaving(true);
     const contact = {
-      nom, prenom, telephone, email,
-      adressePostale, complementAdresse, cpProprietaire, villeProprietaire, commune, adresseParcelle,
-      surfaceHa: surfaceHa ? parseFloat(surfaceHa) : null,
-      refCadastrale, typeContact, origine, nomApporteur, dateContact,
+      nom, prenom, telephone,
+      ...(email.trim() ? { email: email.trim() } : {}),
+      ...(adressePostale ? { adressePostale } : {}),
+      ...(complementAdresse ? { complementAdresse } : {}),
+      ...(cpProprietaire ? { cpProprietaire } : {}),
+      ...(villeProprietaire ? { villeProprietaire } : {}),
+      commune, adresseParcelle,
+      surfaceHa: surfaceHa ? parseFloat(surfaceHa) : undefined,
+      refCadastrale, typeContact,
+      ...(origine ? { origine } : {}),
+      nomApporteur, dateContact,
       statut, potentiel: typeRessource==="mixte"
         ? `mixte:${mixteDetails.join(",")}`
-        : typeRessource, commentaire,
+        : typeRessource,
+      ...(commentaire ? { commentaire } : {}),
       codePostal,
-      entrepriseId, redacteur, conclusion, exploitationAutorisee,
+      // entrepriseId omis : le controller le prend de req.user.entrepriseId
+      ...(redacteur ? { redacteur } : {}),
+      ...(conclusion ? { conclusion } : {}),
+      ...(exploitationAutorisee ? { exploitationAutorisee } : {}),
       delaiExecution: delaiExecutionFiche || undefined,
       dateRdv: (["rendez_vous","visite_prevue","a_rappeler"].includes(conclusion) && dateRdv) ? dateRdv : undefined,
       lineaireHaieM: typeRessource==="haie_bocager" && lineaireHaie ? parseFloat(lineaireHaie) : undefined,
