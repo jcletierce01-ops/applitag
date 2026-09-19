@@ -10,7 +10,7 @@ import { BigBtn, MInput, SectionTitle, MSlider, CheckItem } from "../../shared/u
 import { SignatureCanvas } from "../../shared/SignatureCanvas.jsx";
 import { GeoContextBadge as GeoCtxBadge } from "../../shared/GeoContextBadge.jsx";
 import { TEXTES_REGL, CLAUSE_RESERVE, STATUT_REGL, VSS_RECONNUS } from "../../domains/dashboard/sections.constants.js";
-import { MapZonesProtegees, GpsWidget, PhotosWidget, EssenceEditor, ChecklistChantier } from "./FormulaireVisite.widgets.jsx";
+import { MapZonesProtegees, GpsWidget, PhotosWidget, EssenceEditor, ChecklistChantier, STEPS, DRAFT_KEY } from "./FormulaireVisite.widgets.jsx";
 export const FormulaireVisite = ({lot, onBack, onSaved, toast, entrepriseId, user}: any) => {
   const [step,     setStep]    = useState(0);
   const [returnStep, setReturnStep] = useState<any>(null); // retour direct au récapitulatif après "Compléter"

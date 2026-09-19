@@ -465,7 +465,7 @@ export const ChecklistChantier = ({showOperateur=false}) => {
   );
 };
 
-const STEPS = [
+export const STEPS = [
   {id:"admin",         label:"Rens. Admin.",    icon:"📋", color:C.blue},
   {id:"gps",           label:"GPS",           icon:"📍", color:C.green},
   {id:"photos",        label:"Photos",        icon:"📷", color:C.purple},
@@ -479,7 +479,7 @@ const STEPS = [
   {id:"finance",       label:"Finance",       icon:"💶", color:C.amber},
 ];
 
-const DRAFT_KEY = "applitag_visite_draft";
+export const DRAFT_KEY = "applitag_visite_draft";
 
 // ⚠ NON_VALIDEE (formules.js:FORMULE_CUBAGE_CYLINDRE) — formule cylindrique sans coefficient de forme Vf ;
 // surestime le volume réel de 40-150%. Utiliser tarifs de cubage INRAE pour usage probant.
