@@ -265,7 +265,7 @@ const SCIERIE_KEY_COPRODUITS= "applitag_scierie_coproduits";
 const SCIERIE_KEY_ENLEV     = "applitag_scierie_enlev";
 const LOTS_SECONDAIRES_KEY  = "applitag_lots_secondaires";
 const scierieGet = (key) => { try { return JSON.parse(localStorage.getItem(key)||"[]"); } catch { return []; } };
-const lotsSecGet = () => { try { return JSON.parse(localStorage.getItem(LOTS_SECONDAIRES_KEY)||"[]"); } catch { return []; } };
+export const lotsSecGet = () => { try { return JSON.parse(localStorage.getItem(LOTS_SECONDAIRES_KEY)||"[]"); } catch { return []; } };
 const lotsSecSet = (arr) => { try { localStorage.setItem(LOTS_SECONDAIRES_KEY,JSON.stringify(arr)); } catch { /* noop */ } };
 const scierieSet = (key,arr) => { try { localStorage.setItem(key,JSON.stringify(arr)); } catch { /* noop */ } };
 

@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { C } from "../../design-system/tokens.js";
 import { todayS, uid } from "../../shared/utils.js";
+import { DEMO_DOSSIER, CONTROLES_AUTO, FUNDING_PROGRAMS, STATUT_REG, WORKFLOW_FIN_STEPS } from "./sections-admin-modules.jsx";
 
 const STATUT_VERSION_COLORS = {
   EXPIRE:                      {color:"#374151",bg:"#E5E7EB",label:"Expiré"},

@@ -4,6 +4,7 @@ import { C, PADDING, FONT_TITLE, BTN_H, INPUT_H, FONT_INPUT } from "../../design
 import { TEXTES_REGL } from "./sections.constants.js";
 import { todayS, nowISO, uid } from "../../shared/utils.js";
 import { apiGet } from "../../services/api.service.js";
+import { DEMO_LIVRAISONS } from "../../demo/demoData.js";
 
 // ── VEILLE RÉGLEMENTAIRE ───────────────────────────────────────
 

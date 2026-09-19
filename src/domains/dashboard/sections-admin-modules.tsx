@@ -255,7 +255,7 @@ export const SectionModulesFuturs = () => {
 
 // ── FINANCEMENTS & RESTAURATION FORESTIÈRE ─────────────────────
 
-const STATUT_REG = {
+export const STATUT_REG = {
   BROUILLON:                   {label:"Brouillon",               color:"#6B7280", bg:"#F3F4F6"},
   ANNONCE_EN_ATTENTE_DE_TEXTE: {label:"Annoncé – texte attendu", color:"#92400E", bg:"#FEF3C7"},
   OUVERT:                      {label:"Ouvert",                  color:"#065F46", bg:"#D1FAE5"},
@@ -265,7 +265,7 @@ const STATUT_REG = {
   EXPIRE:                      {label:"Expiré",                  color:"#374151", bg:"#E5E7EB"},
 };
 
-const FUNDING_PROGRAMS = [
+export const FUNDING_PROGRAMS = [
   {
     id:"fff2100",
     nom:"France Forêt 2100",
@@ -415,7 +415,7 @@ const FUNDING_PROGRAMS = [
   },
 ];
 
-const WORKFLOW_FIN_STEPS = [
+export const WORKFLOW_FIN_STEPS = [
   {n:1,  label:"Projet identifié",              icon:"🔍", desc:"Identification de la parcelle et du besoin de restauration ou de renouvellement."},
   {n:2,  label:"Parcelle enregistrée",          icon:"📍", desc:"Enregistrement dans APPLITAG avec références cadastrales et coordonnées GPS."},
   {n:3,  label:"Diagnostic forestier",          icon:"🌲", desc:"Diagnostic sanitaire : essence, âge, dépérissement, nématode, risques climatiques, photos géolocalisées."},
@@ -442,7 +442,7 @@ const WORKFLOW_FIN_STEPS = [
   {n:24, label:"Archivage réglementaire",       icon:"🗄️", desc:"Conservation sécurisée des documents pendant la durée réglementaire. Journal d'audit non modifiable."},
 ];
 
-const DEMO_DOSSIER = {
+export const DEMO_DOSSIER = {
   id:"DOS-2026-001",
   programme:"France Forêt 2100 + Fonds vert",
   proprietaire:"M. Henri Bernard",
@@ -462,7 +462,7 @@ const DEMO_DOSSIER = {
   ],
 };
 
-const CONTROLES_AUTO = [
+export const CONTROLES_AUTO = [
   {statut:"ok",      msg:"Bénéficiaire identifié : propriétaire forestier privé — compatible tous programmes."},
   {statut:"ok",      msg:"Localisation : Forêt de Tronçais, Allier (03) — territoire national éligible."},
   {statut:"ok",      msg:"Surface : 12 ha — au-dessus du seuil minimal présumé."},
