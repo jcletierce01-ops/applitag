@@ -6,6 +6,7 @@ import { DEMO_LIVRAISONS } from "../../demo/demoData.js";
 import { todayS, nowISO, uid } from "../../shared/utils.js";
 import { MInput } from "../../shared/ui.jsx";
 import { apiGet, apiPost, apiPatch } from "../../services/api.service.js";
+import { getUser } from "../../services/auth.service.js";
 const ROLES_DEF = [
   {id:"super_editeur",  label:"Éditeur souverain — APPLITAG", icon:"🏢", color:"#111827"},
   {id:"admin",          label:"Administrateur",        icon:"⚙️",  color:"#1E5B3A"},
@@ -229,6 +230,8 @@ export const SectionAcces = ({_isDemo=false}) => {
     zoneGeo:"Département",perms:[],nomEntreprise:"",
   });
   const [smsSimule, setSmsSimule] = useState(null);
+  const [erreurCreation, setErreurCreation] = useState<string|null>(null);
+  const [creationEnCours, setCreationEnCours] = useState(false);
   const [recherche, setRecherche] = useState("");
 
   const rolesDef = Object.fromEntries(ROLES_DEF.map(r=>[r.id,r]));
@@ -252,13 +255,39 @@ export const SectionAcces = ({_isDemo=false}) => {
 
   const getChildren = (parentId) => utilisateurs.filter(u=>u.parentId===parentId);
 
-  const handleAjouter = () => {
-    if (!newUser.nom||!newUser.telephone) return;
-    const code = `${newUser.role.toUpperCase().slice(0,4)}-${Date.now().toString().slice(-4)}`;
-    const u = {...newUser, id:`u-new-${Date.now()}`, actif:true, codeGenere:code,
+  const handleAjouter = async () => {
+    if (!newUser.nom || !newUser.telephone) return;
+    const loginCode = `${newUser.role.toUpperCase().slice(0,4)}-${Date.now().toString().slice(-4)}`;
+    const pin = String(Math.floor(100000 + Math.random() * 900000));
+    const currentUser = getUser();
+    const entrepriseId = currentUser?.entrepriseId;
+    const nomComplet = [newUser.prenom, newUser.nom].filter(Boolean).join(" ");
+
+    if (entrepriseId && !currentUser?.demo) {
+      setCreationEnCours(true);
+      setErreurCreation(null);
+      try {
+        await apiPost(`/auth/entreprises/${entrepriseId}/utilisateurs`, {
+          nom: newUser.nom,
+          ...(newUser.prenom ? { prenom: newUser.prenom } : {}),
+          role: newUser.role,
+          telephone: newUser.telephone,
+          loginCode,
+          pin,
+        });
+      } catch(e: any) {
+        setErreurCreation(e?.message || "Erreur lors de la création du compte.");
+        setCreationEnCours(false);
+        return;
+      } finally {
+        setCreationEnCours(false);
+      }
+    }
+
+    const u = {...newUser, id:`u-new-${Date.now()}`, actif:true, codeGenere:loginCode,
       perms:newUser.perms.length>0?newUser.perms:PERMS_PAR_ROLE[newUser.role]||[]};
     setUtilisateurs(prev=>[...prev,u]);
-    setSmsSimule({nom:u.prenom+" "+u.nom, telephone:u.telephone, code, role:rolesDef[u.role]?.label});
+    setSmsSimule({nom:nomComplet, telephone:newUser.telephone, code:loginCode, pin, role:rolesDef[newUser.role]?.label});
     setVue("organigramme");
     setNewUser({nom:"",prenom:"",role:"operateur",email:"",telephone:"",parentId:"u-admin",
       region:"",departement:"",ville:"",codePostal:"",zoneGeo:"Département",perms:[],nomEntreprise:""});
@@ -604,12 +633,18 @@ td{padding:5px 10px;border-bottom:1px solid #E5E7EB}
               </div>
             </div>
 
-            <button onClick={handleAjouter}
+            {erreurCreation&&(
+              <div style={{background:"#FEF2F2",border:"1px solid #FCA5A5",borderRadius:8,
+                padding:"10px 12px",fontSize:12,color:"#B91C1C"}}>
+                ⚠️ {erreurCreation}
+              </div>
+            )}
+            <button onClick={handleAjouter} disabled={creationEnCours}
               style={{width:"100%",padding:"12px",borderRadius:10,
-                background:newUser.nom&&newUser.telephone?C.green:"#ccc",
-                color:"#fff",border:"none",fontSize:14,fontWeight:700,cursor:"pointer",
-                fontFamily:"inherit"}}>
-              ✅ Créer l'accès &amp; envoyer le code SMS
+                background:newUser.nom&&newUser.telephone&&!creationEnCours?C.green:"#ccc",
+                color:"#fff",border:"none",fontSize:14,fontWeight:700,
+                cursor:creationEnCours?"wait":"pointer",fontFamily:"inherit"}}>
+              {creationEnCours?"⏳ Création en cours…":"✅ Créer l'accès & envoyer le code SMS"}
             </button>
           </div>
         )}
@@ -625,7 +660,8 @@ td{padding:5px 10px;border-bottom:1px solid #E5E7EB}
             <div style={{fontSize:11,color:C.greenD,lineHeight:1.7}}>
               À : {smsSimule.telephone} ({smsSimule.nom})<br/>
               "Bonjour, votre accès APPLITAG ({smsSimule.role}) a été créé.<br/>
-              Code d'accès : <strong>{smsSimule.code}</strong><br/>
+              Identifiant : <strong>{smsSimule.code}</strong><br/>
+              Code PIN : <strong>{smsSimule.pin}</strong><br/>
               Téléchargez l'app : play.google.com/applitag"
             </div>
             <button onClick={()=>setSmsSimule(null)}
