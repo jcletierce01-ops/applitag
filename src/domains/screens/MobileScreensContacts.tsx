@@ -139,8 +139,8 @@ export const Fiche0 = ({onBack, onSaved, toast, entrepriseId, prefill=null, comp
           message:`🤔 Relance — ${nomContact} — dans ${delaiRappel}j (${dateRappel.split("-").reverse().join("/")})`,local:true});
       }
       onSaved(saved);
-    } catch {
-      toast("Erreur API","warn");
+    } catch (e: any) {
+      toast(`Erreur API : ${e?.message ?? "inconnue"}`, "warn");
     }
     setSaving(false);
   };
