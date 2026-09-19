@@ -96,6 +96,7 @@ export const Fiche0 = ({onBack, onSaved, toast, entrepriseId, prefill=null, comp
     if (!commune.trim())    e.commune = "Obligatoire";
     if (!codePostal.trim()) e.codePostal = "Obligatoire pour le n° de lot";
     if (!typeRessource)     e.typeRessource = "Sélectionner une nature";
+    if (email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) e.email = "Email invalide";
     setErrors(e);
     return Object.keys(e).length === 0;
   };
